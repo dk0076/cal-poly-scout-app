@@ -68,15 +68,8 @@ and players.
 
 ### Three things worth knowing before you read a number off it
 
-**Charts need ball coordinates, and plenty of files do not have them.** Both
-formats can carry them — `.dvw` stores a contact as an index into a 100×100
-grid, `.vsm` stores it directly — but whether a given file has them depends on
-how it was coded, not on its extension. The VolleyMetrics `.dvw` exports in
-`SCOUT/uncleaned scout/` do; the Cal Poly practice files, in either format, do
-not. On a file without them the charts are suppressed and the tables carry the
-report on their own; every count, rate and rotation split works exactly as it
-does on a file with coordinates. The app decides this per file from its actual
-contents and says so in a banner.
+**Shot charts only work on files coded with lines.** No coordinates, no
+charts — the tables still work. Either format can carry them.
 
 **Is the dvw coordinate decoding right?** Yes, and there is a clean proof of
 it. On `IU TAMU`, available as both a cleaned `.vsm` and an uncleaned `.dvw`,
