@@ -19,16 +19,16 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
   mono <- isTRUE(o$mono)
 
   H <- hdr("Pass quality",
-           sprintf("%s receptions · who to target before serving — sorted worst positive%% first",
+           sprintf("%s receptions · who to target before serving, sorted worst positive%% first",
                    nrow(R0)))
   H <- c(H, kpis(list(
     list(k = "Receptions", v = t0$n),
-    list(k = "Pass average", v = if (is.na(t0$avg)) "—" else sprintf("%.2f", t0$avg),
+    list(k = "Pass average", v = if (is.na(t0$avg)) "" else sprintf("%.2f", t0$avg),
          s = "0–4 scale"),
     list(k = "Positive %", v = pct(t0$pospct), s = "# or +"),
     list(k = "Error %", v = pct(t0$errpct), s = "ace against"),
     list(k = "Overpass", v = t0$over, s = "no attack possible"),
-    list(k = "Median off-net", v = if (!is.na(t0$med_off_net)) m1(t0$med_off_net) else "—",
+    list(k = "Median off-net", v = if (!is.na(t0$med_off_net)) m1(t0$med_off_net) else "",
          s = "m, pass result"),
     list(k = "Earned FBSO", v = pct(fbso_line(F)$pct), s = "first-attack kills / receptions")
   )))
@@ -46,7 +46,7 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
                      alt = "reception contact to pass result",
                      mono = mono, coords_ok = coords_ok)
 
-  left <- sprintf('<div class="card"><h3>Every reception — contact to pass result</h3>%s%s</div>',
+  left <- sprintf('<div class="card"><h3>Every reception, contact to pass result</h3>%s%s</div>',
     court,
     legend(c("var(--kill)", "perfect (#)"), c("var(--inplay)", "in play"),
            c("var(--blocked)", "overpass"), c("var(--err)", "error / ace against"),
@@ -54,18 +54,18 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
 
   Rc <- list()
 
-  Rc <- c(Rc, card("By passer — weakest first (3+ receptions)", c(tbl_generic(
+  Rc <- c(Rc, card("By passer, weakest first (3+ receptions)", c(tbl_generic(
     c("Passer", "Rec", "Avg", "Perfect", "Good", "Poor", "Neg", "Err", "Pos%", "Err%", "Off-net m"),
     lapply(by_player, function(g) {
       parts <- strsplit(g$key, "|", fixed = TRUE)[[1]]
       s <- g$stat
       c(sprintf("<b>%s</b> %s", parts[1], esc(parts[2])), s$n,
-        if (is.na(s$avg)) "—" else sprintf("%.2f", s$avg),
+        if (is.na(s$avg)) "" else sprintf("%.2f", s$avg),
         s$perfect, s$good, s$poor, s$neg, s$err,
         sprintf('<span class="%s">%s</span>',
                 if (!is.na(s$pospct) && s$pospct < 0.5) "neg" else "", pct(s$pospct)),
         pct(s$errpct),
-        if (!is.na(s$med_off_net)) m1(s$med_off_net) else "—")
+        if (!is.na(s$med_off_net)) m1(s$med_off_net) else "")
     })),
     tiny("Avg is this staff's own 0–4 scale, taken from the WEIGHTS block of their VolleyStation worksheet: # 4, + 3, ! 2, - 1, overpass 0.5, error 0. Positive = perfect (#) or good (+), VolleyStation's own \"positive reception\" grouping. Sorted so the passer most worth targeting sits at the top. Off-net m is the median result of the pass itself (distance from net), not where they stood to receive."))))
 
@@ -94,7 +94,7 @@ system_card <- function(G, CV) {
   if (!nrow(G)) return("")
   back  <- function(p) !is.na(p$rot) & p$rot %in% c("R1", "R2", "R3")
   front <- function(p) !is.na(p$rot) & p$rot %in% c("R4", "R5", "R6")
-  ci_txt <- function(v, ci) if (is.na(v)) "—" else
+  ci_txt <- function(v, ci) if (is.na(v)) "" else
     sprintf("%s <small style=\"color:var(--ink-3)\">%d-%d</small>",
             pct(v), round(ci[1] * 100), round(ci[2] * 100))
   mk_row <- function(label, rs, cv) {
@@ -104,7 +104,7 @@ system_card <- function(G, CV) {
     ci <- wilson(f$kills, f$rec)
     c(label, r$n, pct(r$pospct), pct(r$errpct), f$kills,
       if (f$rec) sprintf("%s <small style=\"color:var(--ink-3)\">%d-%d</small>",
-                         pct(f$pct), round(ci[1] * 100), round(ci[2] * 100)) else "—",
+                         pct(f$pct), round(ci[1] * 100), round(ci[2] * 100)) else "",
       nrow(A), eff_td(a$eff), c0$n, ci_txt(c0$pct, c0$ci))
   }
   rows <- list()

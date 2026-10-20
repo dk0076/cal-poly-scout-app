@@ -92,7 +92,7 @@ tab_last6 <- function(F, o) {
         sprintf('<div class="atts">%s</div>', cells))
     })
     card(label, c(tbl_generic(
-      c("Hitter", "Att", "Eff", sprintf("Last %d", n), "Attempts — oldest to newest"), rows),
+      c("Hitter", "Att", "Eff", sprintf("Last %d", n), "Attempts, oldest to newest"), rows),
       tiny(note_txt)))
   }
 
@@ -100,7 +100,7 @@ tab_last6 <- function(F, o) {
     block("Pins", "Pins",
           "Outsides and opposites: every hitter whose attacks are not mostly middle-targeted. Eff is VolleyStation's own formula, (# − / − =) ÷ attempts, applied to all their attempts and then to the recent window. The arrow compares the two."),
     block("Middles", "Middles",
-          "Hitters whose attacks are at least half middle-targeted, worked out from what they actually run rather than from a roster tag — which is unreliable for a scouted opponent."),
+          "Hitters whose attacks are at least half middle-targeted, worked out from what they actually run rather than from a roster tag, which is unreliable for a scouted opponent."),
     if (any(A$grp == "Other"))
       block("Other", "Setters, liberos and unclassified",
             "Anyone the role inference could not place as a pin or a middle: setter dumps, a libero swing, or a hitter with too few attempts to classify.") else NULL)

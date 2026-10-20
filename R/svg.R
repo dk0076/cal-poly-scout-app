@@ -355,7 +355,7 @@ rotation_wheel <- function(vals, ref = NA_real_, labs = NULL, id = "rw") {
       sprintf('<text x="%.1f" y="%.1f" text-anchor="middle" font-family="ui-monospace,monospace" font-size="15" font-weight="700" fill="var(--ink)">%s</text>',
               x, y - 9, k),
       sprintf('<text x="%.1f" y="%.1f" text-anchor="middle" font-family="ui-monospace,monospace" font-size="19" fill="var(--ink)">%s</text>',
-              x, y + 12, if (is.na(v)) "—" else pct(v)))
+              x, y + 12, if (is.na(v)) "" else pct(v)))
     if (!is.null(labs) && !is.na(labs[[k]] %||% NA))
       out <- c(out, sprintf('<text x="%.1f" y="%.1f" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="var(--ink-3)">%s</text>',
                             x, y + 27, esc(labs[[k]])))

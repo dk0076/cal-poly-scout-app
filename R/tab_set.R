@@ -30,7 +30,7 @@ tab_set <- function(F, o, coords_ok) {
                    nrow(E), nrow(xy), nrow(linked)))
   H <- c(H, kpis(list(
     list(k = "Sets", v = nrow(E)),
-    list(k = "Median off-net", v = if (length(offnet)) m1(med(offnet)) else "—", s = "m"),
+    list(k = "Median off-net", v = if (length(offnet)) m1(med(offnet)) else "", s = "m"),
     list(k = "Front-row band", v = pct(if (nrow(xy)) sum(xy$y0 >= 600) / nrow(xy) else NA)),
     list(k = "Attack kill% after", v = pct(s0$kpct)),
     list(k = "Attack hitting after", v = eff(s0$eff))
@@ -78,8 +78,8 @@ tab_set <- function(F, o, coords_ok) {
         t0 <- function(k) pct(sum(!is.na(g$rows$target) & g$rows$target == k) / nrow(g$rows))
         xs <- gg$x0
         c(sprintf("<b>%s</b> %s", parts[1], esc(parts[2])), g$stat$n,
-          if (nrow(gg)) m1(med(COURT$NET - gg$y0)) else "—",
-          if (length(xs)) sprintf("%s–%s", m1(min(xs)), m1(max(xs))) else "—",
+          if (nrow(gg)) m1(med(COURT$NET - gg$y0)) else "",
+          if (length(xs)) sprintf("%s–%s", m1(min(xs)), m1(max(xs))) else "",
           t0("F"), t0("C"), t0("B"), t0("P"), pct(g$stat$kpct), eff_td(g$stat$eff))
       }))))
 
@@ -87,7 +87,7 @@ tab_set <- function(F, o, coords_ok) {
 
   row_for <- function(label, rs) {
     s <- set_line(rs)
-    t0 <- function(k) if (nrow(rs)) pct(sum(!is.na(rs$target) & rs$target == k) / nrow(rs)) else "—"
+    t0 <- function(k) if (nrow(rs)) pct(sum(!is.na(rs$target) & rs$target == k) / nrow(rs)) else ""
     c(label, nrow(rs), pct(if (nrow(xy)) nrow(rs) / nrow(xy) else NA),
       t0("F"), t0("C"), t0("B"), t0("P"), pct(s$kpct), eff_td(s$eff))
   }
@@ -113,7 +113,7 @@ tab_set <- function(F, o, coords_ok) {
       gg <- g$rows[g$rows$has_xy, ]
       c(if (is.na(TARGET[g$key])) g$key else unname(TARGET[g$key]),
         g$stat$n, pct(g$stat$n / nrow(E)),
-        if (nrow(gg)) m1(med(COURT$NET - gg$y0)) else "—",
+        if (nrow(gg)) m1(med(COURT$NET - gg$y0)) else "",
         pct(g$stat$kpct), eff_td(g$stat$eff))
     }))))
 
@@ -150,7 +150,7 @@ tab_set <- function(F, o, coords_ok) {
   by_type <- by_size(crosstab(sel[!is.na(sel$atk_call), ],
                               sel$atk_season_call[!is.na(sel$atk_call)], set_line), "n")
   no_call <- sum(is.na(sel$atk_call))
-  R <- c(R, card(sprintf("What got set from here — %s set%s", st_sel$n,
+  R <- c(R, card(sprintf("What got set from here, %s set%s", st_sel$n,
                          if (st_sel$n == 1) "" else "s"),
     c(tbl_generic(c("Hit type", "Sets", "Sh%", "Atk K%", "Atk hit"),
         c(lapply(by_type, function(g)
@@ -158,7 +158,7 @@ tab_set <- function(F, o, coords_ok) {
               g$stat$n, pct(g$stat$n / max(1, nrow(sel))),
               pct(g$stat$kpct), eff_td(g$stat$eff))),
           if (no_call) list(c(thin("no attack / not coded"), no_call,
-                              pct(no_call / max(1, nrow(sel))), "—", "—")) else list())),
+                              pct(no_call / max(1, nrow(sel))), "", "")) else list())),
       if (!nrow(sel)) '<div class="tiny">No sets in the selected zones.</div>' else "")))
 
   # Season codes that actually appear under a target letter, commonest first.
@@ -183,7 +183,7 @@ tab_set <- function(F, o, coords_ok) {
       t0 <- function(k) pct(sum(!is.na(g$rows$target) & g$rows$target == k) / nrow(g$rows))
       none <- sum(is.na(g$rows$target))
       c(g$key, g$stat$n, t0("F"), t0("C"), t0("B"), t0("P"), t0("S"),
-        if (none) thin(pct(none / nrow(g$rows))) else "—", eff_td(g$stat$eff))
+        if (none) thin(pct(none / nrow(g$rows))) else "", eff_td(g$stat$eff))
     })),
     tiny("Each column is the share of that rotation's sets whose target code matches. Columns cover every set, so rows total 100%."))))
 
@@ -208,16 +208,16 @@ tab_set <- function(F, o, coords_ok) {
       if (n) sprintf("%s·%s", r, n) else ""
     }, "")), collapse = "  ")
     cs <- if (is.na(k)) character() else codes_for(k, 6)
-    c(sprintf("<b>%s</b> %s", label, thin(if (is.na(k)) "—" else k)), nrow(rs),
+    c(sprintf("<b>%s</b> %s", label, thin(if (is.na(k)) "" else k)), nrow(rs),
       if (length(cs)) paste(vapply(cs, function(c0)
         sprintf("%s %s", esc(c0), thin(esc(call_label(c0)))), ""), collapse = ", ")
-      else thin("—"),
+      else thin(""),
       if (nzchar(who)) who else thin("no attack linked"),
       thin(spread))
   }))
   R <- c(R, card("What each column counts", c(tbl_generic(
     c("Column", "Sets", "Calls it contains", "Who received them", "By rotation"), wrows),
-    tiny("The target code is entered by the coder on the set itself — it is a label for the intended attacker, not derived from where the ball went. A column reading 0% in some rotation usually means that attacker was in the back row or substituted out, so check the rotation spread before reading it as a tendency."))))
+    tiny("The target code is entered by the coder on the set itself, it is a label for the intended attacker, not derived from where the ball went. A column reading 0% in some rotation usually means that attacker was in the back row or substituted out, so check the rotation spread before reading it as a tendency."))))
 
   paste0(c(H, cols2(left, R, 470)), collapse = "")
 }
@@ -252,12 +252,12 @@ setter_calls_card <- function(E) {
     eff_val <- if (nrow(lk)) (k - e) / nrow(lk) else NA_real_
     c(sprintf("<b>%s</b>%s", esc(g$key), if (nzchar(known)) paste0(" ", thin(esc(known))) else ""),
       g$stat$ta,
-      if (nrow(linked)) pct(nrow(linked) / g$stat$ta) else "—",
-      if (nzchar(top)) top else "—",
+      if (nrow(linked)) pct(nrow(linked) / g$stat$ta) else "",
+      if (nzchar(top)) top else "",
       pct(if (nrow(lk)) k / nrow(lk) else NA), eff_td(eff_val))
   })
 
   card("Setter calls → what actually resulted", c(tbl_generic(
     c("Call", "Called", "Became an attack", "Resulting combo(s)", "Atk K%", "Atk hit"), rows),
-    tiny("The call is recorded on the setter's own play; \"resulting combo(s)\" is whatever code the attack that followed was independently classified as — often different from the call, since a called route can break down into something else. Calls not defined in this file's own combination table are labelled from the program's known call vocabulary where recognised.")))
+    tiny("The call is recorded on the setter's own play; \"resulting combo(s)\" is whatever code the attack that followed was independently classified as, often different from the call, since a called route can break down into something else. Calls not defined in this file's own combination table are labelled from the program's known call vocabulary where recognised.")))
 }

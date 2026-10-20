@@ -64,7 +64,7 @@ parse_vsm <- function(text, file_name) {
                     stop(sprintf("%s: not readable as VolleyStation JSON. %s",
                                  file_name, conditionMessage(e)), call. = FALSE))
   if (is.null(raw$scout) || !length(raw$scout$sets))
-    stop(sprintf("%s: no scout.sets block — is this a .vsm match file?", file_name),
+    stop(sprintf("%s: no scout.sets block, is this a .vsm match file?", file_name),
          call. = FALSE)
 
   home <- raw$team$home %||% list(name = "Home", players = list())
@@ -76,7 +76,7 @@ parse_vsm <- function(text, file_name) {
     nums <- rosters[[sd]]$num
     dup <- unique(nums[duplicated(nums)])
     if (length(dup))
-      warn <- c(warn, sprintf("%s: duplicate jersey number(s) %s on the %s roster — two seasons stacked in one file, player-level stats will merge two people.",
+      warn <- c(warn, sprintf("%s: duplicate jersey number(s) %s on the %s roster, two seasons stacked in one file, player-level stats will merge two people.",
                               file_name, paste(dup, collapse = ", "), sd))
   }
 
@@ -286,7 +286,7 @@ parse_vsm <- function(text, file_name) {
   # rather than left to look like a finding.
   if (split_exchanges)
     warn <- c(warn, sprintf(
-      "%s: %d exchange%s held more than one rally (set%s %s). They have been split at each serve so the serve-receive and transition splits are right, but the file records only one lineup per exchange — treat rotation cuts on those sets as the starting rotation only.",
+      "%s: %d exchange%s held more than one rally (set%s %s). They have been split at each serve so the serve-receive and transition splits are right, but the file records only one lineup per exchange, treat rotation cuts on those sets as the starting rotation only.",
       file_name, split_exchanges, if (split_exchanges == 1) "" else "s",
       if (length(split_sets) == 1) "" else "s",
       paste(sort(as.integer(names(split_sets))), collapse = ", ")))

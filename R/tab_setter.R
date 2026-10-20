@@ -31,7 +31,7 @@ tab_setter <- function(F, o, coords_ok) {
   cut <- nrow(Eall) - nrow(E)
 
   chips <- viewbar(
-    '<span class="tiny" style="align-self:center;margin:0 6px 0 0">Setters — click to include or drop</span>',
+    '<span class="tiny" style="align-self:center;margin:0 6px 0 0">Setters, click to include or drop</span>',
     sprintf('<button class="chip %s" data-o="setterEx" data-v="">All</button>',
             if (!length(dropped_keys)) "on" else ""),
     paste0(vapply(roster, function(g) {
@@ -47,7 +47,7 @@ tab_setter <- function(F, o, coords_ok) {
   t0 <- setter_eff(E)
   TKEYS <- list(c("F", "Out"), c("C", "Mid"), c("B", "Opp"), c("P", "Pipe"))
   share <- function(rs, k)
-    if (nrow(rs)) pct(sum(!is.na(rs$target) & rs$target == k) / nrow(rs)) else "—"
+    if (nrow(rs)) pct(sum(!is.na(rs$target) & rs$target == k) / nrow(rs)) else ""
 
   H <- hdr("Setter", sprintf(
     "%s sets · %s linked to the attack they produced%s · distribution and efficiency only, no contact points",
@@ -74,8 +74,8 @@ tab_setter <- function(F, o, coords_ok) {
       c(sprintf("<b>%s</b> %s", parts[1], esc(parts[2])), g$stat$n, g$stat$bhe,
         pct(g$stat$linked / g$stat$n), pct(g$stat$assist), pct(g$stat$kpct),
         eff_td(g$stat$hit),
-        if (so$linked) eff_td(so$hit) else "—",
-        if (tr$linked) eff_td(tr$hit) else "—",
+        if (so$linked) eff_td(so$hit) else "",
+        if (tr$linked) eff_td(tr$hit) else "",
         vapply(TKEYS, function(k) share(g$rows, k[1]), ""),
         eff_td(g$stat$seff))
     })),

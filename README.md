@@ -3,7 +3,7 @@
 Opponent and self scouting off coded match files, in R/Shiny. A port of the
 `scout_vsm` single-file HTML tool.
 
-By **Andrew King** — Statistics and Data Science, Cal Poly. Built with AI
+By **Andrew King**, Statistics and Data Science, Cal Poly. Built with AI
 assistance.
 
 ## Match files are not in this repository
@@ -53,13 +53,13 @@ Six tabs, ported from the original:
 | Tab | What it answers |
 | --- | --- |
 | **Attack direction** | Where each hitter puts the ball and what it returns. Trajectories, landing grid, contact points, tendency lines, lane / line-seam-cross / depth splits, middle routes, SR vs transition by rotation and by hit type, hard vs tip, and against the block. |
-| **Serve direction** | Contact behind the endline to landing point. By type, by server, by target zone, by depth band, by serving position — plus passer-start marks: against this server, where should our passer stand. |
+| **Serve direction** | Contact behind the endline to landing point. By type, by server, by target zone, by depth band, by serving position, plus passer-start marks: against this server, where should our passer stand. |
 | **Set origin** | Where the setter touched it and what she could run from there. Contact points coloured by target, set→hitter arrows, contact grid, and a click-the-zones explorer that cuts by lane and distance off the net. |
-| **Setter** | Distribution and efficiency, no coordinates needed — so it works identically on a `.dvw`. By setter, by target, by the pass that fed it, by phase, by rotation, by hitter. Every player who set is listed and any of them can be switched off; there is no automatic hiding. |
+| **Setter** | Distribution and efficiency, no coordinates needed, so it works identically on a `.dvw`. By setter, by target, by the pass that fed it, by phase, by rotation, by hitter. Every player who set is listed and any of them can be switched off; there is no automatic hiding. |
 | **Pass quality** | Sorted worst positive% first, because the use of this page before a match is picking who to serve. Includes earned FBSO and a 5-1 vs 6-2 comparison with Wilson intervals. |
-| **Defense** | How we are defending, kept as three separate questions: what they manage against us (their attack efficiency, by call and by where it lands in our court), whether we touch it (block touches and stuffs, digs kept up and in system), and whether we win the rally afterwards (transition conversion). The court is drawn from our baseline — their attacks mirrored into our frame. |
+| **Defense** | How we are defending, kept as three separate questions: what they manage against us (their attack efficiency, by call and by where it lands in our court), whether we touch it (block touches and stuffs, digs kept up and in system), and whether we win the rally afterwards (transition conversion). The court is drawn from our baseline, their attacks mirrored into our frame. |
 | **Rotations** | Rotational analysis to the staff's own layout, for both teams side by side: SO%, ESO%, FBSO%, PS%, +/-, aces and errors per rotation, then the same questions by set with Eff, K%, E+B% and sQ%. Rotation labels carry the setter's court zone. sQ% is serve-receive quality, defined from the worksheet's own `VSPER(VSOR(R#, R+))`. |
-| **Last 6** | Who is swinging well *now*, after this program's own "MATCH Last 6 Attempts Viewer" worksheet. A row per hitter — attempts, overall efficiency, efficiency across the recent window with an arrow against the overall, then the attempts themselves oldest to newest as colour-coded chips showing call and grade. Split into pins and middles, because a middle on six quicks and a pin on six high balls are not comparable. Window switches to 10 or 15. |
+| **Last 6** | Who is swinging well *now*, after this program's own "MATCH Last 6 Attempts Viewer" worksheet. A row per hitter: attempts, overall efficiency, efficiency across the recent window with an arrow against the overall, then the attempts themselves oldest to newest as colour-coded chips showing call and grade. Split into pins and middles, because a middle on six quicks and a pin on six high balls are not comparable. Window switches to 10 or 15. |
 | **Plays & export** | The raw touches behind every other number, and a CSV of every filtered play. |
 
 The left rail filters everything at once: matches, which side of each file is
@@ -69,43 +69,23 @@ and players.
 ### Three things worth knowing before you read a number off it
 
 **Shot charts only work on files coded with lines.** No coordinates, no
-charts — the tables still work. Either format can carry them.
+charts, the tables still work. Either format can carry them.
 
-**Is the dvw coordinate decoding right?** Yes, and there is a clean proof of
-it. On `IU TAMU`, available as both a cleaned `.vsm` and an uncleaned `.dvw`,
-the free balls were never re-cleaned, so those 19 plays hold the same
-coordinates in both files. Regressing one on the other gives **R² = 1.000 on
-all four coordinates**, median difference under one grid cell. Attacks and
-serves — the skills someone did re-clean — sit at R² 0.58–0.65, and 41% of
-their landings differ by more than four cells. A decoding fault is a
-deterministic function of the stored value, so it cannot be exact on one skill
-and scattered on another; the scatter is the cleaning pass, not the parser.
-
-Two further checks agree. The court occupies exactly 80.00 grid columns and
-81.00 rows with the net on row 50.00 of 100 — a wrong court extent would leave
-those ragged. And contact x, which shares the decoder with contact y, regresses
-at slope 1.003–1.012 with R² 0.992.
+**The dvw coordinate decoding is verified.** On a match held in both formats,
+the plays that neither pass re-cleaned decode identically (R² = 1.000), so the
+differences elsewhere are the cleaning, not the parser.
 
 A caution for anyone extending this: regress per skill, never pooled. Serves
-contact at y ≈ −150 and attacks at y ≈ +750, and pooling two populations that
-each sit on their own line bends the combined slope into a scale error that is
-not there. It reported 0.976 on a file whose per-skill slopes were 1.01 and
-1.00. `tests/parity.R` does it per skill for that reason.
+and attacks contact at very different heights, and pooling two populations that
+each sit on their own line invents a scale error that is not there.
+`tests/parity.R` does it per skill for that reason.
 
-**The two formats do not store coordinates the same way**, and the difference
-is invisible rather than loud. In both, a serve, set, attack or block is
-recorded in the acting team's own frame. But a `.dvw` reception or dig row is a
-verbatim copy of the serve or attack it answers, so it sits in the *opponent's*
-frame, and its "start" is where the ball came from while its "end" is where it
-reached the defender — which is what a `.vsm` stores as the reception's
-*start*. Left alone it puts the passer out beyond the far endline. The parser
-mirrors those two skills and takes the contact from the end; `tests/verify.R`
-checks the grid codec round-trips exactly and that dvw serves start behind the
-endline and attacks cross the net.
+**The two formats store receptions and digs differently**, so the parser
+mirrors those two skills to make them agree, and `tests/verify.R` checks it.
 
 **Two defensive fields are not being coded in this program's own files.**
-Every Cal Poly file to hand records `2` blockers on every single attack — 369
-of 369 on one, 370 of 370 on another — so the blocker count is a constant, not
+Every Cal Poly file to hand records `2` blockers on every single attack, 369
+of 369 on one, 370 of 370 on another, so the blocker count is a constant, not
 a measurement. Digs are graded only `+`, `/` and `=`, never `#`, so "in
 system" collapses to "kept up". The Defense tab detects both and says so
 rather than printing a confident-looking table built on a constant. Scouted
@@ -114,28 +94,28 @@ Coding those two fields would make the blocking read the most useful table on
 that page.
 
 **Some touches are excluded from every rate.** Practice players #98 and #99
-are not players, and they are not rare — 1447 touches across 15 files here,
+are not players, and they are not rare, 1447 touches across 15 files here,
 663 of them attacks, which moved one file's hitting from .081 to .095 once
 they came out. Plays whose custom tag contains `00` are excluded too: that tag
 means the coder marked the play to revisit, so it is not final. Both are
-excluded rather than deleted — they still appear on the Plays tab — and the
+excluded rather than deleted, they still appear on the Plays tab, and the
 count is reported in a banner so the exclusion is visible. `Z` is the opposite
 of `00`, a play flagged *for* the coach, and is never excluded.
 
 **Intrasquad files have the same team name on both sides.** All the Cal-Cal
 practice files do. The focus picker shows one entry, so use the per-file side
-dropdown in the rail to choose which six you are looking at — it labels them
-"— home side" and "— away side" when the names match.
+dropdown in the rail to choose which six you are looking at, it labels them
+"home side" and "away side" when the names match.
 
 **Rotation labels are sequence-based.** R1 is the setter in zone 1, then 6, 5,
-4, 3, 2 — so R1–R3 are the setter-back-row rotations and R4–R6 the front-row
+4, 3, 2, so R1–R3 are the setter-back-row rotations and R4–R6 the front-row
 ones, which is the convention coaches use. Labelling by raw zone number instead
 was the original tool's bug: it put the front-row-setter rotations at S2/S3/S4
 and read as though the opposite vanished there.
 
 ### Working rule: every new metric is cross-checked against VolleyStation
 
-Not reconciled afterwards — defined against it in the first place. VolleyStation
+Not reconciled afterwards, defined against it in the first place. VolleyStation
 computes every skill efficiency with one formula, in
 `app/submodules/functions/get-efficiency.function.js` of the readable build at
 `C:\vsdev`:
@@ -147,7 +127,7 @@ efficiency = (count of winning symbols - count of losing symbols) / total
 with the default symbol table from `user-settings.service.js`. That table is
 transcribed into `VS_SYMBOLS` in `R/core.R`, and `vs_efficiency(effect, skill)`
 applies it. `tests/verify.R` asserts, on real data, that this tool's attack
-efficiency, serve `Eff` and reception positive% each equal VolleyStation's — and
+efficiency, serve `Eff` and reception positive% each equal VolleyStation's, and
 asserts the one place it departs on purpose, so the departure stays deliberate.
 
 Define a new metric through `vs_efficiency()` where VolleyStation has an opinion.
@@ -163,8 +143,8 @@ Said on the page too, but worth having in one place:
 - **This staff's own 0–4 scales**: pass average (`# 4, + 3, ! 2, - 1,
   overpass 1, error 0`) and serve average (`# 4, + 2, ! 1.5, - 1, overpass 3,
   error -1`). Both are in `PASS_SCALE` / `SERVE_SCALE` in `R/core.R`. The
-  overpass weight on the pass scale is the staff's direct call — the same as a
-  negative pass — settling a disagreement between their worksheet (0.5) and
+  overpass weight on the pass scale is the staff's direct call, the same as a
+  negative pass, settling a disagreement between their worksheet (0.5) and
   their HTML report (0).
 - **Conventions defined by this tool**, so they should be read within one file
   and not against published figures: `Assist%` (kills per set attempted),
@@ -204,7 +184,7 @@ Rscript tests/verify.R
 91 checks over the two bundled fixtures: parser invariants, the phase walk,
 set→attack linking (including that no attack is ever claimed by two sets), zone
 round-trips, every tab in every view state, and the empty and single-play
-cases. Run it after any change to the parsing or geometry layer — a parse that
+cases. Run it after any change to the parsing or geometry layer, a parse that
 shifts by one column still produces output that looks like volleyball, so "the
 app still renders" is not evidence.
 
@@ -234,7 +214,7 @@ That runs 223 checks across the eleven real practice files plus the fixtures.
 generated, placed inside the zone the coder actually recorded.
 
 That fixture exists because **no file anywhere on this machine has ball
-coordinates** — not the eleven real practice `.vsm` files, not the `.dvw`
+coordinates**, not the eleven real practice `.vsm` files, not the `.dvw`
 match files. Without it the entire coordinate half of the app would be
 untested. Generating coordinates inside the coded zones makes the round-trip
 checks in `tests/verify.R` meaningful: a point placed in zone 7 has to come
@@ -250,7 +230,7 @@ Rscript data-raw/make_fixture.R data/sample_match.dvw data/fixture_coords.vsm
 
 ### What has been checked
 
-**846 checks across every coded file in this season folder** — the scouted
+**846 checks across every coded file in this season folder**, the scouted
 opponent `.vsm` (which do carry coordinates), the practice `.vsm`, the `.dvw`
 match and practice files, and the two bundled fixtures. All pass.
 
@@ -270,7 +250,7 @@ match and practice files, and the two bundled fixtures. All pass.
 
 The attack definitions were separately confirmed against VQL in
 `coachs spreadsheets/1. Cal Poly Practice Totals.vss`: `Eff = VSEFF(A)`,
-`K% = VSPER(A#)`, `EB% = VSPER(A/ or A=)` — all matching.
+`K% = VSPER(A#)`, `EB% = VSPER(A/ or A=)`, all matching.
 
 The last two rows are explained, not outstanding:
 
@@ -280,7 +260,7 @@ The last two rows are explained, not outstanding:
   give 2.2353, i.e. its 2.24. One constant, `PASS_SCALE` in `R/core.R`, if the
   staff settles the other way.
 - **Aces.** Set 5 rally 5 has a serve graded `#` *and then the rally carries
-  on* — a set, a kill, a block. The grade and the touches contradict each
+  on*, a set, a kill, a block. The grade and the touches contradict each
   other. scoutR counts the grade as coded, the way VolleyStation's own serve
   formulas do, and raises a warning naming the rally; the report silently drops
   it. Four such serves exist in that one file. They are coding slips to fix at
@@ -288,7 +268,7 @@ The last two rows are explained, not outstanding:
 
 **Parsing reconciled against VolleyStation's own database.** VolleyStation Pro
 keeps an embedded MongoDB. Read against a copy of it, scoutR's parse of the
-exported `2026-08-08 Cal-Cal.vsm` matches the app's own stored match exactly —
+exported `2026-08-08 Cal-Cal.vsm` matches the app's own stored match exactly,
 1428 plays, and every skill count identical (A 304, B 117, D 162, E 356, R 216,
 S 273), the same again for set 5 alone. The export is lossless and the parser
 is faithful to it.
@@ -298,7 +278,7 @@ stores coded touches, not statistics. Matches hold the same structure the
 `.vsm` carries, the `reports` collection holds clip-reel definitions, and the
 stored worksheets hold VQL formulas with no cached results. VolleyStation
 computes its numbers at display time, so the only written-down form of its
-formulas is the VQL in the worksheets — which is what the attack check above
+formulas is the VQL in the worksheets, which is what the attack check above
 used.
 
 ### Two bugs reading one match both ways found
@@ -308,7 +288,7 @@ same cleaning pass. Comparing them play by play found two faults, both of which
 had been producing wrong serve-receive splits in silence.
 
 **Rally boundaries in a `.dvw`.** Rallies were derived only from the score
-rows, and a practice file is routinely coded with no score — one here has six
+rows, and a practice file is routinely coded with no score, one here has six
 sets and four score rows, so five of its six sets read as a single rally each.
 The serve-receive test resets per rally, so 101 side-out attacks were being
 called transition. Rallies are now cut at each serve, the same rule the `.vsm`
@@ -321,14 +301,14 @@ while the `.dvw` path derived it in `finalize_match()`. They had drifted to
 
 What is left after those: across the three matched pairs, 3726 plays, every
 count and rate is identical and so is every coded field on attacks, serves,
-receptions, digs and free balls. Eight plays disagree on a zone — block start
-and end zones, one dig, one set's end zone — fields the analysis never reads,
+receptions, digs and free balls. Eight plays disagree on a zone, block start
+and end zones, one dig, one set's end zone, fields the analysis never reads,
 where the two formats record different things on the same row.
 
 ### Two bugs the VolleyStation reconciliation found
 
 **Rally segmentation.** One exchange is meant to be one rally, but 17 of these
-files drop a whole set into a single exchange — one holds 245 plays and 44
+files drop a whole set into a single exchange, one holds 245 plays and 44
 serves. VolleyStation's own database stores it the same way, so this is how the
 match was coded, not something the export did. Taken at face value the entire set is one rally, and because the
 serve-receive test resets per rally, every attack after the first read as
@@ -342,7 +322,7 @@ those sets are the starting rotation only.
 coder's own entry on 4% of attack landings and 12–17% of reception contacts.
 Every disagreement sat within ~7 units of a zone line: VolleyStation quantises
 clicks onto a lattice that piles points right on the boundary, and the files
-carry slightly different court calibrations — one puts x=303 in the middle
+carry slightly different court calibrations, one puts x=303 in the middle
 third and x=307 in the left, which no single threshold satisfies. So the
 coordinate is the wrong source for a question the file already answers. The app
 now uses the recorded zone wherever there is one and computes only as a
@@ -358,6 +338,6 @@ works on the fixture; it has never met a real example.
 
 The original's remaining tabs: Player, Opponent attacks, Projected lineup, Game
 plan, and the print-ready Scouting sheet (headshots, server and attacker
-strips, lineup boxes). The machinery they sit on — parsers, filters, stat
+strips, lineup boxes). The machinery they sit on, parsers, filters, stat
 lines, court layers, roster and role inference, starting and projected lineups
-— is all here, so they are additive work rather than new foundations.
+is all here, so they are additive work rather than new foundations.

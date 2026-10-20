@@ -41,13 +41,13 @@ tab_serve <- function(F, o, coords_ok) {
   H <- c(H, kpis(list(
     list(k = "Serves", v = st$n),
     list(k = "Eff", v = eff(st$eff), s = "VolleyStation"),
-    list(k = "Serve average", v = if (is.na(st$avg)) "—" else sprintf("%.2f", st$avg),
+    list(k = "Serve average", v = if (is.na(st$avg)) "" else sprintf("%.2f", st$avg),
          s = "staff scale"),
     list(k = "Aces", v = st$ace, s = pct(st$acepct)),
     list(k = "Errors", v = st$err, s = pct(st$errpct)),
     list(k = "Op", v = st$op, s = "no attack"),
     list(k = "Median depth",
-         v = if (!is.na(st$med_depth)) m1(st$med_depth - COURT$NET) else "—",
+         v = if (!is.na(st$med_depth)) m1(st$med_depth - COURT$NET) else "",
          s = "m past net")
   )))
 
@@ -94,8 +94,8 @@ tab_serve <- function(F, o, coords_ok) {
       s <- serve_line(rs)
       ic <- rs$y1[rs$has_xy & !out_of_court(rs$x1, rs$y1)]
       c(esc(srv_type_name(k)), s$n, pct(s$n / nrow(V0)), s$ace, pct(s$acepct),
-        s$err, pct(s$errpct), s$op, if (s$n) eff_td(s$eff) else "—",
-        if (length(ic)) m1(med(ic) - COURT$NET) else "—")
+        s$err, pct(s$errpct), s$op, if (s$n) eff_td(s$eff) else "",
+        if (length(ic)) m1(med(ic) - COURT$NET) else "")
     })),
     tiny("Ignores the type chips above. Codes: top spin = Q or T, jump float = M, standing float = H. Not coded = no type on the serve."))))
 
@@ -106,7 +106,7 @@ tab_serve <- function(F, o, coords_ok) {
       function(g) {
         parts <- strsplit(g$key, "|", fixed = TRUE)[[1]]
         gg <- g$rows[g$rows$has_xy & !out_of_court(g$rows$x1, g$rows$y1), ]
-        lane <- function(k) if (nrow(gg)) pct(sum(lat_third(gg$x1) == k) / nrow(gg)) else "—"
+        lane <- function(k) if (nrow(gg)) pct(sum(lat_third(gg$x1) == k) / nrow(gg)) else ""
         mix <- paste(vapply(by_size(crosstab(g$rows, srv_type_of(g$rows$hit_type, g$rows$skill_type), serve_line), "n"),
           function(t) sprintf("%s %d%%",
                               if (startsWith(t$key, "X:")) substring(t$key, 3) else t$key,
@@ -116,9 +116,9 @@ tab_serve <- function(F, o, coords_ok) {
           eff_td(g$stat$eff), g$stat$n, g$stat$ace, pct(g$stat$acepct),
           g$stat$err, pct(g$stat$errpct), g$stat$op,
           lane("R"), lane("M"), lane("L"),
-          if (!is.na(g$stat$med_depth)) m1(g$stat$med_depth - COURT$NET) else "—")
+          if (!is.na(g$stat$med_depth)) m1(g$stat$med_depth - COURT$NET) else "")
       })),
-    tiny("Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Lane columns are the receiving team's right / middle / left thirds — zones 1·9·2, 6·8·3 and 5·7·4."))))
+    tiny("Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Lane columns are the receiving team's right / middle / left thirds, zones 1·9·2, 6·8·3 and 5·7·4."))))
 
   R <- c(R, card("By target zone", c(tbl_generic(
     c("Zone", "", "Srv", "Sh%", "Ace", "Err", "Ace%"),
@@ -147,7 +147,7 @@ tab_serve <- function(F, o, coords_ok) {
       c(kl[2], s$n, pct(if (nrow(xy)) s$n / nrow(xy) else NA),
         pct(s$acepct), pct(s$errpct),
         if (nrow(t0)) sprintf("x=%.0f %s", med(t0$x1),
-                              thin(sprintf("(%s m from left sideline)", m1(med(t0$x1))))) else "—")
+                              thin(sprintf("(%s m from left sideline)", m1(med(t0$x1))))) else "")
     }))))
 
   paste0(c(H, cols2(left, R, 420)), collapse = "")

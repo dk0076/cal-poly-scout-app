@@ -135,7 +135,7 @@ parse_dvw <- function(text, file_name) {
     rosters[[kv[2]]] <- out
     dup <- unique(out$num[duplicated(out$num)])
     if (length(dup))
-      warn <- c(warn, sprintf("%s: duplicate jersey number(s) %s on the %s roster — a new-season roster stacked on the old one, so player-level stats will merge two people.",
+      warn <- c(warn, sprintf("%s: duplicate jersey number(s) %s on the %s roster, a new-season roster stacked on the old one, so player-level stats will merge two people.",
                               file_name, paste(dup, collapse = ", "), kv[2]))
   }
 

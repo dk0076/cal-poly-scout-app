@@ -158,7 +158,7 @@ server <- function(input, output, session) {
       S$sel$players <- integer()
     }
     if (sample)
-      warns <- c("Bundled sample loaded. fixture_coords.vsm is SYNTHETIC — its events are real but its coordinates are generated, so read it as a demonstration of the charts, never as a measurement.",
+      warns <- c("Bundled sample loaded. fixture_coords.vsm is SYNTHETIC, its events are real but its coordinates are generated, so read it as a demonstration of the charts, never as a measurement.",
                  warns)
     S$warnings <- unique(warns)
   }
@@ -414,15 +414,15 @@ rail_html <- function(S) {
         else if (has_focus) paste("vs", esc(opp))
         else paste(esc(m$teams$home$name), "vs", esc(m$teams$away$name)),
       if (on) "on" else "", esc(m$match_id), if (on) "on" else "off",
-      if (has_focus) "" else sprintf('<div class="meta" style="color:var(--blocked)">no "%s" in this file — contributes nothing until you switch focus team</div>',
+      if (has_focus) "" else sprintf('<div class="meta" style="color:var(--blocked)">no "%s" in this file, contributes nothing until you switch focus team</div>',
                                      esc(S$focus_name)),
       esc(m$match_id),
       # An intrasquad practice file has the same team name on both sides, so
       # the two options would be indistinguishable. Say which side each is.
       if (identical(side, "home")) " selected" else "",
-      esc(paste0(m$teams$home$name, if (intra) " — home side" else "")),
+      esc(paste0(m$teams$home$name, if (intra) ", home side" else "")),
       if (identical(side, "away")) " selected" else "",
-      esc(paste0(m$teams$away$name, if (intra) " — away side" else "")),
+      esc(paste0(m$teams$away$name, if (intra) ", away side" else "")),
       esc(m$date %||% "no date"), length(m$sets),
       sum(vapply(m$sets, function(s) s$rallies, 0)),
       if (m$no_coords) " · no coordinates" else ""))

@@ -46,7 +46,7 @@ set_cols <- function(rl, pl) {
 }
 
 pm_cell <- function(v) {
-  if (is.na(v) || v == 0) return(sprintf('<span class="thin">%s</span>', v %||% "—"))
+  if (is.na(v) || v == 0) return(sprintf('<span class="thin">%s</span>', v %||% ""))
   sprintf('<span class="%s">%+d</span>', if (v > 0) "pos" else "neg", v)
 }
 
@@ -106,6 +106,6 @@ tab_rotation <- function(rally, F, opp_rally, Opp, o) {
     side_block(opp_rally, Opp, "them", "them"), 620)
 
   paste0(c(H, body, note(
-    "SO% is rallies won of rallies received. ESO% counts only the ones we finished ourselves with a kill or a block, so the gap between SO% and ESO% is the share the opponent handed over. FBSO% counts the ones won on the first swing off our own pass; all three share the same denominator, so FBSO% ≤ ESO% ≤ SO%. PS% is rallies won of rallies served — a break point. +/- is rallies won minus lost in that rotation, both phases. Ace and Err are our serves in that rotation. Rotation labels are sequence-based, with the setter's court zone shown beside each. sQ% is serve-receive quality — receptions graded # or +, as a share of all receptions — matching the worksheet formula VSPER(VSOR(R#, R+)) and the Positive% on the Pass quality tab."
+    "SO% is rallies won of rallies received. ESO% counts only the ones we finished ourselves with a kill or a block, so the gap between SO% and ESO% is the share the opponent handed over. FBSO% counts the ones won on the first swing off our own pass; all three share the same denominator, so FBSO% ≤ ESO% ≤ SO%. PS% is rallies won of rallies served, a break point. +/- is rallies won minus lost in that rotation, both phases. Ace and Err are our serves in that rotation. Rotation labels are sequence-based, with the setter's court zone shown beside each. sQ% is serve-receive quality, receptions graded # or +, as a share of all receptions, matching the worksheet formula VSPER(VSOR(R#, R+)) and the Positive% on the Pass quality tab."
   )), collapse = "")
 }

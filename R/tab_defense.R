@@ -88,7 +88,7 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
         pct(if (g$stat$ta) dug / g$stat$ta else NA),
         sum(!is.na(g$rows$effect) & g$rows$effect == "/"))
     })),
-    tiny("Blockers up is the number the coder recorded on their attack. \"Stuff\" counts their attacks graded as blocked. The row that matters is whether their efficiency actually falls as the block grows — if it does not, the block is not the problem."))))
+    tiny("Blockers up is the number the coder recorded on their attack. \"Stuff\" counts their attacks graded as blocked. The row that matters is whether their efficiency actually falls as the block grows. If it does not, the block is not the problem."))))
 
   # ---- what they run at us ------------------------------------------
   R <- c(R, card("What they run at us", tbl_generic(
@@ -122,7 +122,7 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
     # A file that never uses '#' is not grading digs on the full scale, so
     # "in system" quietly becomes "kept up" and reads better than it is.
     if (nrow(D) && !any(!is.na(D$effect) & D$effect == "#"))
-      sprintf('<div class="warn">No dig in this filter is graded <code>#</code>, so this file is not using the full scale — in-system here means little more than "kept up". Grades present: %s.</div>',
+      sprintf('<div class="warn">No dig in this filter is graded <code>#</code>, so this file is not using the full scale; in-system here means little more than "kept up". Grades present: %s.</div>',
               paste(sort(unique(na.omit(D$effect))), collapse = " ")) else "")))
 
   # ---- our blockers ---------------------------------------------------
@@ -147,7 +147,7 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
       c(sprintf("<b>%s</b>", k), oa$ta, eff_td(oa$eff), d$n,
         pct(d$in_sys_pct), c0$n, pct(c0$pct))
     })),
-    tiny("Their attack efficiency is cut by OUR rotation — what they managed while we stood in it — which is the cut that tells you where our defence is leaking. Convert% is transition rallies won of rallies where we dug their attack or played a free ball, one chance per rally."))))
+    tiny("Their attack efficiency is cut by OUR rotation (what they managed while we stood in it), which is the cut that tells you where our defence is leaking. Convert% is transition rallies won of rallies where we dug their attack or played a free ball, one chance per rally."))))
 
   paste0(c(H, cols2(left, R, 460), note(
     "A dig that stays up is not a dig the setter can use, so In-sys% is the column to read rather than the raw count. Convert% is the one that says whether any of it mattered: digging well and converting nothing means the problem is after the dig, not in the defence."

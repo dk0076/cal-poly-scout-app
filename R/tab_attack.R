@@ -26,7 +26,7 @@ tab_attack <- function(F, o, coords_ok) {
     list(k = "Errors", v = st$e + st$b, s = pct(st$epct)),
     list(k = "Blocked", v = st$b, s = pct(st$bpct)),
     list(k = "Hitting", v = eff(st$eff)),
-    list(k = "Median depth", v = if (nrow(xy)) m1(med(xy$y1 - COURT$NET)) else "—",
+    list(k = "Median depth", v = if (nrow(xy)) m1(med(xy$y1 - COURT$NET)) else "",
          s = "m past net")
   )))
 
@@ -110,7 +110,7 @@ tab_attack <- function(F, o, coords_ok) {
         thin(esc(raw_codes_of(g$rows$call))), g$stat$ta,
         pct(g$stat$kpct), eff_td(g$stat$eff),
         if (!is.null(lane)) sprintf("%s %s", lane$label,
-                                    thin(pct(lanes[[1]]$stat$ta / nrow(rs)))) else "—")
+                                    thin(pct(lanes[[1]]$stat$ta / nrow(rs)))) else "")
     }))))
 
   # SR vs transition, crossed against rotation and against hit type. FT (the
@@ -127,13 +127,13 @@ tab_attack <- function(F, o, coords_ok) {
   phase_head <- c("", "SR Att", "SR K%", "SR Hit", "Trans Att", "Trans K%",
                   "Trans Hit", "Total", "Total Hit")
 
-  R <- c(R, card("Serve receive vs transition — by rotation", c(tbl_generic(
+  R <- c(R, card("Serve receive vs transition, by rotation", c(tbl_generic(
     phase_head,
     c(lapply(by_key(crosstab(A, A$rot)), function(g) phase_split(g$rows, g$key)),
       list(tot_row(phase_split(A, "All rotations"))))),
     tiny("SR = the team's first attack off their own serve receive. Trans = first transition and all later swings combined. Rotation is the setter's court position."))))
 
-  R <- c(R, card("Serve receive vs transition — by hit type", tbl_generic(
+  R <- c(R, card("Serve receive vs transition, by hit type", tbl_generic(
     phase_head,
     c(lapply(by_size(crosstab(A, A$hit_type)), function(g)
         phase_split(g$rows, if (is.na(HITTYPE[g$key])) g$key else unname(HITTYPE[g$key]))),
@@ -145,7 +145,7 @@ tab_attack <- function(F, o, coords_ok) {
       gg <- g$rows[g$rows$has_xy, ]
       c(shot_label(g$key), g$stat$ta, pct(g$stat$ta / nrow(A)),
         pct(g$stat$kpct), eff_td(g$stat$eff),
-        if (nrow(gg)) m1(med(gg$y1 - COURT$NET)) else "—")
+        if (nrow(gg)) m1(med(gg$y1 - COURT$NET)) else "")
     })),
     tiny("Shot type comes from the coder's own skill-type entry. Tips land a median 3.4 m past the net against 7.0 m for hard swings, which is what identifies them."))))
 
@@ -164,22 +164,22 @@ tbl_attack <- function(groups, all) {
   rows <- lapply(groups, function(g) {
     parts <- strsplit(g$key, "|", fixed = TRUE)[[1]]
     xy <- g$rows[g$rows$has_xy, ]
-    lat <- function(k) if (nrow(xy)) pct(sum(lat_third(xy$x1) == k) / nrow(xy)) else "—"
+    lat <- function(k) if (nrow(xy)) pct(sum(lat_third(xy$x1) == k) / nrow(xy)) else ""
     rd <- if (nrow(xy)) rel_direction(xy$x0, xy$x1) else character(0)
     pins <- sum(!is.na(rd))
-    rel <- function(k) if (pins) pct(sum(!is.na(rd) & rd == k) / pins) else "—"
+    rel <- function(k) if (pins) pct(sum(!is.na(rd) & rd == k) / pins) else ""
     bands <- by_size(crosstab(xy, origin_band(xy$x0)))
     from <- if (length(bands)) {
       nm <- c(left = "z4 side", right = "z2 side", middle = "middle")[bands[[1]]$key]
       paste0(unname(nm), if (length(bands) > 1)
         paste0(" ", thin(pct(bands[[1]]$stat$ta / nrow(xy)))) else "")
-    } else "—"
+    } else ""
     tl <- tip_line(g$rows)
     c(sprintf("<b>%s</b> %s", parts[1], esc(parts[2])), from, g$stat$ta,
       pct(g$stat$kpct), pct(g$stat$epct), eff_td(g$stat$eff),
       pct(tl$tip_pct), rel("line"), rel("seam"), rel("cross"),
       lat("R"), lat("M"), lat("L"),
-      if (nrow(xy)) m1(med(xy$y1 - COURT$NET)) else "—")
+      if (nrow(xy)) m1(med(xy$y1 - COURT$NET)) else "")
   })
   t0 <- attack_line(all)
   rows <- c(rows, list(tot_row(c("Total", "", t0$ta, pct(t0$kpct), pct(t0$epct),
@@ -208,7 +208,7 @@ middle_routes <- function(A, coords_ok, mono = FALSE) {
     xs <- g$rows$x0[g$rows$has_xy]
     c(sprintf("<b>%s</b>", esc(g$key)), esc(nm), g$stat$ta,
       pct(g$stat$kpct), eff_td(g$stat$eff), paste(zones, collapse = ", "),
-      if (length(xs)) (if (length(xs) > 1) sprintf("%s–%s", min(xs), max(xs)) else as.character(xs[1])) else "—")
+      if (length(xs)) (if (length(xs) > 1) sprintf("%s–%s", min(xs), max(xs)) else as.character(xs[1])) else "")
   })
   t0 <- attack_line(routes)
   rows <- c(rows, list(tot_row(c("Total", "", t0$ta, pct(t0$kpct), eff_td(t0$eff), "", ""))))

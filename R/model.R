@@ -145,7 +145,7 @@ finalize_match <- function(m) {
     w <- c(w, sprintf("%d touches by practice players (#%s) excluded from every rate; they remain on the Plays tab.",
                       sum(prac), paste(sort(unique(p$num[prac])), collapse = ", #")))
   if (any(prov))
-    w <- c(w, sprintf("%d touches tagged '00' (coder marked them to revisit) excluded from every rate — they are not final.",
+    w <- c(w, sprintf("%d touches tagged '00' (coder marked them to revisit) excluded from every rate, because they are not final.",
                       sum(prov)))
 
   m$plays <- p
@@ -179,7 +179,7 @@ contradictory_grades <- function(p, idx) {
     }
   }
   if (!bad) return(character())
-  sprintf("%d serve%s graded '#' (ace) but the rally carried on afterwards — the grade and the touches disagree, so the ace count is one per slip too high until the coding is fixed: %s.",
+  sprintf("%d serve%s graded '#' (ace) but the rally carried on afterwards, the grade and the touches disagree, so the ace count is one per slip too high until the coding is fixed: %s.",
           bad, if (bad == 1) "" else "s",
           paste(utils::head(where, 6), collapse = "; "))
 }

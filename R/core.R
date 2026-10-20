@@ -398,16 +398,16 @@ wilson <- function(k, n) {
 
 # ------------------------------------------------------------------ formatting
 
-pct <- function(v) if (length(v) != 1 || is.na(v)) "—" else sprintf("%d%%", round(v * 100))
+pct <- function(v) if (length(v) != 1 || is.na(v)) "" else sprintf("%d%%", round(v * 100))
 
 #' Hitting efficiency, printed the way a stat sheet prints it: no leading zero.
 eff <- function(v) {
-  if (length(v) != 1 || is.na(v)) return("—")
+  if (length(v) != 1 || is.na(v)) return("")
   s <- sprintf("%.3f", abs(v))
   paste0(if (v < 0) "-" else "", sub("^0", "", s))
 }
 eff_cls <- function(v) if (length(v) != 1 || is.na(v)) "" else if (v > 0.001) "pos" else if (v < -0.001) "neg" else ""
-m1 <- function(u) if (length(u) != 1 || is.na(u)) "—" else sprintf("%.1f", u / 100)
+m1 <- function(u) if (length(u) != 1 || is.na(u)) "" else sprintf("%.1f", u / 100)
 
 esc <- function(s) {
   s <- ifelse(is.na(s), "", as.character(s))

@@ -35,11 +35,11 @@ tab_plays <- function(F, o) {
     c(esc(p$file_name), p$set_no, p$rally_no, p$score,
       sprintf("<b>%s</b> %s", p$num, esc(p$player_short)),
       unname(SKILL_NAME[p$skill] %||% p$skill),
-      if (is.na(p$effect)) "—" else sprintf("<code>%s</code>", esc(p$effect)),
-      if (is.na(p$call)) "—" else sprintf("%s %s", esc(p$call),
+      if (is.na(p$effect)) "" else sprintf("<code>%s</code>", esc(p$effect)),
+      if (is.na(p$call)) "" else sprintf("%s %s", esc(p$call),
                                                thin(esc(call_label(p$season_call, p$call_name)))),
-      if (is.na(p$target)) "—" else unname(TARGET[p$target] %||% p$target),
-      p$phase %||% "—", p$rot %||% "—", p$sys %||% "—",
+      if (is.na(p$target)) "" else unname(TARGET[p$target] %||% p$target),
+      p$phase %||% "", p$rot %||% "", p$sys %||% "",
       if (p$has_xy) sprintf("%s,%s → %s,%s", round(p$x0), round(p$y0),
                             round(p$x1), round(p$y1)) else thin("none"))
   })

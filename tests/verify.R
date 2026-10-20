@@ -187,7 +187,7 @@ for (pth in files) {
       ok("passer_start places at least one lane", length(ps$spots) >= 1,
          passer_start_text(ps))
     } else {
-      info(sprintf("only %d in-court serves carry coordinates — passer_start declines to place one, as designed", ic))
+      info(sprintf("only %d in-court serves carry coordinates, passer_start declines to place one, as designed", ic))
     }
     for (sp in ps$spots) {
       ok(sprintf("passer_start box brackets its median (%s)", sp$k),
@@ -201,7 +201,7 @@ for (pth in files) {
     info(sprintf("set origin zones used: %s",
                  paste(sort(unique(sz)), collapse = " ")))
   } else {
-    info("no coordinates in this file — charts are suppressed by design")
+    info("no coordinates in this file, charts are suppressed by design")
     ok("coords_available() reports no coordinates",
        !coords_available(list(m), list(matches = character())))
   }
@@ -310,7 +310,7 @@ Op <- opponent_plays(matches, sel, focus)
 intra <- any(vapply(matches, function(m)
   identical(m$teams$home$name, m$teams$away$name), logical(1)))
 if (intra) {
-  info("intrasquad file present — both sides share a name, so the opponent name check does not apply")
+  info("intrasquad file present, both sides share a name, so the opponent name check does not apply")
   # uid is only unique within a file, so identity is the pair with match_id.
   ok("opponent_plays returns the other side's touches",
      nrow(Op) > 0 &&

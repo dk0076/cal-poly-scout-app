@@ -18,7 +18,7 @@ tbl_generic <- function(head, rows) {
     cells <- if (is.list(r) && !is.null(r$cells)) r$cells else r
     tot <- is.list(r) && isTRUE(r$tot)
     cells <- vapply(cells, function(c0)
-      if (length(c0) != 1 || is.na(c0)) "—" else as.character(c0), "")
+      if (length(c0) != 1 || is.na(c0)) "" else as.character(c0), "")
     tds <- paste0(sprintf('<td class="%s">%s</td>',
                           c("", rep("num", max(0, length(cells) - 1))), cells),
                   collapse = "")
