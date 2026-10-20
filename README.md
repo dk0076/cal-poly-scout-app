@@ -50,8 +50,8 @@ sets, rotation, system, phase, passer, players.
 
 VolleyStation appends to the `.dvw` while you code, so the app can follow one.
 Paste the file's path into the box under the drop zone and press Watch. It
-re-reads on every change, about every five seconds, and keeps your filters,
-tab and scroll position. The badge in the header carries the time of the last
+re-reads about a second after each change and keeps your filters, tab and
+scroll position. The badge in the header carries the time of the last
 refresh, so a feed that has stopped reads as a stale clock rather than as
 numbers that quietly stop moving.
 
