@@ -26,6 +26,34 @@ for (f in c("core.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R",
 options(shiny.maxRequestSize = 300 * 1024^2)
 
 # ---------------------------------------------------------------------------
+# Version
+# ---------------------------------------------------------------------------
+
+#' A version that moves without anyone remembering to move it
+#'
+#' Read from git once at startup, because a number kept by hand is a number
+#' that is wrong by the second week. The commit count is the part worth
+#' reading, since it only goes up; the short hash is what pins a screenshot
+#' from the bench to an exact state of the code. A copy without git, or
+#' without git installed, still runs and just says v1.
+app_version <- local({
+  git <- function(...) tryCatch(suppressWarnings(
+    system2("git", c(...), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+  n <- git("rev-list", "--count", "HEAD")
+  sha <- git("rev-parse", "--short", "HEAD")
+  day <- git("log", "-1", "--format=%ad", "--date=short")
+  if (!length(n) || !nzchar(n[1]))
+    list(label = "v1", build = "")
+  else
+    list(label = sprintf("v1.%s", n[1]),
+         # The corner has room for a number, not a number and a hash. The
+         # hash is what pins a screenshot from the bench to a state of the
+         # code, so it goes where it can be found without taking space.
+         build = sprintf("%s%s", if (length(sha)) sha[1] else "",
+                         if (length(day) && nzchar(day[1])) paste0(", ", day[1]) else ""))
+})
+
+# ---------------------------------------------------------------------------
 # Reading one file
 # ---------------------------------------------------------------------------
 
@@ -152,10 +180,14 @@ ui <- fluidPage(
   ),
   tags$header(
     class = "appbar",
-    div(class = "brand",
+    # The brand doubles as the way back. Loading one file and then wanting a
+    # different one is the common case, and the top left corner is where
+    # everyone presses to go home.
+    tags$button(class = "brand", `data-home` = "1", type = "button",
+        title = "Start over",
         span(class = "mark"),
         h1(HTML("Cal Poly <span>Scout</span>")),
-        span(class = "v", "v1")),
+        span(class = "v", title = app_version$build, app_version$label)),
     div(style = "min-width:260px", uiOutput("uploader", inline = TRUE)),
     div(class = "spacer"),
     uiOutput("focus_pick", inline = TRUE),
@@ -241,6 +273,21 @@ server <- function(input, output, session) {
 
   observeEvent(input$watch_stop, {
     LIVE$path <- ""; LIVE$at <- ""
+  })
+
+  # Back to the opening screen, with nothing loaded. The watch stops too: it
+  # is app-wide, so leaving it on would re-adopt the match on its next
+  # refresh and the button would look broken. That does mean a tablet going
+  # home takes the bench's feed with it, which is why it asks first.
+  observeEvent(input$js_home, {
+    LIVE$path <- ""; LIVE$at <- ""; LIVE$name <- ""; LIVE$match <- NULL
+    S$matches <- list()
+    S$focus_name <- ""; S$focus <- list()
+    S$sel <- list(matches = character(), sets = integer(), players = integer(),
+                  rots = character(), passers = integer())
+    S$o <- DEFAULT_OPTS
+    S$tab <- "attack"
+    S$errors <- character(); S$warnings <- character()
   })
 
   # Every refresh, and once on connect, so a tablet that joins at the end of

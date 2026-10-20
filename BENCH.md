@@ -40,6 +40,17 @@ network, choose Private network.
 Pin scout.bat to the taskbar or make a desktop shortcut for it, so match day
 is one click.
 
+## Starting over
+
+Press **Cal Poly Scout** in the top left. It clears the loaded files and goes
+back to the opening screen, ready for a different one. It asks first, because
+it also stops the live file for everyone watching, so a stray tap on a tablet
+cannot take the bench off the match.
+
+The small number beside it, like v1.12, is the version. It goes up every time
+the app changes, so it is worth reading out if something looks wrong. Hover
+it for the exact build.
+
 ## The address
 
 ```

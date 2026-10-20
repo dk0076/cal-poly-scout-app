@@ -17,11 +17,19 @@
   }
 
   document.addEventListener("click", function (ev) {
-    var el = ev.target.closest("[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
+    var el = ev.target.closest("[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
     if (!el) return;
 
     // Folds the filter rail away on a tablet. Purely local: nothing the
     // server needs to know, and a round trip would make it feel slow.
+    // Start over. Confirmed, because the watch is shared: one stray tap on a
+    // tablet would otherwise take the whole bench off the live match.
+    if (el.hasAttribute("data-home")) {
+      if (document.getElementById("intro")) return;
+      if (window.confirm("Start over? This clears the loaded files and stops following the live file, for everyone watching."))
+        send("js_home", {});
+      return;
+    }
     if (el.hasAttribute("data-rail")) {
       document.body.classList.toggle("rail-open");
       return;
