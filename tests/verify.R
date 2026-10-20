@@ -577,5 +577,66 @@ if (length(dvw_src)) {
      grepl("^parsed|^raised:", r), r)
 }
 
+# ---------------------------------------------------------------------------
+# Going back to fix a play
+# ---------------------------------------------------------------------------
+# Coders correct themselves. VolleyStation rewrites the whole file when they
+# do, so the app has to notice an edit in the middle as readily as an append
+# at the end, and has to end up with the corrected numbers rather than the
+# union of both versions. Two ways that can go wrong: the change is never
+# noticed, because the file did not get longer; or it is noticed and merged,
+# because the match was added to rather than replaced.
+
+if (length(dvw_src)) {
+  cat("\n== going back to fix a play\n")
+  L0 <- readLines(dvw_src[1], warn = FALSE)
+  tmp2 <- tempfile(fileext = ".dvw")
+  on.exit(unlink(tmp2), add = TRUE)
+  writeLines(L0, tmp2)
+  base <- load_file(tmp2)
+  sig0 <- file_sig(tmp2)
+
+  # A grade corrected in place: same line count, same byte count.
+  hit <- grep("^[*a][0-9]{2}A.[^=]", L0)
+  if (length(hit)) {
+    i <- hit[1]
+    L1 <- L0
+    substr(L1[i], 6, 6) <- "="            # whatever it was, call it an error
+    writeLines(L1, tmp2)
+    fixed <- load_file(tmp2)
+    ok("an edited grade changes nothing about the file's length",
+       nchar(L1[i]) == nchar(L0[i]))
+    ok("a same-size edit still changes the signature",
+       !identical(file_sig(tmp2), sig0))
+    ok("an edited play is replaced, not added",
+       nrow(fixed$plays) == nrow(base$plays),
+       sprintf("%d then %d", nrow(base$plays), nrow(fixed$plays)))
+    a0 <- base$plays[skill == "A"]; a1 <- fixed$plays[skill == "A"]
+    ok("the corrected grade is what comes back",
+       nrow(a1) == nrow(a0) && sum(a1$effect == "=") == sum(a0$effect == "=") + 1L)
+    ok("attack efficiency moves with the correction",
+       vs_efficiency(a1$effect, "A") < vs_efficiency(a0$effect, "A"),
+       sprintf("%.3f then %.3f", vs_efficiency(a0$effect, "A"),
+               vs_efficiency(a1$effect, "A")))
+  }
+
+  # A play deleted from the middle: the count has to go down, not stay put.
+  drop <- grep("^[*a][0-9]{2}[SRAEBD]", L0)
+  if (length(drop) > 3) {
+    writeLines(L0[-drop[length(drop) %/% 2]], tmp2)
+    cut <- load_file(tmp2)
+    ok("a deleted play leaves the match", nrow(cut$plays) < nrow(base$plays),
+       sprintf("%d then %d", nrow(base$plays), nrow(cut$plays)))
+  }
+
+  # And the signature has to be stable when nothing is happening, or the app
+  # would re-parse on every poll all match long.
+  writeLines(L0, tmp2)
+  s1 <- file_sig(tmp2); Sys.sleep(0.25); s2 <- file_sig(tmp2)
+  ok("an untouched file keeps its signature", identical(s1, s2))
+  ok("a missing file has no signature",
+     !nzchar(file_sig(file.path(tempdir(), "no-such-match.dvw"))))
+}
+
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)

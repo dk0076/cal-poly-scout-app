@@ -84,7 +84,7 @@ server <- function(input, output, session) {
     matches = list(), focus_name = "", focus = list(),
     sel = list(matches = character(), sets = integer(), players = integer(),
                rots = character(), passers = integer()),
-    watch = character(), watch_mtime = NA_real_, live_at = "",
+    watch = character(), live_at = "",
     o = DEFAULT_OPTS, tab = "attack", errors = character(), warnings = character()
   )
 
@@ -129,13 +129,29 @@ server <- function(input, output, session) {
   # measured on a practice file whose last touch was stamped 20 seconds after
   # its own header, so polling the modification time is enough.
   #
-  # One second. The poll itself is a stat() call, and it only re-parses when
-  # the file has actually changed. Measured at full match length, 795 plays:
-  # read and parse 0.11s, finalize included, and the heaviest tab renders in
-  # 0.08s. So a refresh costs about a fifth of the budget even when every
-  # touch of a five-set match is in the file, and a touch reaches the screen
-  # inside a rally rather than after it.
-  WATCH_EVERY <- 1000
+  # Ten polls a second while the file is moving. The stat() itself is free;
+  # what it costs is a Shiny timer tick, measured at about 13% of one core at
+  # this rate against 0.8% for the app sitting still. That is a fair price
+  # during a match and a silly one for an app left open overnight, so the poll
+  # drops to twice a second after ten seconds of nothing and picks straight
+  # back up on the next change. The re-parse is the same work either way: at
+  # full match length, 795 plays, 0.11s to read and parse, finalize included,
+  # plus 0.08s for the heaviest tab.
+  #
+  # A change has to hold still for one tick before it is read. VolleyStation
+  # writes in bursts, and at this rate a poll lands inside a burst often
+  # rather than rarely, which would mean parsing half-written files all match.
+  # Waiting one tick costs 100ms and removes the whole class of problem. The
+  # torn-read handling below stays as the backstop.
+  WATCH_POLL  <- 100
+  WATCH_SLOW  <- 500
+  WATCH_QUIET <- 100L                # ticks of no change before backing off
+
+  # Not reactiveValues. These are read and written by the poll alone, ten
+  # times a second, and a reactive write costs a flush of the whole graph.
+  w_sig <- ""        # the file as it was when last parsed
+  w_seen <- ""       # the file as it looked on the previous tick
+  w_idle <- 0L
 
   observeEvent(input$watch_go, {
     p <- trimws(input$watch_path %||% "")
@@ -146,33 +162,43 @@ server <- function(input, output, session) {
       return()
     }
     S$errors <- character()
-    mt <- as.numeric(file.info(p)$mtime)
+    sig <- file_sig(p)
     # Arm the watch only once the file has parsed. A path that is not a match
     # file should report that and stay off, not poll a file it cannot read.
     if (!ingest(data.frame(name = basename(p), datapath = p,
                            stringsAsFactors = FALSE))) return()
     S$watch <- p
-    S$watch_mtime <- mt
+    w_sig <<- sig; w_seen <<- sig; w_idle <<- 0L
     S$live_at <- format(Sys.time(), "%H:%M:%S")
   })
 
   observeEvent(input$watch_stop, {
-    S$watch <- character(); S$watch_mtime <- NA_real_; S$live_at <- ""
+    S$watch <- character(); S$live_at <- ""
+    w_sig <<- ""; w_seen <<- ""; w_idle <<- 0L
   })
 
   observe({
     req(length(S$watch) > 0)                    # req(0) is truthy in Shiny
-    invalidateLater(WATCH_EVERY)
     p <- isolate(S$watch)
-    if (!file.exists(p)) return()
-    mt <- as.numeric(file.info(p)$mtime)
-    if (!is.na(isolate(S$watch_mtime)) && mt <= isolate(S$watch_mtime)) return()
+    sig <- file_sig(p)                          # "" if gone or briefly locked
+    changed <- nzchar(sig) && !identical(sig, w_sig)
+    w_idle <<- if (changed) 0L else w_idle + 1L
+    # Scheduled after the stat, not before it, so the tick that confirms a
+    # change is always a fast one. Otherwise the first touch after a timeout
+    # would be read at the slow cadence it arrived on.
+    invalidateLater(if (w_idle > WATCH_QUIET) WATCH_SLOW else WATCH_POLL)
+    if (!changed) return()
+    # Seen once but not twice: a write is in progress. Come back in a tick.
+    if (!identical(sig, w_seen)) {
+      w_seen <<- sig
+      return()
+    }
     ok <- ingest(data.frame(name = basename(p), datapath = p,
                             stringsAsFactors = FALSE), keep_view = TRUE)
-    # The watermark only moves on a parse that landed. A read caught mid-write
+    # The signature only moves on a parse that landed. A read caught mid-write
     # otherwise consumes the change and the new rallies wait for the next one.
     if (ok) {
-      S$watch_mtime <- mt
+      w_sig <<- sig
       S$live_at <- format(Sys.time(), "%H:%M:%S")
     }
   })

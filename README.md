@@ -50,8 +50,14 @@ sets, rotation, system, phase, passer, players.
 
 VolleyStation appends to the `.dvw` while you code, so the app can follow one.
 Paste the file's path into the box under the drop zone and press Watch. It
-re-reads about a second after each change and keeps your filters, tab and
-scroll position. The badge in the header carries the time of the last
+re-reads about four tenths of a second after each change and keeps your
+filters, tab and scroll position.
+
+**Going back to fix a play works.** Every refresh is a full re-read, and the
+match is replaced rather than added to, so a corrected grade, a deleted touch
+or a renumbered rally all land the same way an appended one does. A correction
+that leaves the file exactly as long is still caught, because the app compares
+timestamp and size as a pair rather than watching the file grow. The badge in the header carries the time of the last
 refresh, so a feed that has stopped reads as a stale clock rather than as
 numbers that quietly stop moving.
 
@@ -60,6 +66,11 @@ path, so the original can grow all it likes and the app never sees it.
 
 The rally in progress has no score row until the point ends, so SO%, ESO%,
 FBSO% and PS% lag the court by one rally. The Rotations tab says so.
+
+Polling ten times a second costs about 19% of one core while someone is
+coding. After ten seconds of no change it drops to twice a second, about 2%,
+and picks straight back up on the next touch. `WATCH_POLL` in `app.R` is the
+knob.
 
 ## Worth knowing
 

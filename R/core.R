@@ -430,3 +430,19 @@ MONO <- list(
   blocked = list(col = "#4a4a4a", w = 2.7, dash = "13 6",     head = "bar"),
   error   = list(col = "#000000", w = 2.1, dash = "2.5 6.5",  head = "cross")
 )
+
+#' What a watched file looks like right now
+#'
+#' Modification time and size together, as one string, empty if the file is
+#' not readable. A high-water mark on the timestamp alone is not enough for a
+#' file being coded live. Correcting a grade in place, `-` to `#`, leaves the
+#' size identical, and a tool that rewrites the file can stamp it with a time
+#' no later than the one before. Comparing the pair for equality catches both,
+#' and treats any difference as something to re-read rather than only a later
+#' one. Timestamps here carry sub-millisecond resolution, so two writes in the
+#' same second are still distinguishable.
+file_sig <- function(path) {
+  fi <- file.info(path)
+  if (is.na(fi$size)) return("")
+  sprintf("%.6f/%.0f", as.numeric(fi$mtime), fi$size)
+}
