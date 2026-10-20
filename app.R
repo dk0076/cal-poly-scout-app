@@ -25,6 +25,96 @@ for (f in c("core.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R",
 # truncated upload presents as a parsing error rather than as a size problem.
 options(shiny.maxRequestSize = 300 * 1024^2)
 
+# ---------------------------------------------------------------------------
+# Reading one file
+# ---------------------------------------------------------------------------
+
+#' Read and finalize one match file, or return a condition
+#'
+#' Both formats go through here, and so does every caller: an upload, the
+#' bundled sample, and the shared poller below. A file caught mid-write is
+#' truncated rather than corrupt, so the caller is handed the condition and
+#' decides whether to keep what it already had.
+read_match_file <- function(path, name = basename(path)) {
+  tryCatch({
+    txt <- paste(readLines(path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+    txt <- sub("^\ufeff", "", txt)
+    # .dvw is DataVolley's plain text; .vsm is JSON. Sniff the content too,
+    # since a file renamed on the way out of VolleyMetrics is common.
+    is_dvw <- grepl("[.]dvw$", name, ignore.case = TRUE) ||
+      grepl("^\\s*\\[3DATAVOLLEYSCOUT\\]", txt)
+    finalize_match(if (is_dvw) parse_dvw(txt, name) else parse_vsm(txt, name))
+  }, error = function(e) e)
+}
+
+# ---------------------------------------------------------------------------
+# The shared watch
+# ---------------------------------------------------------------------------
+# One file, one poller, however many people are looking at it. At a match the
+# laptop codes and the bench reads it off iPads on the same router, so the
+# alternative is N tablets costing N pollers and N parses of the same bytes on
+# the one machine that is also running VolleyStation.
+#
+# So the watched file is a property of the app, not of a viewer. Anyone can
+# start it or stop it and everyone sees the same match, which is what the room
+# means by watching the game. Uploads stay per viewer: an iPad can open last
+# week's file without taking the bench off the live one.
+#
+# An upload cannot be followed either way. Shiny copies it to a temp path, so
+# the original can grow all it likes and the app never sees it.
+#
+# Ten polls a second while the file is moving. The stat() itself is free; what
+# it costs is a Shiny timer tick, measured at about 13% of one core at this
+# rate against 0.8% for the app sitting still. That is a fair price during a
+# match and a silly one for an app left open overnight, so the poll drops to
+# twice a second after ten seconds of nothing and picks straight back up on
+# the next change. The re-parse is the same work either way: at full match
+# length, 795 plays, 0.11s to read and parse, finalize included.
+#
+# A change has to hold still for one tick before it is read. VolleyStation
+# writes in bursts, and at this rate a poll lands inside a burst often rather
+# than rarely, which would mean parsing half-written files all match. Waiting
+# one tick costs 100ms and removes the whole class of problem.
+WATCH_POLL  <- 100
+WATCH_SLOW  <- 500
+WATCH_QUIET <- 100L                  # ticks of no change before backing off
+
+# `gen` counts successful parses. Sessions watch it rather than `match`,
+# because a data.table that compares equal to the last one would not wake them.
+LIVE <- reactiveValues(path = "", name = "", at = "", match = NULL, gen = 0L)
+
+local({
+  w_sig <- ""        # the file as it was when last parsed
+  w_seen <- ""       # the file as it looked on the previous tick
+  w_idle <- 0L
+
+  # domain = NULL: this observer belongs to the app, not to whoever happened
+  # to press Watch, so it keeps running after that tab closes.
+  observe({
+    path <- LIVE$path
+    if (!nzchar(path)) { w_sig <<- ""; w_seen <<- ""; w_idle <<- 0L; return() }
+    sig <- file_sig(path)                       # "" if gone or briefly locked
+    changed <- nzchar(sig) && !identical(sig, w_sig)
+    w_idle <<- if (changed) 0L else w_idle + 1L
+    # Scheduled after the stat, not before it, so the tick that confirms a
+    # change is always a fast one. Otherwise the first touch after a timeout
+    # would be read at the slow cadence it arrived on.
+    invalidateLater(if (w_idle > WATCH_QUIET) WATCH_SLOW else WATCH_POLL,
+                    session = NULL)
+    if (!changed) return()
+    # Seen once but not twice: a write is in progress. Come back in a tick.
+    if (!identical(sig, w_seen)) { w_seen <<- sig; return() }
+    m <- read_match_file(path, isolate(LIVE$name))
+    # The signature only moves on a parse that landed. A read caught mid-write
+    # otherwise consumes the change and the new rallies wait for the next one.
+    if (inherits(m, "condition")) return()
+    w_sig <<- sig
+    LIVE$match <- m
+    LIVE$at <- format(Sys.time(), "%H:%M:%S")
+    LIVE$gen <- LIVE$gen + 1L
+  }, domain = NULL)
+})
+
 TABS <- list(c("attack", "Attack direction"), c("serve", "Serve direction"),
              c("setting", "Set origin"), c("setter", "Setter"),
              c("passing", "Pass quality"), c("defense", "Defense"),
@@ -84,7 +174,6 @@ server <- function(input, output, session) {
     matches = list(), focus_name = "", focus = list(),
     sel = list(matches = character(), sets = integer(), players = integer(),
                rots = character(), passers = integer()),
-    watch = character(), live_at = "",
     o = DEFAULT_OPTS, tab = "attack", errors = character(), warnings = character()
   )
 
@@ -122,36 +211,9 @@ server <- function(input, output, session) {
 
   observeEvent(input$files, ingest(input$files))
 
-  # ---- live reload ----------------------------------------------------
-  # An upload is a snapshot: Shiny copies the file to a temp path, so the
-  # original can grow all it likes and the app never sees it. Watching needs a
-  # real path on disk. VolleyStation does append to the .dvw as you code,
-  # measured on a practice file whose last touch was stamped 20 seconds after
-  # its own header, so polling the modification time is enough.
-  #
-  # Ten polls a second while the file is moving. The stat() itself is free;
-  # what it costs is a Shiny timer tick, measured at about 13% of one core at
-  # this rate against 0.8% for the app sitting still. That is a fair price
-  # during a match and a silly one for an app left open overnight, so the poll
-  # drops to twice a second after ten seconds of nothing and picks straight
-  # back up on the next change. The re-parse is the same work either way: at
-  # full match length, 795 plays, 0.11s to read and parse, finalize included,
-  # plus 0.08s for the heaviest tab.
-  #
-  # A change has to hold still for one tick before it is read. VolleyStation
-  # writes in bursts, and at this rate a poll lands inside a burst often
-  # rather than rarely, which would mean parsing half-written files all match.
-  # Waiting one tick costs 100ms and removes the whole class of problem. The
-  # torn-read handling below stays as the backstop.
-  WATCH_POLL  <- 100
-  WATCH_SLOW  <- 500
-  WATCH_QUIET <- 100L                # ticks of no change before backing off
-
-  # Not reactiveValues. These are read and written by the poll alone, ten
-  # times a second, and a reactive write costs a flush of the whole graph.
-  w_sig <- ""        # the file as it was when last parsed
-  w_seen <- ""       # the file as it looked on the previous tick
-  w_idle <- 0L
+  # ---- following the shared watch -------------------------------------
+  # The poller lives at app scope; a session only says which file to follow
+  # and takes what comes back.
 
   observeEvent(input$watch_go, {
     p <- trimws(input$watch_path %||% "")
@@ -161,74 +223,70 @@ server <- function(input, output, session) {
       S$errors <- sprintf("No file at %s", p)
       return()
     }
-    S$errors <- character()
-    sig <- file_sig(p)
     # Arm the watch only once the file has parsed. A path that is not a match
-    # file should report that and stay off, not poll a file it cannot read.
-    if (!ingest(data.frame(name = basename(p), datapath = p,
-                           stringsAsFactors = FALSE))) return()
-    S$watch <- p
-    w_sig <<- sig; w_seen <<- sig; w_idle <<- 0L
-    S$live_at <- format(Sys.time(), "%H:%M:%S")
+    # file should say so and stay off, rather than everyone else's screen
+    # being handed a file the app cannot read.
+    m <- read_match_file(p)
+    if (inherits(m, "condition")) {
+      S$errors <- conditionMessage(m)
+      return()
+    }
+    S$errors <- character()
+    LIVE$name <- basename(p)
+    LIVE$path <- p
+    LIVE$match <- m
+    LIVE$at <- format(Sys.time(), "%H:%M:%S")
+    LIVE$gen <- LIVE$gen + 1L
   })
 
   observeEvent(input$watch_stop, {
-    S$watch <- character(); S$live_at <- ""
-    w_sig <<- ""; w_seen <<- ""; w_idle <<- 0L
+    LIVE$path <- ""; LIVE$at <- ""
   })
 
-  observe({
-    req(length(S$watch) > 0)                    # req(0) is truthy in Shiny
-    p <- isolate(S$watch)
-    sig <- file_sig(p)                          # "" if gone or briefly locked
-    changed <- nzchar(sig) && !identical(sig, w_sig)
-    w_idle <<- if (changed) 0L else w_idle + 1L
-    # Scheduled after the stat, not before it, so the tick that confirms a
-    # change is always a fast one. Otherwise the first touch after a timeout
-    # would be read at the slow cadence it arrived on.
-    invalidateLater(if (w_idle > WATCH_QUIET) WATCH_SLOW else WATCH_POLL)
-    if (!changed) return()
-    # Seen once but not twice: a write is in progress. Come back in a tick.
-    if (!identical(sig, w_seen)) {
-      w_seen <<- sig
-      return()
-    }
-    ok <- ingest(data.frame(name = basename(p), datapath = p,
-                            stringsAsFactors = FALSE), keep_view = TRUE)
-    # The signature only moves on a parse that landed. A read caught mid-write
-    # otherwise consumes the change and the new rallies wait for the next one.
-    if (ok) {
-      w_sig <<- sig
-      S$live_at <- format(Sys.time(), "%H:%M:%S")
-    }
-  })
+  # Every refresh, and once on connect, so a tablet that joins at the end of
+  # the second set does not sit empty until the next touch is coded.
+  observeEvent(LIVE$gen, {
+    m <- LIVE$match
+    if (is.null(m)) return()
+    S$matches[[m$match_id]] <- m
+    settle(keep_view = TRUE)
+  }, ignoreInit = FALSE)
 
   # `keep_view` is set on a live refresh. A re-parse every few seconds must not
   # reset the focus team or clear the player chips, or the rail resets itself
   # out from under whoever is reading it mid-rally.
+  # Order, label and focus whatever is now loaded. Called after an upload and
+  # after every live refresh, so it has to be safe to run ten times a minute.
+  settle <- function(keep_view = FALSE) {
+    if (!length(S$matches)) return(invisible(FALSE))
+    ms <- S$matches
+    ms <- ms[order(vapply(ms, function(m) paste0(m$date %||% "", "|", m$file_name), ""))]
+    ms <- classify_systems(ms)
+    ms <- add_season_codes(ms)
+    S$matches <- ms
+    idx <- team_index(ms)
+    # The focus team is the one appearing in the most files; ties break
+    # alphabetically and are fully overridable from the header picker.
+    if (!nzchar(S$focus_name) || !(S$focus_name %in% idx$name))
+      S$focus_name <- idx$name[1]
+    S$focus <- focus_sides(ms, S$focus_name)
+    if (!keep_view) S$sel$players <- integer()
+    invisible(TRUE)
+  }
+
   ingest <- function(files, sample = FALSE, keep_view = FALSE) {
     errs <- character(); warns <- character(); got <- 0L
     for (i in seq_len(nrow(files))) {
-      nm <- files$name[i]
-      m <- tryCatch({
-        txt <- paste(readLines(files$datapath[i], warn = FALSE,
-                               encoding = "UTF-8"), collapse = "\n")
-        txt <- sub("^﻿", "", txt)
-        # .dvw is DataVolley's plain text; .vsm is JSON. Sniff the content too,
-        # since a file renamed on the way out of VolleyMetrics is common.
-        is_dvw <- grepl("\\.dvw$", nm, ignore.case = TRUE) ||
-          grepl("^\\s*\\[3DATAVOLLEYSCOUT\\]", txt)
-        if (is_dvw) parse_dvw(txt, nm) else parse_vsm(txt, nm)
-      }, error = function(e) { errs <<- c(errs, conditionMessage(e)); NULL })
+      m <- read_match_file(files$datapath[i], files$name[i])
       # A file caught mid-write is truncated, not corrupt. Keep the last good
       # parse and try again on the next poll rather than blanking the screen.
-      if (is.null(m)) next
-      m <- tryCatch(finalize_match(m),
-                    error = function(e) { errs <<- c(errs, conditionMessage(e)); NULL })
-      if (is.null(m)) next
+      if (inherits(m, "condition")) {
+        errs <- c(errs, conditionMessage(m))
+        next
+      }
       warns <- c(warns, m$warnings)
       if (!nrow(m$plays))
-        warns <- c(warns, sprintf("%s: loaded, no coded rallies yet.", nm))
+        warns <- c(warns, sprintf("%s: loaded, no coded rallies yet.", files$name[i]))
       S$matches[[m$match_id]] <- m
       got <- got + 1L
     }
@@ -236,20 +294,7 @@ server <- function(input, output, session) {
     # over a screen that still holds the last good parse would mean a banner
     # flashing every few seconds for something nobody can act on.
     if (!keep_view || !length(S$matches)) S$errors <- errs
-    if (length(S$matches)) {
-      ms <- S$matches
-      ms <- ms[order(vapply(ms, function(m) paste0(m$date %||% "", "|", m$file_name), ""))]
-      ms <- classify_systems(ms)
-      ms <- add_season_codes(ms)
-      S$matches <- ms
-      idx <- team_index(ms)
-      # The focus team is the one appearing in the most files; ties break
-      # alphabetically and are fully overridable from the header picker.
-      if (!nzchar(S$focus_name) || !(S$focus_name %in% idx$name))
-        S$focus_name <- idx$name[1]
-      S$focus <- focus_sides(ms, S$focus_name)
-      if (!keep_view) S$sel$players <- integer()
-    }
+    settle(keep_view)
     if (sample)
       warns <- c("Bundled sample loaded. fixture_coords.vsm is SYNTHETIC, its events are real but its coordinates are generated, so read it as a demonstration of the charts, never as a measurement.",
                  warns)
@@ -357,14 +402,18 @@ server <- function(input, output, session) {
       # Only drawn while a file is being followed. It carries the clock time of
       # the last refresh, so a frozen feed is visible as a stale time rather
       # than as numbers that quietly stop moving.
-      if (length(S$watch))
-        div(class = "livebox",
+      # The watch is app-wide, so the badge names the file: on a tablet across
+      # the gym, "Live" alone does not say live off what.
+      if (nzchar(LIVE$path))
+        div(class = "livebox", title = LIVE$path,
             span(class = "dot"),
-            span(class = "lbl", sprintf("Live %s", S$live_at)),
+            span(class = "lbl", sprintf("Live %s", LIVE$at)),
+            span(class = "who", LIVE$name),
             actionButton("watch_stop", "Stop", class = "chip ghost")) else NULL,
       tags$button(class = "chip", `data-o` = "mono",
                   `data-v` = if (isTRUE(S$o$mono)) "false" else "true",
                   if (isTRUE(S$o$mono)) "Colour" else "Mono (print)"),
+      tags$button(class = "chip railbtn", `data-rail` = "1", "Filters"),
       tags$button(class = "chip", onclick = "window.print()", "Print"),
       downloadButton("csv", "CSV", class = "chip")
     )
@@ -493,6 +542,10 @@ rail_html <- function(S) {
     vapply(m$sets, function(s) s$set_no, 0)))))
   roster <- focus_roster(S$matches, S$focus)
   H <- character()
+
+  # Only ever seen on a tablet, where the rail opens over the panel rather
+  # than beside it and so needs a way out. CSS hides it on a wide screen.
+  H <- c(H, '<div class="railtop"><button class="chip" data-rail="1">Done</button></div>')
 
   H <- c(H, '<div class="grp"><div class="lbl">Matches <button data-clr="matches">all</button></div>')
   for (m in S$matches) {

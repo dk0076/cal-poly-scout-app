@@ -212,3 +212,42 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 .livebox .chip.ghost:hover{color:var(--accent)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 @media print{.livebox,.watchrow{display:none}}
+.livebox .who{font:11px var(--mono);color:var(--ink-3);max-width:150px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---- tablets ------------------------------------------------------------
+   A bench iPad on the match router is reading this between rallies, so the
+   numbers have to be the first thing on the screen. Stacking the rail above
+   the panel, which is what a one-column grid does by default, buries them
+   under a screenful of filters. So the panel comes first and the rail is
+   folded away behind a Filters button until someone wants it.
+
+   Touch targets go up at the same time. A 3px chip is a mouse control. */
+@media (max-width:900px){
+  /* Open over the panel, not under it. Stacked, the rail lands two screens
+     down, so the button that opens it looks like it did nothing. */
+  /* aside.rail, not .rail: the desktop rule above is an element+class and
+     a media query adds no specificity of its own. */
+  aside.rail{display:none;position:fixed;inset:0;z-index:60;overflow-y:auto;
+    max-height:none;top:0;background:var(--paper);padding:0 16px 40px}
+  body.rail-open aside.rail{display:block}
+  body.rail-open{overflow:hidden}
+  .railtop{position:sticky;top:0;z-index:1;background:var(--paper);
+    padding:12px 0 10px;border-bottom:1px solid var(--rule);margin-bottom:12px}
+  .railtop .chip{padding:7px 16px}
+  .chip,.rail .chip.wide{padding:7px 10px;font-size:13px}
+  .tabs{gap:4px}
+  .tab{padding:8px 11px;font-size:13.5px}
+  .livebox .who{display:none}
+  /* The panel is full width now, so wide tables scroll rather than squeeze. */
+  .card table{min-width:100%}
+  .card{overflow-x:auto}
+}
+/* Shown only where the rail can be folded away. */
+.railbtn{display:none}
+@media (max-width:900px){.railbtn{display:inline-block}}
+@media print{.railbtn{display:none}}
+
+.railtop{display:none}
+@media (max-width:900px){.railtop{display:block}}
+@media print{.railtop{display:none}}

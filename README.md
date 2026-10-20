@@ -11,11 +11,11 @@ assistance. How it got here: [STORY.md](STORY.md).
 R 4.5 with `shiny` and `data.table`. Nothing to install, no build step.
 
 ```bash
-Rscript -e "shiny::runApp('scoutR', launch.browser = TRUE)"
+Rscript run.R
 ```
 
-Or open `app.R` in RStudio and click Run App, then drop files on the opening
-screen.
+That serves it to the whole room and prints the addresses. Open `app.R` in
+RStudio and click Run App instead for just this machine.
 
 ## Match files are not in this repository
 
@@ -72,6 +72,41 @@ coding. After ten seconds of no change it drops to twice a second, about 2%,
 and picks straight back up on the next touch. `WATCH_POLL` in `app.R` is the
 knob.
 
+## On the bench, on iPads
+
+The same shape as VolleyStation's own sharing. The laptop coding the match
+runs `Rscript run.R`; it prints its address on the match router, and the
+iPads open that in Safari. The router does not need internet, only to be a
+network.
+
+```
+  on this laptop      http://localhost:7815
+  on the router       http://192.168.1.42:7815
+```
+
+Windows asks to allow R through the firewall the first time. Say yes to
+private networks. If it was refused once and never asked again, this opens
+the port for private networks only, run as administrator:
+
+```bash
+netsh advfirewall firewall add rule name="scoutR" dir=in action=allow protocol=TCP localport=7815 profile=private
+```
+
+**One file, one poller, however many people are watching.** The watched file
+belongs to the app, not to a tab, so anyone can press Watch and everyone sees
+the same match, and a tablet that joins in the third set has the match
+already. Uploads stay per viewer: an iPad can open last week's file without
+taking the bench off the live one. Measured with two viewers on one coding
+file, 14% of one core, against 19% for a single viewer before this was
+shared.
+
+A venue's guest Wi-Fi is not the same thing. Guest networks usually isolate
+clients from each other, so the tablets will not reach the laptop however
+right the address looks.
+
+Below 900px the filter rail opens over the page from a Filters button rather
+than sitting beside it, so the numbers are the first thing on the screen.
+
 ## Worth knowing
 
 **Shot charts only work on files coded with lines.** No coordinates, no charts.
@@ -114,7 +149,8 @@ scales in `PASS_SCALE` / `SERVE_SCALE`.
 ## Layout
 
 ```
-app.R              UI, server, filter rail, file intake
+run.R              serve it on the match router, printing the address
+app.R              UI, server, shared file watch, filter rail, file intake
 R/core.R           geometry, zones, season codes, VolleyStation symbol table
 R/parse_vsm.R      VolleyStation JSON reader
 R/parse_dvw.R      DataVolley text reader

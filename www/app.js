@@ -17,9 +17,15 @@
   }
 
   document.addEventListener("click", function (ev) {
-    var el = ev.target.closest("[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
+    var el = ev.target.closest("[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
     if (!el) return;
 
+    // Folds the filter rail away on a tablet. Purely local: nothing the
+    // server needs to know, and a round trip would make it feel slow.
+    if (el.hasAttribute("data-rail")) {
+      document.body.classList.toggle("rail-open");
+      return;
+    }
     if (el.hasAttribute("data-tab")) return send("js_tab", { tab: el.getAttribute("data-tab") });
     // a panel view option: key plus the value to store
     if (el.hasAttribute("data-o"))
