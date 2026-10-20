@@ -1,0 +1,33 @@
+# Match data stays out of the repository.
+#
+# Coded match files carry real players, real opponents and real scouting
+# information. The app and the test suite both read from data/, but nothing in
+# there is ours to publish, so the directory is ignored wholesale rather than
+# file by file -- a rule that forgets a new extension is how one slips out.
+data/
+*.vsm
+*.dvw
+*.vss
+*.vsb
+
+# Generated locally from a match file; see data-raw/make_fixture.R
+fixture_coords.*
+
+# Charts written out of the app, which embed match data
+shotchart*.html
+codec_check*.html
+*.png
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# editors / OS
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+__pycache__/
