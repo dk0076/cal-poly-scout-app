@@ -46,6 +46,21 @@ Rscript tests/verify.R path/to/match.vsm path/to/another.dvw
 The left rail filters everything at once: matches, which side is your team,
 sets, rotation, system, phase, passer, players.
 
+## Following a match as it is coded
+
+VolleyStation appends to the `.dvw` while you code, so the app can follow one.
+Paste the file's path into the box under the drop zone and press Watch. It
+re-reads on every change, about every five seconds, and keeps your filters,
+tab and scroll position. The badge in the header carries the time of the last
+refresh, so a feed that has stopped reads as a stale clock rather than as
+numbers that quietly stop moving.
+
+A dropped or browsed file cannot be followed. Shiny copies an upload to a temp
+path, so the original can grow all it likes and the app never sees it.
+
+The rally in progress has no score row until the point ends, so SO%, ESO%,
+FBSO% and PS% lag the court by one rally. The Rotations tab says so.
+
 ## Worth knowing
 
 **Shot charts only work on files coded with lines.** No coordinates, no charts.

@@ -84,6 +84,7 @@ server <- function(input, output, session) {
     matches = list(), focus_name = "", focus = list(),
     sel = list(matches = character(), sets = integer(), players = integer(),
                rots = character(), passers = integer()),
+    watch = character(), watch_mtime = NA_real_, live_at = "",
     o = DEFAULT_OPTS, tab = "attack", errors = character(), warnings = character()
   )
 
@@ -121,8 +122,60 @@ server <- function(input, output, session) {
 
   observeEvent(input$files, ingest(input$files))
 
-  ingest <- function(files, sample = FALSE) {
-    errs <- character(); warns <- character()
+  # ---- live reload ----------------------------------------------------
+  # An upload is a snapshot: Shiny copies the file to a temp path, so the
+  # original can grow all it likes and the app never sees it. Watching needs a
+  # real path on disk. VolleyStation does append to the .dvw as you code --
+  # measured on a practice file whose last touch was stamped 20 seconds after
+  # its own header -- so polling the modification time is enough, and a full
+  # re-parse of 800 plays costs about 0.7s.
+  WATCH_EVERY <- 5000
+
+  observeEvent(input$watch_go, {
+    p <- trimws(input$watch_path %||% "")
+    p <- gsub('^"|"$', "", p)                     # pasted paths arrive quoted
+    if (!nzchar(p)) return()
+    if (!file.exists(p)) {
+      S$errors <- sprintf("No file at %s", p)
+      return()
+    }
+    S$errors <- character()
+    mt <- as.numeric(file.info(p)$mtime)
+    # Arm the watch only once the file has parsed. A path that is not a match
+    # file should report that and stay off, not poll a file it cannot read.
+    if (!ingest(data.frame(name = basename(p), datapath = p,
+                           stringsAsFactors = FALSE))) return()
+    S$watch <- p
+    S$watch_mtime <- mt
+    S$live_at <- format(Sys.time(), "%H:%M:%S")
+  })
+
+  observeEvent(input$watch_stop, {
+    S$watch <- character(); S$watch_mtime <- NA_real_; S$live_at <- ""
+  })
+
+  observe({
+    req(length(S$watch) > 0)                    # req(0) is truthy in Shiny
+    invalidateLater(WATCH_EVERY)
+    p <- isolate(S$watch)
+    if (!file.exists(p)) return()
+    mt <- as.numeric(file.info(p)$mtime)
+    if (!is.na(isolate(S$watch_mtime)) && mt <= isolate(S$watch_mtime)) return()
+    ok <- ingest(data.frame(name = basename(p), datapath = p,
+                            stringsAsFactors = FALSE), keep_view = TRUE)
+    # The watermark only moves on a parse that landed. A read caught mid-write
+    # otherwise consumes the change and the new rallies wait for the next one.
+    if (ok) {
+      S$watch_mtime <- mt
+      S$live_at <- format(Sys.time(), "%H:%M:%S")
+    }
+  })
+
+  # `keep_view` is set on a live refresh. A re-parse every few seconds must not
+  # reset the focus team or clear the player chips, or the rail resets itself
+  # out from under whoever is reading it mid-rally.
+  ingest <- function(files, sample = FALSE, keep_view = FALSE) {
+    errs <- character(); warns <- character(); got <- 0L
     for (i in seq_len(nrow(files))) {
       nm <- files$name[i]
       m <- tryCatch({
@@ -135,14 +188,22 @@ server <- function(input, output, session) {
           grepl("^\\s*\\[3DATAVOLLEYSCOUT\\]", txt)
         if (is_dvw) parse_dvw(txt, nm) else parse_vsm(txt, nm)
       }, error = function(e) { errs <<- c(errs, conditionMessage(e)); NULL })
+      # A file caught mid-write is truncated, not corrupt. Keep the last good
+      # parse and try again on the next poll rather than blanking the screen.
       if (is.null(m)) next
-      m <- finalize_match(m)
+      m <- tryCatch(finalize_match(m),
+                    error = function(e) { errs <<- c(errs, conditionMessage(e)); NULL })
+      if (is.null(m)) next
       warns <- c(warns, m$warnings)
       if (!nrow(m$plays))
         warns <- c(warns, sprintf("%s: loaded, no coded rallies yet.", nm))
       S$matches[[m$match_id]] <- m
+      got <- got + 1L
     }
-    S$errors <- errs
+    # Mid-match, a torn read is routine and self-correcting. Painting its error
+    # over a screen that still holds the last good parse would mean a banner
+    # flashing every few seconds for something nobody can act on.
+    if (!keep_view || !length(S$matches)) S$errors <- errs
     if (length(S$matches)) {
       ms <- S$matches
       ms <- ms[order(vapply(ms, function(m) paste0(m$date %||% "", "|", m$file_name), ""))]
@@ -155,12 +216,13 @@ server <- function(input, output, session) {
       if (!nzchar(S$focus_name) || !(S$focus_name %in% idx$name))
         S$focus_name <- idx$name[1]
       S$focus <- focus_sides(ms, S$focus_name)
-      S$sel$players <- integer()
+      if (!keep_view) S$sel$players <- integer()
     }
     if (sample)
       warns <- c("Bundled sample loaded. fixture_coords.vsm is SYNTHETIC, its events are real but its coordinates are generated, so read it as a demonstration of the charts, never as a measurement.",
                  warns)
     S$warnings <- unique(warns)
+    invisible(got > 0L)
   }
 
   # ------------------------------------------------------- control handlers
@@ -260,6 +322,14 @@ server <- function(input, output, session) {
   output$header_tools <- renderUI({
     if (!length(S$matches)) return(NULL)
     tagList(
+      # Only drawn while a file is being followed. It carries the clock time of
+      # the last refresh, so a frozen feed is visible as a stale time rather
+      # than as numbers that quietly stop moving.
+      if (length(S$watch))
+        div(class = "livebox",
+            span(class = "dot"),
+            span(class = "lbl", sprintf("Live %s", S$live_at)),
+            actionButton("watch_stop", "Stop", class = "chip ghost")) else NULL,
       tags$button(class = "chip", `data-o` = "mono",
                   `data-v` = if (isTRUE(S$o$mono)) "false" else "true",
                   if (isTRUE(S$o$mono)) "Colour" else "Mono (print)"),
@@ -343,9 +413,14 @@ intro_ui <- function(errors) {
           HTML('<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'),
           div(class = "big", "Select or drag match files"),
           div(class = "small", HTML("<code>.vsm</code> or <code>.dvw</code> · as many as you like"))),
+      # Watching needs a real path: an upload is a snapshot and never changes.
+      div(class = "watchrow",
+          textInput("watch_path", NULL, width = "100%",
+                    placeholder = "or paste a file path to follow it live"),
+          actionButton("watch_go", "Watch", class = "chip")),
       # Only offered when a sample is actually present. data/ is not in the
-      # repository -- match files are not ours to publish -- so a fresh clone
-      # has none, and a link that only produces an error is worse than no link.
+      # repository, match files are not ours to publish, so a fresh clone has
+      # none, and a link that only produces an error is worse than no link.
       if (length(Sys.glob(file.path("data", "fixture_coords.vsm"))))
         div(class = "introfoot",
             actionLink("load_sample", "Load the bundled sample")) else NULL,

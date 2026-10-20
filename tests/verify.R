@@ -526,5 +526,56 @@ for (nm in c("attack", "serve", "setting", "setter", "passing")) {
   ok(sprintf("%s survives a single play", nm), r == "rendered", r)
 }
 
+# ---------------------------------------------------------------------------
+# A file being coded live
+# ---------------------------------------------------------------------------
+# The app follows a .dvw on disk and re-parses it every few seconds, so it
+# reads the same file in states no finished export is ever in: part of a rally
+# coded, or a line half written. Two things have to hold. Growing the file must
+# only ever add plays, never renumber or drop the ones already on screen. And a
+# read caught mid-write must fail loudly, because the alternative, a parse that
+# quietly returns fewer plays than the file holds, shows a coach stale numbers
+# with a live badge over them.
+
+dvw_src <- files[grepl("[.]dvw$", files, ignore.case = TRUE)]
+if (length(dvw_src)) {
+  cat("\n== a file being coded live\n")
+  raw <- readBin(dvw_src[1], "raw", file.info(dvw_src[1])$size)
+  tmp <- tempfile(fileext = ".dvw")
+  on.exit(unlink(tmp), add = TRUE)
+
+  try_parse <- function(n) {
+    writeBin(raw[seq_len(n)], tmp)
+    tryCatch(load_file(tmp), error = function(e) e)
+  }
+
+  # Grow the file from a third of the way in and watch the play count. Every
+  # prefix that parses has to be a prefix of the finished match too.
+  ns <- as.integer(length(raw) * seq(0.35, 1, by = 0.05))
+  got <- lapply(ns, try_parse)
+  parsed <- !vapply(got, inherits, TRUE, "condition")
+  counts <- vapply(got[parsed], function(m) nrow(m$plays), 0L)
+  ok("a growing file parses at some prefix", any(parsed))
+  ok("growing the file never removes plays", !is.unsorted(counts),
+     paste(counts, collapse = " "))
+  ok("the whole file holds at least as many plays as any prefix",
+     !length(counts) || max(counts) == counts[length(counts)])
+
+  # Nothing may come back as a half-parsed match. Either a match or a
+  # condition, and every condition carries a message worth printing.
+  bad <- got[!parsed]
+  ok("a torn read raises rather than returning a short match",
+     all(vapply(bad, function(e) nzchar(conditionMessage(e)), TRUE)))
+
+  # A line cut in the middle is the common case: the coder is mid-touch.
+  L <- readLines(dvw_src[1], warn = FALSE)
+  L[length(L)] <- substr(L[length(L)], 1, 6)
+  writeLines(L, tmp)
+  r <- tryCatch({ load_file(tmp); "parsed" },
+                error = function(e) paste("raised:", conditionMessage(e)))
+  ok("a half-written last line does not crash the reader",
+     grepl("^parsed|^raised:", r), r)
+}
+
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)

@@ -31,3 +31,6 @@ Thumbs.db
 desktop.ini
 .vscode/
 __pycache__/
+
+# local editor/launch config, carries machine-specific paths
+.claude/

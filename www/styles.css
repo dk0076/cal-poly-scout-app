@@ -193,3 +193,22 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
   table:has(th:nth-child(12)){font-size:9px}
   table:has(th:nth-child(12)) th,table:has(th:nth-child(12)) td{padding:2px 3px}
 }
+
+/* Live file watching: the path box under the drop zone, and the header badge
+   that only exists while a file is being followed. */
+.watchrow{display:flex;gap:6px;align-items:flex-start;margin-top:12px}
+.watchrow .form-group{margin:0;flex:1}
+.watchrow input{width:100%;border:1px solid var(--rule);background:var(--panel);
+  padding:5px 7px;font:12.5px var(--mono);color:var(--ink);border-radius:0}
+.watchrow input:focus{outline:none;border-color:var(--accent)}
+.watchrow .chip{padding:5px 10px;flex:none}
+.livebox{display:flex;align-items:center;gap:6px;border:1px solid var(--accent);
+  background:var(--accent-soft);padding:2px 5px 2px 7px;flex:none}
+.livebox .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);
+  animation:pulse 2s ease-in-out infinite}
+.livebox .lbl{font:11.5px var(--mono);color:var(--accent);white-space:nowrap}
+.livebox .chip.ghost{border-color:transparent;background:transparent;
+  color:var(--ink-3);padding:1px 4px}
+.livebox .chip.ghost:hover{color:var(--accent)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media print{.livebox,.watchrow{display:none}}
