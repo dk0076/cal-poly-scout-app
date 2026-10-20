@@ -75,30 +75,33 @@ knob.
 ## On the bench, on iPads
 
 The same shape as VolleyStation's own sharing. The laptop coding the match
-runs `Rscript run.R`; it prints its address on the match router, and the
-iPads open that in Safari. The router does not need internet, only to be a
-network.
+runs `Rscript run.R`, and the iPads open the address it prints. Any router,
+no internet: the router does not have to reach anything, only to be a
+network, and every script, stylesheet and font the page loads is served from
+this machine. All that matters is that the devices are on the same router.
 
 ```
+  on the tablets      http://drews-laptop.local:7815
+  or by address       http://192.168.1.42:7815
   on this laptop      http://localhost:7815
-  on the network      http://192.168.1.42:7815
 
   network             MatchRouter (Private)
+  firewall rule       in place
+
+  Ready for the tablets.
 ```
 
-It prints the network it is on and what Windows makes of it. **Public means
-it will not work**, and that is what Windows calls campus and venue Wi-Fi:
-inbound is blocked, and those networks usually keep their clients from seeing
-each other anyway. Private, which is what the match router should be, is
-fine.
+Use the first line. It is the laptop's own name, so it survives changing
+routers, which the address does not. iPads resolve it natively.
 
-Windows asks to allow R through the firewall the first time. Say yes to
-private networks. If it was refused once and never asked again, this opens
-the port for private networks only, run as administrator:
+`run.R` checks the two things that stop it working and prints the command to
+fix each: a network Windows has filed as Public, and a missing firewall rule.
+The rule is once ever, the network is once per router. Campus and venue
+Wi-Fi is the case no setting fixes, since those networks keep their clients
+from seeing each other at all.
 
-```bash
-netsh advfirewall firewall add rule name="scoutR" dir=in action=allow protocol=TCP localport=7815 profile=private
-```
+The full match-day sheet, written to be read on the laptop with no internet,
+is [BENCH.md](BENCH.md).
 
 **One file, one poller, however many people are watching.** The watched file
 belongs to the app, not to a tab, so anyone can press Watch and everyone sees
@@ -107,10 +110,6 @@ already. Uploads stay per viewer: an iPad can open last week's file without
 taking the bench off the live one. Measured with two viewers on one coding
 file, 14% of one core, against 19% for a single viewer before this was
 shared.
-
-A venue's guest Wi-Fi is not the same thing. Guest networks usually isolate
-clients from each other, so the tablets will not reach the laptop however
-right the address looks.
 
 Below 900px the filter rail opens over the page from a Filters button rather
 than sitting beside it, so the numbers are the first thing on the screen.
@@ -157,7 +156,8 @@ scales in `PASS_SCALE` / `SERVE_SCALE`.
 ## Layout
 
 ```
-run.R              serve it on the match router, printing the address
+run.R              serve it on any router, printing the address
+BENCH.md           the match-day sheet
 app.R              UI, server, shared file watch, filter rail, file intake
 R/core.R           geometry, zones, season codes, VolleyStation symbol table
 R/parse_vsm.R      VolleyStation JSON reader

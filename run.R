@@ -4,91 +4,152 @@
 # At a match the laptop codes into VolleyStation and the bench reads off iPads
 # on the same router, which is the setup VolleyStation's own sharing assumes.
 # This does the same thing: bind every interface rather than loopback, then
-# print the address to type into Safari.
+# print the addresses to type into Safari.
 #
-#   Rscript run.R          serve on the LAN, port 7815
+#   Rscript run.R          serve on the network, port 7815
 #   Rscript run.R 8080     a different port
 #
-# Running it over a venue's guest Wi-Fi is not the same thing. Guest networks
-# usually isolate clients from each other, so the tablets will not reach the
-# laptop however right the address looks. The match router is the reliable
-# path, and it does not need internet, only to be a network.
+# Any router. Nothing about a network is stored or assumed: the addresses are
+# read fresh at every start, so moving between the practice gym, the match
+# router and a phone hotspot needs no change here. All that matters is that
+# the laptop and the tablets are on the same one.
+#
+# No internet either. The router does not have to reach anything, only to be
+# a network. Every script, stylesheet and font the page loads is served by
+# this process out of the R library on this machine, which is checked rather
+# than assumed: a page load makes 13 requests and all 13 come back here.
+#
+# What does change between routers is the laptop's address, which is why the
+# computer's own name is printed first. A router hands out a new IP every time
+# it feels like it; the name stays put.
 # ---------------------------------------------------------------------------
 
 port <- suppressWarnings(as.integer(commandArgs(TRUE)[1]))
 if (is.na(port)) port <- 7815L
 
+RULE <- "scoutR"
+win <- .Platform$OS.type == "windows"
+
+ps <- function(cmd) {
+  out <- tryCatch(suppressWarnings(
+    system2("powershell", c("-NoProfile", "-Command", cmd),
+            stdout = TRUE, stderr = FALSE)), error = function(e) character())
+  trimws(out[nzchar(trimws(out))])
+}
+
+#' The name the tablets can use on any network
+#'
+#' Windows answers mDNS, and an iPad speaks it natively, so <machine>.local
+#' finds the laptop without anyone reading an IP off a screen. This is the
+#' address worth writing on the inside of the laptop lid, because it survives
+#' changing routers. Some routers do not pass mDNS, which is what the numbers
+#' below are for.
+mdns_name <- function() {
+  h <- tryCatch(unname(Sys.info()[["nodename"]]), error = function(e) "")
+  if (!nzchar(h)) return("")
+  tolower(paste0(h, ".local"))
+}
+
 #' Every address this machine answers on, best guess first
 #'
-#' Reads the routing table rather than the interface list, because a laptop in
-#' a gym typically holds several: the match router, a campus connection it has
-#' not dropped, and whatever a dock adds. The one with a default route is the
-#' one packets leave by, and the one the tablets are most likely on.
+#' All of them rather than one, because a laptop in a gym typically holds
+#' several: the match router, a campus connection it has not dropped, and
+#' whatever a dock adds. A router hands out a private block, so those come
+#' first, but not certainly, which is why they are all printed.
 lan_addresses <- function() {
-  ip <- character()
-  if (.Platform$OS.type == "windows") {
-    out <- tryCatch(system2("powershell",
-      c("-NoProfile", "-Command",
-        "Get-NetIPAddress -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress"),
-      stdout = TRUE, stderr = FALSE), error = function(e) character())
-    ip <- trimws(out)
+  ip <- if (win) {
+    ps("Get-NetIPAddress -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress")
   } else {
-    out <- tryCatch(system2("hostname", "-I", stdout = TRUE, stderr = FALSE),
-                    error = function(e) character())
-    ip <- unlist(strsplit(trimws(out), "\\s+"))
+    unlist(strsplit(trimws(paste(tryCatch(
+      system2("hostname", "-I", stdout = TRUE, stderr = FALSE),
+      error = function(e) ""), collapse = " ")), "\\s+"))
   }
   ip <- ip[grepl("^[0-9]{1,3}([.][0-9]{1,3}){3}$", ip)]
   ip <- ip[!grepl("^(127[.]|169[.]254[.])", ip)]
-  # A router hands out a private block. Anything else is likelier to be a
-  # campus or VPN address that the tablets cannot see.
   private <- grepl("^(10[.]|192[.]168[.]|172[.](1[6-9]|2[0-9]|3[01])[.])", ip)
   c(ip[private], ip[!private])
 }
 
 #' The network this machine is on, and whether Windows trusts it
 #'
-#' Worth printing because the two ways this fails look identical from the
-#' bench, and neither is the app's fault. A campus or venue network isolates
-#' its clients, so the tablets cannot reach the laptop at all; and Windows
-#' blocks inbound connections on a network it has filed as Public, which is
-#' what it files every network it was not told to trust. The match router,
-#' marked private, has neither problem.
+#' Windows blocks inbound connections on any network it has filed as Public,
+#' which is every network it was not told to trust, and campus and venue
+#' Wi-Fi usually keeps its clients from seeing each other on top of that. A
+#' router marked private has neither problem. This is per network, so a new
+#' router starts Public and has to be told once.
 network_profile <- function() {
-  if (.Platform$OS.type != "windows") return(NULL)
-  out <- tryCatch(system2("powershell",
-    c("-NoProfile", "-Command",
-      "Get-NetConnectionProfile | ForEach-Object { $_.Name + '|' + $_.NetworkCategory }"),
-    stdout = TRUE, stderr = FALSE), error = function(e) character())
-  out <- trimws(out[nzchar(trimws(out))])
+  if (!win) return(NULL)
+  out <- ps("Get-NetConnectionProfile | ForEach-Object { $_.Name + '|' + $_.InterfaceAlias + '|' + $_.NetworkCategory }")
   if (!length(out)) return(NULL)
-  parts <- strsplit(out[1], "|", fixed = TRUE)[[1]]
-  list(name = parts[1], category = if (length(parts) > 1) parts[2] else "")
+  p <- strsplit(out[1], "|", fixed = TRUE)[[1]]
+  list(name = p[1], iface = p[2], category = if (length(p) > 2) p[3] else "")
+}
+
+#' Is there already a rule letting this port in?
+#'
+#' Readable without administrator, unlike most of the firewall. Windows also
+#' offers to add one the first time a program listens, so this can be true
+#' without anyone having run the command below. A rule scoped to private
+#' covers every private network, so it is asked once and not once per router.
+rule_exists <- function() {
+  if (!win) return(NA)
+  out <- tryCatch(suppressWarnings(
+    system2("netsh", c("advfirewall", "firewall", "show", "rule",
+                       paste0("name=", RULE)),
+            stdout = TRUE, stderr = FALSE)), error = function(e) character())
+  any(grepl("Rule Name", out, fixed = TRUE))
 }
 
 setwd(dirname(normalizePath(sub("--file=", "", grep("--file=", commandArgs(FALSE),
                                                     value = TRUE)[1]))))
 
+host <- mdns_name()
 ips <- lan_addresses()
-cat("\n  Cal Poly Scout App\n")
-cat(sprintf("  on this laptop      http://localhost:%d\n", port))
+net <- network_profile()
+have_rule <- rule_exists()
+
+cat("\n  Cal Poly Scout App\n\n")
+if (nzchar(host))
+  cat(sprintf("  %-18s http://%s:%d\n", "on the tablets", host, port))
 if (length(ips)) {
   for (i in seq_along(ips))
     cat(sprintf("  %-18s http://%s:%d\n",
-                if (i == 1) "on the network" else "", ips[i], port))
+                if (i == 1) "or by address" else "", ips[i], port))
 } else {
-  cat("  No network address found. Check the laptop is on the match router.\n")
+  cat("  No network address found. Check the laptop is on the router.\n")
 }
-net <- network_profile()
-if (!is.null(net)) {
+cat(sprintf("  %-18s http://localhost:%d\n", "on this laptop", port))
+
+public <- !is.null(net) && identical(net$category, "Public")
+
+if (!is.null(net))
   cat(sprintf("\n  network             %s (%s)\n", net$name, net$category))
-  if (identical(net$category, "Public")) {
-    cat("\n  Windows has this network down as Public, so it will refuse the\n")
-    cat("  tablets whatever address they use. A campus or venue network also\n")
-    cat("  tends to keep its clients from seeing each other at all. Put the\n")
-    cat("  laptop on the match router for a match.\n")
-  }
+if (win)
+  cat(sprintf("  firewall rule       %s\n",
+              if (isTRUE(have_rule)) "in place" else "none by this name"))
+
+if (public || isFALSE(have_rule)) {
+  cat("\n  The tablets may not reach this yet.\n")
+  if (public)
+    cat("  Windows has this network down as Public, so it refuses them\n",
+        "  whatever address they use. Campus and venue Wi-Fi also keeps its\n",
+        "  clients from seeing each other, and no setting here fixes that.\n",
+        sep = "")
+  if (isFALSE(have_rule))
+    cat("  Windows may ask to allow R when the first tablet connects. Say\n",
+        "  yes to private networks and it is done for every router after.\n",
+        sep = "")
+  cat("\n  Or settle it now, in an administrator PowerShell:\n")
+  if (public && !is.null(net))
+    cat(sprintf("    Set-NetConnectionProfile -InterfaceAlias \"%s\" -NetworkCategory Private\n",
+                net$iface))
+  if (isFALSE(have_rule))
+    cat(sprintf("    netsh advfirewall firewall add rule name=%s dir=in action=allow protocol=TCP localport=%d profile=private\n",
+                RULE, port))
+  cat("  The first is per network and the second is once, ever.\n")
+} else {
+  cat("\n  Ready for the tablets.\n")
 }
-cat("\n  Windows asks to allow R through the firewall the first time.\n")
-cat("  Say yes to private networks. Ctrl+C here stops it.\n\n")
+cat("\n  Ctrl+C here stops it.\n\n")
 
 shiny::runApp(".", port = port, host = "0.0.0.0", launch.browser = FALSE)
