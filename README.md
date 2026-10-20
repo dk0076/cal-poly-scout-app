@@ -4,7 +4,7 @@ Opponent and self scouting off coded match files, in R/Shiny. Reads
 VolleyStation `.vsm` and DataVolley `.dvw`, in any mix.
 
 By **Andrew King**, Statistics and Data Science, Cal Poly. Built with AI
-assistance.
+assistance. How it got here: [STORY.md](STORY.md).
 
 ## Running it
 
