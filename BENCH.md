@@ -30,16 +30,15 @@ network, choose Private network.
 ## Every match
 
 1. Laptop and iPads on the same router.
-2. On the laptop, in the scoutR folder:
-
-```bash
-Rscript run.R
-```
-
-3. It prints what to open. Read the first line to whoever has an iPad.
+2. On the laptop, open the scoutR folder and double-click **scout.bat**.
+3. A black window opens and prints what to type. Read the first line to
+   whoever has an iPad. Leave the window open: closing it stops the app.
 4. Press Watch on the laptop and paste the path of the `.dvw` VolleyStation
    is writing. Every tablet follows it from that moment, including ones that
    join later.
+
+Pin scout.bat to the taskbar or make a desktop shortcut for it, so match day
+is one click.
 
 ## The address
 
@@ -57,7 +56,7 @@ expect it to be different at the next gym.
 
 ## When it says it is not ready
 
-`run.R` checks before serving and tells you which of the two things is wrong:
+It checks before serving and tells you which of the two things is wrong:
 
 ```
   network             MatchRouter (Private)
@@ -81,7 +80,8 @@ In order, because this is roughly how often each is the cause:
 
 1. The tablet is on a different network. Phones and iPads switch back to a
    remembered one by themselves.
-2. The network is Public. `run.R` says so at the top.
-3. The firewall rule is missing. `run.R` says so too.
+2. The network is Public. The black window says so at the top.
+3. The firewall rule is missing. It says so too.
 4. The router does not pass `.local` names. Use the numeric address.
-5. The laptop went to sleep. The app stops with it.
+5. The laptop went to sleep, or the black window got closed. Either stops
+   the app.

@@ -10,12 +10,16 @@ assistance. How it got here: [STORY.md](STORY.md).
 
 R 4.5 with `shiny` and `data.table`. Nothing to install, no build step.
 
+Double-click **scout.bat**, or:
+
 ```bash
 Rscript run.R
 ```
 
-That serves it to the whole room and prints the addresses. Open `app.R` in
-RStudio and click Run App instead for just this machine.
+Either serves it to the whole room and prints the addresses. The batch file
+finds R itself, which matters because R's installer does not put `Rscript` on
+the PATH, so the command above fails on a machine where R is plainly
+installed. Open `app.R` in RStudio and click Run App for just this machine.
 
 ## Match files are not in this repository
 
@@ -75,7 +79,7 @@ knob.
 ## On the bench, on iPads
 
 The same shape as VolleyStation's own sharing. The laptop coding the match
-runs `Rscript run.R`, and the iPads open the address it prints. Any router,
+double-clicks `scout.bat`, and the iPads open the address it prints. Any router,
 no internet: the router does not have to reach anything, only to be a
 network, and every script, stylesheet and font the page loads is served from
 this machine. All that matters is that the devices are on the same router.
@@ -94,8 +98,8 @@ this machine. All that matters is that the devices are on the same router.
 Use the first line. It is the laptop's own name, so it survives changing
 routers, which the address does not. iPads resolve it natively.
 
-`run.R` checks the two things that stop it working and prints the command to
-fix each: a network Windows has filed as Public, and a missing firewall rule.
+It checks the two things that stop it working and prints the command to fix
+each: a network Windows has filed as Public, and a missing firewall rule.
 The rule is once ever, the network is once per router. Campus and venue
 Wi-Fi is the case no setting fixes, since those networks keep their clients
 from seeing each other at all.
@@ -156,6 +160,7 @@ scales in `PASS_SCALE` / `SERVE_SCALE`.
 ## Layout
 
 ```
+scout.bat          double-click this at a match
 run.R              serve it on any router, printing the address
 BENCH.md           the match-day sheet
 app.R              UI, server, shared file watch, filter rail, file intake
