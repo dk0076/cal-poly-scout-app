@@ -81,8 +81,16 @@ network.
 
 ```
   on this laptop      http://localhost:7815
-  on the router       http://192.168.1.42:7815
+  on the network      http://192.168.1.42:7815
+
+  network             MatchRouter (Private)
 ```
+
+It prints the network it is on and what Windows makes of it. **Public means
+it will not work**, and that is what Windows calls campus and venue Wi-Fi:
+inbound is blocked, and those networks usually keep their clients from seeing
+each other anyway. Private, which is what the match router should be, is
+fine.
 
 Windows asks to allow R through the firewall the first time. Say yes to
 private networks. If it was refused once and never asked again, this opens
