@@ -67,6 +67,9 @@ happens. Slot 1 is the file being coded: paste its path and press Watch.
 Slot 2 is the scouting films: drag them in. The films can be the opponent
 playing anyone, which is what they usually are.
 
+Do this on the laptop and the iPads get the films too, with nobody touching
+the iPads.
+
 The rail then lists them under **Tonight** and **Scouting films**, so it is
 always visible which is which.
 
