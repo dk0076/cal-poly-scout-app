@@ -211,7 +211,15 @@ ui <- fluidPage(
     # everyone presses to go home.
     tags$button(class = "brand", `data-home` = "1", type = "button",
         title = "Start over",
-        span(class = "mark"),
+        # The Mustangs primary mark, full colour, which the athletics brand
+        # guide wants on a light background. The header is white, so this is
+        # the version with the most contrast, which is what the guide asks
+        # for. Served at twice the drawn size so it stays sharp on a retina
+        # iPad, and never recoloured or rotated.
+        tags$img(class = "mark", src = asset("cp-mark.png"),
+                 srcset = paste0(asset("cp-mark.png"), " 1x, ",
+                                 asset("cp-mark@2x.png"), " 2x"),
+                 alt = "Cal Poly Mustangs"),
         h1(HTML("Cal Poly <span>Scout</span>")),
         span(class = "v", title = app_version$build, app_version$label)),
     div(class = "uploadwrap", style = "min-width:260px",

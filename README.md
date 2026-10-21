@@ -275,6 +275,32 @@ Conventions that are this program's own and should be read within one file:
 `Assist%`, `Set eff`, earned `FBSO%`, `Convert%`, and the 0 to 4 pass and serve
 scales in `PASS_SCALE` / `SERVE_SCALE`.
 
+## Colours and the mark
+
+Cal Poly's own values, not approximations: Poly Green `#154734`, Mustang
+Gold `#BD8B13`, Avocado `#D0DF00`, Heritage Orange `#FF6A39`, each named as a
+variable in `www/styles.css`.
+
+Legibility decided where each one could go, measured rather than eyeballed.
+Mustang Gold is 2.70:1 on the cream court, below readable for a line somebody
+has to follow, so chart strokes use it at 75%, which is 4.49:1 and plainly
+the same gold. Heritage Orange is 2.85:1 on white, so text and rules use it
+at 75%. Avocado is 1.26:1 on a light background and 7.18:1 on Poly Green, so
+it appears once: the dot on the live badge, which is now green.
+
+Heritage Orange replaced red for the opponent. Red read as "bad" where it
+only meant "not us", and it collided with the red that does mean an error.
+
+The header carries the Mustangs primary mark, full colour on white, which is
+the version the athletics brand guide asks for on a light background. Scaled
+proportionally, never recoloured, as that guide requires.
+
+One thing left open: the athletics guide specifies **Copper Gold** `#B38F4F`
+and **Stadium Gold** `#F8E08E`, which is what the logo artwork itself uses,
+while the university palette gives Mustang Gold. The interface follows the
+university palette and the logo follows athletics, so two golds sit side by
+side in the header.
+
 ## Layout
 
 ```
