@@ -370,3 +370,7 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 .srvpick .chip{padding:4px 9px}
 .srvpick .chip .thin{margin-left:4px}
 .nsname .thin{font-size:12px;font-weight:400;margin-left:6px}
+/* The serve court is portrait and tall, so cap it rather than let it run the
+   height of the page on a bench screen. */
+.twoup .side .srvcourt svg.court,
+.srvcourt svg.court{max-width:300px}

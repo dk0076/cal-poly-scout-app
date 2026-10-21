@@ -181,6 +181,15 @@ team appearing in the most files, which is right until opponent films are
 loaded: three of theirs against one of yours and the app would decide you
 are Grand Canyon.
 
+**A serve order is per film, never pooled.** A rotation label means their
+setter is in that zone, which compares across matches only while the lineup
+does. On four UCSB films the same label picked a different server in
+different films, and pooling produced rows claiming more serves than the
+player named had played. Each film gets its own table, most recent first,
+and each says what share of its rotations was served by somebody other than
+the named player: 1% on one of those films and 57% on another, which is the
+difference between an order you can use and a label.
+
 **Who serves next is worked out, not read off the lineup.** Three rules were
 measured against real matches: zone 1 of the lineup and "same server if they
 held" both managed 72% on side-outs, and the rule this uses, whoever served

@@ -109,16 +109,27 @@ serve_order <- function(P, which_side = NULL) {
 }
 
 #' The six rotations of one team's serve log
+#'
+#' One row per rotation, naming whoever serves it most. The counts are that
+#' player's own, not the rotation's: a rotation where a substitute took a few
+#' turns would otherwise credit them to the named server, and the row would
+#' claim more serves than she has played. `others` carries what is left, so
+#' the table can say a rotation is shared rather than hide it.
 serve_order_rows <- function(S) {
   out <- lapply(ROTS, function(r) {
     q <- S[S$rot == r]
     if (!nrow(q)) return(NULL)
     tab <- sort(table(paste(q$num, q$player_short, sep = "|")), decreasing = TRUE)
     who <- strsplit(names(tab)[1], "|", fixed = TRUE)[[1]]
-    data.frame(rot = r, num = as.integer(who[1]), name = who[2],
-               serves = nrow(q),
-               ace = sum(q$effect == "#"), err = sum(q$effect == "="),
-               eff = vs_efficiency(q$effect, "S"),
+    jersey <- as.integer(who[1])
+    # hers, by explicit column reference: a bare name here would resolve to
+    # the column of the same name and match every row.
+    hers <- q[!is.na(q$num) & q$num == jersey]
+    data.frame(rot = r, num = jersey, name = who[2],
+               serves = nrow(hers), others = nrow(q) - nrow(hers),
+               ace = sum(!is.na(hers$effect) & hers$effect == "#"),
+               err = sum(!is.na(hers$effect) & hers$effect == "="),
+               eff = vs_efficiency(hers$effect, "S"),
                stringsAsFactors = FALSE)
   })
   out <- out[!vapply(out, is.null, logical(1))]

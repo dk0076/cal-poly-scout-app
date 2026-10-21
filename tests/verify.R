@@ -1145,6 +1145,35 @@ if (nrow(S_ns)) {
      grepl("picked by hand", hh, fixed = TRUE))
 }
 
+# A serve order row names one player, so its counts must be hers. Crediting
+# the whole rotation to her claimed more serves than she had played, which is
+# impossible on its face and was on the screen.
+SO <- Opp_ns2[Opp_ns2$skill == "S", ]
+if (nrow(SO)) {
+  so2 <- serve_order(SO)
+  if (!is.null(so2)) {
+    worst <- 0L
+    for (i in seq_len(nrow(so2))) {
+      hers <- sum(!is.na(SO$num) & SO$num == so2$num[i])
+      if (so2$serves[i] > hers) worst <- worst + 1L
+    }
+    ok("no rotation row claims more serves than that player has", worst == 0L,
+       sprintf("%d rows", worst))
+    ok("a rotation row counts the named player only, with the rest beside it",
+       all(so2$serves + so2$others ==
+             vapply(so2$rot, function(r) sum(SO$rot == r, na.rm = TRUE), 0L)))
+    ok("shared serves are never negative", all(so2$others >= 0))
+    ok("one row per rotation at most", !any(duplicated(so2$rot)))
+  }
+  cards <- paste(serve_order_cards(Opp_ns2), collapse = "")
+  ok("the serve order is one card per film, not one pooled table",
+     lengths(regmatches(cards, gregexpr("class=\"card", cards, fixed = TRUE))) >=
+       length(unique(SO$match_id)))
+  ok("a film is named on its own card",
+     grepl(substr(SO$file_name[1], 1, 10), cards, fixed = TRUE))
+}
+
+
 
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)

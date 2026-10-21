@@ -117,17 +117,20 @@ server_block <- function(S_all, jersey, name, o, coords_ok) {
                    collapse = "")
   win <- window_row(q, "S")
 
+  # The serve court is a tall portrait shape, so at full width it is the
+  # whole screen and the numbers are below the fold. Beside the tables it
+  # stays first to read and leaves room for the rest.
   c(kpi,
-    plain_card(court),
     cols2(
-      card("Where she serves",
-           if (length(zone_rows))
-             tbl_generic(c("Target", "Serves", "Share", "Eff"), zone_rows)
-           else empty("No landing zone coded on her serves.")),
-      card("By type",
-           if (length(type_rows))
-             tbl_generic(c("Type", "Serves", "Share", "Eff"), type_rows)
-           else empty("No serve type coded.")), 520),
+      plain_card(court),
+      c(card("Where she serves",
+             if (length(zone_rows))
+               tbl_generic(c("Target", "Serves", "Share", "Eff"), zone_rows)
+             else empty("No landing zone coded on her serves.")),
+        card("By type",
+             if (length(type_rows))
+               tbl_generic(c("Type", "Serves", "Share", "Eff"), type_rows)
+             else empty("No serve type coded."))), 300),
     card("Recent form",
          c(tbl_generic(c(sprintf("Last %d", SERVE_WINDOWS[1]),
                          sprintf("Last %d", SERVE_WINDOWS[2]),
@@ -210,6 +213,48 @@ server_chips <- function(Opp, pinned) {
           if (!nzchar(pinned)) "on" else "", chips)
 }
 
+#' Their serve order, one table per film, most recent first
+#'
+#' The share of each rotation served by somebody other than the named player
+#' is printed rather than hidden. A low share means the film tracked their
+#' rotation well and the order can be trusted; a high one means it did not,
+#' and the row is a label rather than a fact. On four UCSB films that ranged
+#' from 1% to 57%, which is the difference between a usable order and noise.
+serve_order_cards <- function(Opp) {
+  S <- Opp[Opp$skill == "S", ]
+  if (!nrow(S)) return(empty("No serves from them in what is loaded."))
+  ids <- unique(S$match_id)
+  # Most recent first: the latest film is the one whose lineup is likeliest
+  # to be the one taking the court.
+  dates <- vapply(ids, function(id) as.character(S$date[S$match_id == id][1]), "")
+  ids <- ids[order(dates, decreasing = TRUE)]
+
+  out <- lapply(ids, function(id) {
+    q <- S[S$match_id == id, ]
+    so <- serve_order(q)
+    nm <- q$file_name[1]
+    when <- q$date[1]
+    if (is.null(so))
+      return(card(sprintf("%s", esc(nm)),
+                  empty("No rotation recorded on their serves in this film.")))
+    shared <- sum(so$others)
+    total <- sum(so$serves) + shared
+    hdr_note <- if (total && shared / total > 0.25)
+      sprintf('<div class="warn">%.0f%% of the serves in these rotations were by someone other than the player named, so this film did not track their rotation closely. Read the order as a guess.</div>',
+              100 * shared / total) else ""
+    card(sprintf("%s <span class=\"thin\">%s</span>", esc(nm), esc(when %||% "")),
+         c(hdr_note,
+           tbl_generic(c("Rot", "Server", "Serves", "Shared", "Ace", "Err", "Eff"),
+             lapply(seq_len(nrow(so)), function(i)
+               c(so$rot[i], sprintf("<b>%s</b> %s", so$num[i], esc(so$name[i])),
+                 so$serves[i],
+                 if (so$others[i]) sprintf('<span class="thin">%d by others</span>', so$others[i]) else "",
+                 so$ace[i], so$err[i], eff_td(so$eff[i]))))))
+  })
+  c(unlist(out),
+    tiny("One table per film. A rotation label means their setter is in that zone, which only compares across matches while the lineup does, so these are not pooled. Serves are the named player's own; anyone else who served that rotation is counted beside, not folded in. Eff is VolleyStation's serve formula."))
+}
+
 #' Before the first serve: their six servers, and their passers
 #'
 #' Not an error page. The films are loaded, the match has not started, and
@@ -236,14 +281,14 @@ prematch_block <- function(Opp, o, labels, n_files, opponent, why, coords_ok = T
                   collapse = ""))
   }
 
-  so <- serve_order(Opp)
-  srv <- if (is.null(so)) empty("Their serves carry no rotation, so there is no order to read.")
-    else card("Their serve order",
-      c(tbl_generic(c("Rot", "Server", "Serves", "Ace", "Err", "Eff"),
-          lapply(seq_len(nrow(so)), function(i)
-            c(so$rot[i], sprintf("<b>%s</b> %s", so$num[i], esc(so$name[i])),
-              so$serves[i], so$ace[i], so$err[i], eff_td(so$eff[i])))),
-        tiny("Who serves in each rotation, from what they have actually done rather than from a lineup sheet, so a serving substitute appears as herself. Eff is VolleyStation's serve formula.")))
+  # One table per film, not one pooled table. A rotation label means "their
+  # setter is in zone N", which is comparable across matches only while the
+  # lineup is. Across these four films it is not: the same label picks a
+  # different server in different films, and pooling them produced a table
+  # where nearly half the serves in each rotation belonged to someone other
+  # than the player the row named. Per film the picture is clean where the
+  # film is clean, and visibly not where it is not.
+  srv <- serve_order_cards(Opp)
 
   paste0(c(H, chips, srv, passer_block(Opp, o), note(sprintf(
     "Read off %s. Once tonight's file has a rally in it this page switches to following the match: their server with her chart when they serve, their passers when we do.",
