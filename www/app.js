@@ -56,8 +56,11 @@
     if (el.hasAttribute("data-pos")) return send("js_pos", { val: el.getAttribute("data-pos") });
     if (el.hasAttribute("data-tab")) return send("js_tab", { tab: el.getAttribute("data-tab") });
     // a panel view option: key plus the value to store
-    if (el.hasAttribute("data-o"))
-      return send("js_opt", { key: el.getAttribute("data-o"), val: el.getAttribute("data-v") });
+    if (el.hasAttribute("data-o")) {
+      var key = el.getAttribute("data-o"), val = el.getAttribute("data-v");
+      if (key === "charts") rememberCharts(val);
+      return send("js_opt", { key: key, val: val });
+    }
     // a rail multi-select: toggle one value in that set
     if (el.hasAttribute("data-set"))
       return send("js_sel", { key: el.getAttribute("data-set"), val: el.getAttribute("data-v") });
@@ -142,6 +145,37 @@
      version then appears by default instead of being invisible to everyone
      who had already set a preference. */
   var TABS_KEY = "scoutr.hiddenTabs";
+  var CHARTS_KEY = "scoutr.charts";
+
+  // The chart switch lives on the server, like the other view options, so a
+  // reload would hand the courts back to a coach who had just taken them
+  // off. The choice is this device's, like the tab picker, so this browser
+  // remembers it and says so again as soon as it reconnects.
+  function rememberCharts(val) {
+    try { window.localStorage.setItem(CHARTS_KEY, val); }
+    catch (e) { /* the choice lasts this page only */ }
+  }
+
+  var charts_said = false;
+  function restoreCharts() {
+    if (charts_said) return;
+    var v = null;
+    try { v = window.localStorage.getItem(CHARTS_KEY); } catch (e) { v = null; }
+    charts_said = true;
+    // Only the off case: on is the server's own default, and sending it
+    // would rebuild the page for nothing.
+    if (v === "false") send("js_opt", { key: "charts", val: "false" });
+  }
+
+  // Through jQuery, not addEventListener. Shiny raises shiny:connected with
+  // jQuery's own trigger(), which never becomes a real DOM event, so a
+  // native listener sits there and never hears it. That is why this looked
+  // like it worked and the courts came back on every reload.
+  if (window.jQuery) window.jQuery(document).on("shiny:connected", restoreCharts);
+  // And if the socket is already up by the time this file runs, the event
+  // has been and gone.
+  if (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.isConnected &&
+      Shiny.shinyapp.isConnected()) restoreCharts();
   var DETAIL_KEY = "scoutr.showDetail";
 
   function detailOn() {

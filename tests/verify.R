@@ -1452,6 +1452,13 @@ for (nm in c("attack", "serve")) {
      grepl('data-o="charts" data-v="true"', off, fixed = TRUE) &&
        grepl('data-o="charts" data-v="false"', on, fixed = TRUE))
 }
+js <- paste(readLines("www/app.js", warn = FALSE), collapse = "\n")
+ok("the chart switch is remembered by the device that pressed it",
+   grepl("scoutr.charts", js, fixed = TRUE) &&
+     grepl("rememberCharts(val)", js, fixed = TRUE))
+ok("and asked for again when that device reconnects",
+   grepl("shiny:connected", js, fixed = TRUE) &&
+     grepl('key: "charts", val: "false"', js, fixed = TRUE))
 ok("the stylesheet drops the chart column below the numbers when stacked",
    grepl("chartcol{order:2}", paste(readLines("www/styles.css", warn = FALSE),
                                     collapse = ""), fixed = TRUE))
