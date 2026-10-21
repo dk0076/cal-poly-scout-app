@@ -111,6 +111,21 @@ WATCH_QUIET <- 100L                  # ticks of no change before backing off
 # because a data.table that compares equal to the last one would not wake them.
 LIVE <- reactiveValues(path = "", name = "", at = "", match = NULL, gen = 0L)
 
+# ---------------------------------------------------------------------------
+# What belongs to everyone, and what belongs to a device
+# ---------------------------------------------------------------------------
+# Two kinds of setting, and putting one in the wrong place is a bug either
+# way. Which tabs a coach wants is theirs: it lives in their browser, and two
+# iPads watching the same match can show different things. Who plays where is
+# not theirs. A correction made on the laptop is a correction to the match,
+# so it has to reach every screen already looking at it rather than waiting
+# for each one to be reloaded.
+#
+# So the roster sits here, beside the watch, and sessions follow `gen` the
+# same way. The file on disk is what survives a restart; this is what carries
+# a change across the room.
+ROSTER <- reactiveValues(ov = read_positions(), gen = 0L)
+
 local({
   w_sig <- ""        # the file as it was when last parsed
   w_seen <- ""       # the file as it looked on the previous tick
@@ -216,8 +231,7 @@ server <- function(input, output, session) {
     matches = list(), focus_name = "", focus = list(),
     sel = list(matches = character(), sets = integer(), players = integer(),
                rots = character(), passers = integer()),
-    o = DEFAULT_OPTS, tab = "attack", errors = character(), warnings = character(),
-    pos_ov = read_positions()
+    o = DEFAULT_OPTS, tab = "attack", errors = character(), warnings = character()
   )
 
   # ------------------------------------------------------------ file intake
@@ -319,7 +333,7 @@ server <- function(input, output, session) {
     if (!length(S$matches)) return(invisible(FALSE))
     # Re-applied on every refresh: a live re-parse rebuilds the plays from
     # the file, which would otherwise undo every correction mid-match.
-    ms <- apply_positions(S$matches, S$pos_ov)
+    ms <- apply_positions(S$matches, ROSTER$ov)
     ms <- ms[order(vapply(ms, function(m) paste0(m$date %||% "", "|", m$file_name), ""))]
     ms <- classify_systems(ms)
     ms <- add_season_codes(ms)
@@ -380,13 +394,26 @@ server <- function(input, output, session) {
     if (length(parts) < 2) return()
     team <- parts[1]; num <- parts[2]
     pos <- if (length(parts) >= 3) parts[3] else ""
-    S$pos_ov <- set_position(S$pos_ov, team, num, pos)
-    ok <- tryCatch(write_positions(S$pos_ov), error = function(e) {
+    ov <- set_position(ROSTER$ov, team, num, pos)
+    # To disk first. A correction that reached the screens but not the file
+    # would come back wrong after the next restart, which is worse than one
+    # that never appeared to take.
+    saved <- tryCatch(write_positions(ov), error = function(e) {
       S$errors <- sprintf("Could not save positions: %s", conditionMessage(e))
       FALSE
     })
-    settle(keep_view = TRUE)
+    if (!isTRUE(saved)) return()
+    ROSTER$ov <- ov
+    ROSTER$gen <- ROSTER$gen + 1L
   })
+
+  # Every session re-settles when the roster changes, including the one that
+  # made the change, so a correction on the laptop lands on the bench iPads
+  # without anyone reloading.
+  observeEvent(ROSTER$gen, {
+    if (!length(S$matches)) return()
+    settle(keep_view = TRUE)
+  }, ignoreInit = TRUE)
 
   observeEvent(input$js_sel, {
     k <- input$js_sel$key; v <- input$js_sel$val
@@ -566,7 +593,7 @@ server <- function(input, output, session) {
                     side_labels(S)$us, side_labels(S)$them)
       }
       else if (S$tab == "roster")
-        tab_roster(position_table(S$matches, S$pos_ov), S$focus_name)
+        tab_roster(position_table(S$matches, ROSTER$ov), S$focus_name)
       else if (S$tab == "defense") {
         sel_all <- S$sel; sel_all$rots <- character()
         tab_defense(F(), opponent_plays(S$matches, S$sel, S$focus),

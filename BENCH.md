@@ -47,8 +47,9 @@ player, so it arrives filled in and usually needs nothing. Correct one where
 the file is wrong or blank, which is normal for an opponent typed from a
 lineup sheet. Undo puts a player back to what the file says.
 
-This is worth two minutes before coding, because every mention of pins and
-middles on the other tabs reads it. A correction is kept by team and jersey
+Corrections reach the iPads as you make them, with nobody reloading. This is
+worth two minutes before coding, because every mention of pins and middles on
+the other tabs reads it. A correction is kept by team and jersey
 number, so it holds through the match, a restart, and the next file off the
 same roster.
 
