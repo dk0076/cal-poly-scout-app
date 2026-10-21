@@ -1175,5 +1175,65 @@ if (nrow(SO)) {
 
 
 
+
+# ---------------------------------------------------------------------------
+# Cards that have nothing in them
+# ---------------------------------------------------------------------------
+# A file coded live carries no coordinates, so every card built on where the
+# ball went is a frame of zeros. Six or eight of them stack up and push the
+# numbers a coach does need off the screen, between rallies, which is the one
+# moment the screen has to be readable at a glance.
+
+cat("\n== cards with nothing in them\n")
+
+LINE_CARDS <- c("Landing third of the opponent court",
+                "Line vs cross (pin attacks only)", "Depth",
+                "By depth band", "Serving position behind the endline",
+                "Where the set came from", "Origin zone")
+
+drawn <- function(h, t) grepl(sprintf("<h3>%s", t), paste(h, collapse = ""), fixed = TRUE)
+
+for (nm in names(matches)) {
+  one <- setNames(list(matches[[nm]]), nm)
+  idx1 <- team_index(one)
+  fc <- focus_sides(one, idx1$name[1])
+  F1 <- focus_plays(one, sel, fc)
+  if (!nrow(F1)) next
+  ck1 <- coords_available(one, sel)
+  h <- c(tab_attack(F1, o, ck1), tab_serve(F1, o, ck1), tab_set(F1, o, ck1))
+  for (sk in list(c("A", "Landing third of the opponent court"),
+                  c("S", "By depth band"),
+                  c("E", "Where the set came from"))) {
+    q <- F1[F1$skill == sk[1], ]
+    lines_there <- nrow(q) > 0 && any(q$has_xy, na.rm = TRUE)
+    ok(sprintf("%s: %s is %s", substr(nm, 1, 20), sk[2],
+               if (lines_there) "drawn" else "not drawn"),
+       drawn(h, sk[2]) == lines_there)
+  }
+}
+
+# The blocker count is a coded field. Cal Poly's own files put 2 on every
+# attack because nobody changes the default, so the card would be one row
+# saying nothing at all.
+for (nm in names(matches)) {
+  one <- setNames(list(matches[[nm]]), nm)
+  idx1 <- team_index(one)
+  F1 <- focus_plays(one, sel, focus_sides(one, idx1$name[1]))
+  A1 <- F1[F1$skill == "A", ]
+  if (!nrow(A1)) next
+  varies <- length(unique(A1$blockers[!is.na(A1$blockers)])) > 1L
+  h <- tab_attack(F1, o, coords_available(one, sel))
+  ok(sprintf("%s: against the block is %s", substr(nm, 1, 20),
+             if (varies) "drawn" else "not drawn"),
+     drawn(h, "Against the block") == varies)
+}
+
+ok("a card asked for with nothing behind it is not drawn",
+   identical(card_if(FALSE, "Title", "body"), ""))
+ok("a card asked for with something behind it is drawn",
+   grepl("Title", card_if(TRUE, "Title", "body"), fixed = TRUE))
+ok("no rows means no lines", !has_lines(Fp[0, ]))
+ok("a missing column means no lines", !has_lines(data.frame(x = 1)))
+
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)

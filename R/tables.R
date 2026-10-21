@@ -62,6 +62,29 @@ cols2 <- function(left, right, cw = 460)
   sprintf('<div class="cols" style="--cw:%spx"><div>%s</div><div>%s</div></div>',
           cw, paste0(left, collapse = ""), paste0(right, collapse = ""))
 
+#' A card, dropped when it has nothing in it to read
+#'
+#' Most of this app's cards are built on coordinates: where the ball landed,
+#' which third, how deep, how far off the net. A file being coded live has
+#' none of that, because coding with lines during a match is not realistic,
+#' so those cards come out as a frame of zeros. Half a dozen of them stack up
+#' and push the numbers a coach does need off the screen, between rallies,
+#' which is the one moment the screen has to be read in a glance.
+#'
+#' So they are not drawn at all rather than drawn empty. Nothing is lost: a
+#' card with no rows was telling nobody anything, and it comes back by itself
+#' the moment the data does.
+card_if <- function(cond, label, body, ...) {
+  if (!isTRUE(cond)) return("")
+  card(label, body, ...)
+}
+
+#' TRUE when at least one of these plays carries a position on the court
+has_lines <- function(rows, col = "has_xy") {
+  if (is.null(rows) || !nrow(rows) || !col %in% names(rows)) return(FALSE)
+  any(rows[[col]], na.rm = TRUE)
+}
+
 #' The same tab for both teams, beside each other
 #'
 #' A coach between rallies should not be choosing whose numbers to look at,

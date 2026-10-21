@@ -10,6 +10,15 @@
 
 tab_attack <- function(F, o, coords_ok) {
   A <- attacks_of(F, o$phases)
+  # Cards built on where the ball went are drawn only when some of it has a
+  # position on the court. A match coded live has none, and six frames of
+  # zeros push the numbers a coach needs off the screen.
+  landed <- has_lines(A)
+  # The blocker count is a coded field, not something this works out. Cal
+  # Poly's own files record 2 on every attack because nobody changes the
+  # default, so the card would be one row saying nothing. Shown only when the
+  # file actually distinguishes.
+  blk_varies <- length(unique(A$blockers[!is.na(A$blockers)])) > 1L
   if (!nrow(A)) return(empty("No attacks in the current filter."))
   shown <- if (isTRUE(o$aIncErr)) A else A[!(!is.na(A$effect) & A$effect %in% c("=", "/")), ]
   xy <- A[A$has_xy, ]
@@ -70,7 +79,7 @@ tab_attack <- function(F, o, coords_ok) {
   R <- c(R, card("By hitter", tbl_attack(
     crosstab(A, paste(A$num, A$player_short, sep = "|")), A)))
 
-  R <- c(R, card("Landing third of the opponent court", tbl_generic(
+  R <- c(R, card_if(landed, "Landing third of the opponent court", tbl_generic(
     c("Third", "Zones", "Att", "Sh%", "K%", "Hit"),
     lapply(LAT, function(l) {
       rs <- xy[lat_third(xy$x1) == l$key, ]; s <- attack_line(rs)
@@ -79,7 +88,7 @@ tab_attack <- function(F, o, coords_ok) {
     }))))
 
   pins <- if (nrow(xy)) !is.na(rel_direction(xy$x0, xy$x1)) else logical(0)
-  R <- c(R, card("Line vs cross (pin attacks only)", c(tbl_generic(
+  R <- c(R, card_if(landed, "Line vs cross (pin attacks only)", c(tbl_generic(
     c("Direction", "Att", "Sh%", "K%", "Hit"),
     lapply(c("line", "seam", "cross"), function(d) {
       rs <- xy[!is.na(rel_direction(xy$x0, xy$x1)) & rel_direction(xy$x0, xy$x1) == d, ]
@@ -90,7 +99,7 @@ tab_attack <- function(F, o, coords_ok) {
     tiny(sprintf("Origin band from contact x: left &lt;3 m, right &gt;6 m. Middle-of-court attacks are excluded, since line and cross have no meaning from there (%s attempts).",
                  sum(!pins))))))
 
-  R <- c(R, card("Depth", tbl_generic(
+  R <- c(R, card_if(landed, "Depth", tbl_generic(
     c("Band", "Att", "Sh%", "K%", "Hit"),
     lapply(DEPTH, function(d) {
       rs <- xy[depth_of(xy$y1) == d$key, ]; s <- attack_line(rs)
@@ -149,7 +158,7 @@ tab_attack <- function(F, o, coords_ok) {
     })),
     tiny("Shot type comes from the coder's own skill-type entry. Tips land a median 3.4 m past the net against 7.0 m for hard swings, which is what identifies them."))))
 
-  R <- c(R, card("Against the block", tbl_generic(
+  R <- c(R, card_if(blk_varies, "Against the block", tbl_generic(
     c("Blockers", "Att", "K%", "Hit"),
     lapply(by_key(crosstab(A, A$blockers)), function(g)
       c(paste0(g$key, if (g$key == "1") " blocker" else " blockers"),

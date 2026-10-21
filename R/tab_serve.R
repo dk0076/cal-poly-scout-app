@@ -16,6 +16,7 @@ tab_serve <- function(F, o, coords_ok) {
   tkeys <- unique(srv_type_of(V0$hit_type, V0$skill_type))
   sel_type <- if (identical(o$srvType, "all") || !(o$srvType %in% tkeys)) "all" else o$srvType
   V <- if (sel_type == "all") V0 else V0[srv_type_of(V0$hit_type, V0$skill_type) == sel_type, ]
+  landed <- has_lines(V)
   xy <- V[V$has_xy, ]
   st <- serve_line(V)
   rect <- list(x0 = 0, y0 = COURT$NET, x1 = COURT$W, y1 = COURT$L)
@@ -130,7 +131,7 @@ tab_serve <- function(F, o, coords_ok) {
                     g$stat$err, pct(g$stat$acepct)))),
     tiny("Zones are the six standard receiving positions seen from the receiving team: 1 right back, 2 right front, 3 middle front, 4 left front, 5 left back, 6 middle back. Taken from the zone the coder entered where there is one, otherwise from the landing coordinate."))))
 
-  R <- c(R, card("By depth band", tbl_generic(
+  R <- c(R, card_if(landed, "By depth band", tbl_generic(
     c("Band", "Srv", "Sh%", "Ace%", "Err%"),
     lapply(DEPTH, function(d) {
       rs <- in_court[depth_of(in_court$y1) == d$key, ]; s <- serve_line(rs)
@@ -138,7 +139,7 @@ tab_serve <- function(F, o, coords_ok) {
         pct(s$acepct), pct(s$errpct))
     }))))
 
-  R <- c(R, card("Serving position behind the endline", tbl_generic(
+  R <- c(R, card_if(landed, "Serving position behind the endline", tbl_generic(
     c("Start", "Srv", "Sh%", "Ace%", "Err%", "Median target"),
     lapply(list(c("left", "Left (z5 side)"), c("middle", "Middle (z6)"),
                 c("right", "Right (z1 side)")), function(kl) {

@@ -12,6 +12,7 @@
 
 tab_set <- function(F, o, coords_ok) {
   E <- F[F$skill == "E", ]
+  landed <- has_lines(E)
   if (!nrow(E)) return(empty("No sets in the current filter."))
   xy <- E[E$has_xy, ]
   linked <- E[!is.na(E$atk_effect), ]
@@ -91,7 +92,7 @@ tab_set <- function(F, o, coords_ok) {
     c(label, nrow(rs), pct(if (nrow(xy)) nrow(rs) / nrow(xy) else NA),
       t0("F"), t0("C"), t0("B"), t0("P"), pct(s$kpct), eff_td(s$eff))
   }
-  R <- c(R, card("Where the set came from → who got it", c(tbl_generic(
+  R <- c(R, card_if(landed, "Where the set came from → who got it", c(tbl_generic(
     c("Origin", "Sets", "Sh%", "Out", "Mid", "Opp", "Pipe", "Atk K%", "Atk hit"),
     c(lapply(list(c("right", "Right of centre (z2 side)"), c("middle", "Centre (z3)"),
                   c("left", "Left of centre (z4 side)")),
@@ -99,7 +100,7 @@ tab_set <- function(F, o, coords_ok) {
       lapply(BANDS, function(b) row_for(b$l, xy[b$t(xy), ])))),
     tiny("Top three rows split the contact by lateral position, the bottom three by distance off the net. Attack columns describe the swing that set produced."))))
 
-  R <- c(R, card("Origin zone", c(tbl_generic(
+  R <- c(R, card_if(landed, "Origin zone", c(tbl_generic(
     c("Zone", "Sets", "Sh%", "Atk K%", "Atk hit"),
     lapply(by_size(crosstab(xy, zone_or_coded(xy$start_zone, xy$x0, xy$y0, "own"),
                             set_line), "n"), function(g)

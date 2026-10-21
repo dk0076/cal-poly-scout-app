@@ -213,6 +213,19 @@ falls back to what each hitter actually runs.
 tagged `00`, which means the coder marked it to revisit. Both still show on the
 Plays tab, and the count appears in a banner.
 
+**A card with nothing in it is not drawn.** Most cards here are built on
+coordinates, and a file coded live has none, so they would be frames of
+zeros pushing the real numbers off the screen between rallies. On a live
+file that hides eight cards; on a scouted film six of those eight come back,
+and the two about set origin stay away because set contacts carry no line
+even there.
+
+**The blocker count is read, not worked out.** It is a coded field. Cal
+Poly's own files record 2 on every attack because nobody changes the
+default, so Against the block is drawn only where a file actually
+distinguishes. The scouted films do: 0, 1, 2 and 4 all appear, and 4 is a
+DataVolley code rather than four people blocking.
+
 **Two defensive fields are not being coded.** Every Cal Poly file records 2
 blockers on every attack, and digs are never graded `#`. The Defense tab says
 so rather than printing a table built on a constant.
