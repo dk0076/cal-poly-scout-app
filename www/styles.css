@@ -453,3 +453,9 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 .extra{display:none}
 body.detail-open .extra{display:block}
 @media print{.extra{display:block}}
+
+/* Simplify is match day: one file being coded live, nothing charted, and a
+   coach reading between rallies. The columns that only exist because
+   somebody drew a line on a video come out, because on that file they are a
+   column of blanks taking the width the numbers need. */
+body.simplified .c-coord{display:none}

@@ -64,7 +64,14 @@ tab_attack <- function(F, o, coords_ok) {
                      marks = marks, alt = "attack trajectories",
                      mono = mono, coords_ok = coords_ok)
 
-  left <- plain_card(c(
+  # One hitter's chart is a picture; a team's is 124 arrows or a grid of
+  # counts that says where a volleyball team hits, which is the same answer
+  # every time. So the full court is drawn for a single hitter, picked in
+  # the rail, and a team view gets the per-hitter strip instead, where each
+  # little court is about somebody.
+  one_hitter <- length(unique(A$num[!is.na(A$num)])) == 1L
+
+  left <- if (!one_hitter) character() else plain_card(c(
     viewbar(vbtn("aView", "arrows", "Trajectories", aView),
             vbtn("aView", "heat", "Landing grid", aView),
             vbtn("aView", "contact", "Contact points", aView)),
@@ -82,6 +89,11 @@ tab_attack <- function(F, o, coords_ok) {
            c("var(--blocked)", "blocked"), c("var(--err)", "error"),
            trailing = "net at bottom · dot = contact")
   ))
+  if (!one_hitter)
+    left <- c(left,
+      plain_card(c(viewbar(vtoggle("aIncErr", "Include errors &amp; blocks", o$aIncErr),
+                           vtoggle("tend", "Tendency lines", o$tend)),
+                   tiny("One court per hitter below. Pick a hitter in the rail for the full chart: a whole team on one court is every attack a volleyball team hits, which is the same picture every week."))))
   left <- c(left, small_multiples(shown, "attack", coords_ok, mono))
 
   R <- list()
@@ -134,31 +146,16 @@ tab_attack <- function(F, o, coords_ok) {
                                     thin(pct(lanes[[1]]$stat$ta / nrow(rs)))) else "")
     }))))
 
-  # SR vs transition, crossed against rotation and against hit type. FT (the
-  # serving team's first attack) and TR (everything later) are both transition
-  # in coaching terms, so they are combined into one Trans column, with the
-  # split still available via the phase chips in the rail.
-  phase_split <- function(rows, label) {
-    sr <- attack_line(rows[!is.na(rows$phase) & rows$phase == "SR", ])
-    tr <- attack_line(rows[!is.na(rows$phase) & rows$phase %in% c("FT", "TR"), ])
-    all <- attack_line(rows)
-    c(label, sr$ta, pct(sr$kpct), eff_td(sr$eff),
-      tr$ta, pct(tr$kpct), eff_td(tr$eff), all$ta, eff_td(all$eff))
-  }
-  phase_head <- c("", "SR Att", "SR K%", "SR Hit", "Trans Att", "Trans K%",
-                  "Trans Hit", "Total", "Total Hit")
-
-  R <- c(R, card("Serve receive vs transition, by rotation", c(tbl_generic(
-    phase_head,
-    c(lapply(by_key(crosstab(A, A$rot)), function(g) phase_split(g$rows, g$key)),
-      list(tot_row(phase_split(A, "All rotations"))))),
-    tiny("SR = the team's first attack off their own serve receive. Trans = first transition and all later swings combined. Rotation is the setter's court position."))))
-
-  R <- c(R, card("Serve receive vs transition, by hit type", tbl_generic(
-    phase_head,
-    c(lapply(by_size(crosstab(A, A$hit_type)), function(g)
-        phase_split(g$rows, if (is.na(HITTYPE[g$key])) g$key else unname(HITTYPE[g$key]))),
-      list(tot_row(phase_split(A, "All hit types")))))))
+  # Serve receive vs transition by rotation now lives on the Rotations tab,
+  # which is where a coach is already reading rotation by rotation. By hit
+  # type stays here and folds behind Detail: the tempo field is set on every
+  # attack in every file loaded, but by the coder's habit rather than by
+  # anyone's decision, so it is not a number to plan from.
+  R <- c(R, card_extra(TRUE, "Serve receive vs transition, by hit type",
+    tbl_generic(PHASE_HEAD,
+      c(lapply(by_size(crosstab(A, A$hit_type)), function(g)
+          phase_split(g$rows, if (is.na(HITTYPE[g$key])) g$key else unname(HITTYPE[g$key]))),
+        list(tot_row(phase_split(A, "All hit types")))))))
 
   R <- c(R, card("Hard vs tip", c(tbl_generic(
     c("Shot", "Att", "Sh%", "K%", "Hit", "Depth m"),
@@ -182,6 +179,34 @@ tab_attack <- function(F, o, coords_ok) {
 }
 
 #' One row per hitter: where they hit from, where it lands, and what it returns.
+# SR vs transition. FT (the serving team's first attack) and TR (everything
+# later) are both transition in coaching terms, so they are one Trans column,
+# with the split still available through the phase chips in the rail. Shared,
+# because the Rotations tab draws this crossed against rotation and the
+# Attacking tab against hit type.
+PHASE_HEAD <- c("", "SR Att", "SR K%", "SR Hit", "Trans Att", "Trans K%",
+                "Trans Hit", "Total", "Total Hit")
+
+phase_split <- function(rows, label) {
+  sr <- attack_line(rows[!is.na(rows$phase) & rows$phase == "SR", ])
+  tr <- attack_line(rows[!is.na(rows$phase) & rows$phase %in% c("FT", "TR"), ])
+  all <- attack_line(rows)
+  c(label, sr$ta, pct(sr$kpct), eff_td(sr$eff),
+    tr$ta, pct(tr$kpct), eff_td(tr$eff), all$ta, eff_td(all$eff))
+}
+
+#' SR vs transition by rotation, for one side
+phase_by_rot_card <- function(A, label, cls) {
+  A <- A[A$skill == "A", ]
+  if (!nrow(A)) return("")
+  sprintf('<div class="card %s"><h3>Serve receive vs transition · %s</h3>%s%s</div>',
+          cls, label,
+          tbl_generic(PHASE_HEAD,
+            c(lapply(by_key(crosstab(A, A$rot)), function(g) phase_split(g$rows, g$key)),
+              list(tot_row(phase_split(A, "All rotations"))))),
+          tiny("SR = this team's first attack off their own serve receive. Trans = first transition and all later swings combined. Rotation is the setter's court position."))
+}
+
 tbl_attack <- function(groups, all) {
   groups <- by_size(groups)
   rows <- lapply(groups, function(g) {
@@ -210,7 +235,8 @@ tbl_attack <- function(groups, all) {
                                  "", "", "", "", "", "", ""))))
   paste0(tbl_generic(
     c("Hitter", "From", "Att", "K%", "E%", "Hit", "Tip%", "Line", "Seam", "Cross",
-      "→Opp R", "→Mid", "→Opp L", "Depth m"), rows),
+      "→Opp R", "→Mid", "→Opp L", "Depth m"), rows,
+    cls = c("", "coord", "", "", "", "", "", rep("coord", 7))),
     tiny("Line / seam / cross are relative to the hitter's own contact point and are left blank for attacks taken from the middle of the court. The three arrow columns are absolute: the receiving team's right, middle and left thirds."))
 }
 

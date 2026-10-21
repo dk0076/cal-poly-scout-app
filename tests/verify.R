@@ -1397,10 +1397,18 @@ ok("an explicit choice is obeyed however much there is",
 o_auto <- o; o_auto$aView <- "auto"; o_auto$sView <- "auto"; o_auto$tend <- FALSE
 A_all <- Fp[Fp$skill == "A", ]
 h_team <- paste(tab_attack(Fp, o_auto, ck), collapse = "")
-many <- sum(A_all$has_xy) > ARROWS_READABLE
-ok(sprintf("a whole team of %d charted attacks draws %s",
-           sum(A_all$has_xy), if (many) "the grid" else "arrows"),
-   grepl("too many arrows", h_team, fixed = TRUE) == many)
+# A team's chart is every attack a volleyball team hits, which is the same
+# picture every week. The full court is for one hitter; a team view gets the
+# per-hitter strip, where each little court is about somebody.
+ok(sprintf("a whole team of %d charted attacks draws no full court",
+           sum(A_all$has_xy)),
+   !grepl('<div class="card"><div class="viewbar"><button class="chip " data-o="aView"',
+          h_team, fixed = TRUE) &&
+     !grepl("too many arrows", h_team, fixed = TRUE))
+ok("and says where the full chart is",
+   grepl("Pick a hitter in the rail", h_team, fixed = TRUE))
+ok("the per-hitter strip is still drawn",
+   grepl('class="sm"', h_team, fixed = TRUE) || !any(A_all$has_xy))
 
 if (nrow(A_all) && any(!is.na(A_all$num))) {
   who <- as.integer(names(sort(table(A_all$num[!is.na(A_all$num)]), decreasing = TRUE))[1])
@@ -1430,6 +1438,48 @@ ok("asking for them brings them back",
 # A chart is worth a scroll; a table a coach reads between rallies is not
 # worth scrolling past a court. So the numbers come first wherever the two
 # columns stack, and the charts come off altogether on request.
+# Serve receive vs transition by rotation belongs where a coach is already
+# reading rotation by rotation. By hit type stays on Attacking but folds
+# away: the tempo field is set on every attack in every file loaded, by the
+# coder's habit rather than anyone's decision.
+cat("\n== where each card lives\n")
+h_att <- paste(tab_attack(Fp, o_auto, ck), collapse = "")
+h_rot <- local({
+  sel_all <- sel; sel_all$rots <- character()
+  Op <- opponent_plays(matches, sel_all, focus)
+  paste(tab_rotation(rally_outcomes(matches, sel_all, focus),
+                     focus_plays(matches, sel_all, focus),
+                     rally_outcomes(matches, sel_all, focus, opp = TRUE),
+                     Op, o), collapse = "")
+})
+ok("SR vs transition by rotation is off the Attacking tab",
+   !grepl("by rotation", h_att, fixed = TRUE))
+ok("and on the Rotations tab, for both sides",
+   length(gregexpr("Serve receive vs transition", h_rot, fixed = TRUE)[[1]]) == 2)
+ok("it still totals every attack it is given",
+   grepl("All rotations", h_rot, fixed = TRUE))
+ok("by hit type stays on Attacking, folded",
+   grepl('<div class="extra"><div class="card"><h3>Serve receive vs transition, by hit type',
+         h_att, fixed = TRUE))
+
+# The charted columns are marked, so Simplify can drop them without the
+# server knowing which device pressed it.
+ok("the charted columns on By hitter are marked",
+   grepl('<th class=" c-coord">Line</th>', h_att, fixed = TRUE) &&
+     grepl('<th class=" c-coord">Depth m</th>', h_att, fixed = TRUE))
+ok("the ones a coach reads live are not",
+   grepl('<th class="">K%</th>', h_att, fixed = TRUE) &&
+     grepl('<th class="">Att</th>', h_att, fixed = TRUE))
+local({
+  css0 <- paste(readLines("www/styles.css", warn = FALSE), collapse = "
+")
+  js0 <- paste(readLines("www/app.js", warn = FALSE), collapse = "
+")
+  ok("Simplify is what hides them",
+     grepl("body.simplified .c-coord{display:none}", css0, fixed = TRUE) &&
+       grepl('classList.toggle("simplified"', js0, fixed = TRUE))
+})
+
 cat("\n== charts off, numbers first\n")
 for (nm in c("attack", "serve")) {
   fn <- if (nm == "attack") tab_attack else tab_serve

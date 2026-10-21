@@ -10,18 +10,29 @@
 #' One table. `head` is a character vector of column labels; `rows` is a list
 #' whose elements are either a character vector of cells or
 #' list(cells = <character>, tot = TRUE) for a totals row.
-tbl_generic <- function(head, rows) {
+#'
+#' `cls` optionally names a class per column, carried on the header cell and
+#' every cell under it. "coord" marks a column that only exists because
+#' somebody charted the ball: Simplify takes those out, since on match day
+#' nobody is charting and they are a row of blanks.
+tbl_generic <- function(head, rows, cls = NULL) {
   if (!length(rows))
     return('<div class="empty">Nothing to show here yet.</div>')
-  th <- paste0(sprintf("<th>%s</th>", head), collapse = "")
+  cl <- function(i, base) {
+    extra <- if (!is.null(cls) && i <= length(cls) && nzchar(cls[i]))
+      paste0(" c-", cls[i]) else ""
+    paste0(base, extra)
+  }
+  th <- paste0(vapply(seq_along(head), function(i)
+    sprintf('<th class="%s">%s</th>', cl(i, ""), head[i]), ""), collapse = "")
   body <- vapply(rows, function(r) {
     cells <- if (is.list(r) && !is.null(r$cells)) r$cells else r
     tot <- is.list(r) && isTRUE(r$tot)
     cells <- vapply(cells, function(c0)
       if (length(c0) != 1 || is.na(c0)) "" else as.character(c0), "")
-    tds <- paste0(sprintf('<td class="%s">%s</td>',
-                          c("", rep("num", max(0, length(cells) - 1))), cells),
-                  collapse = "")
+    tds <- paste0(vapply(seq_along(cells), function(i)
+      sprintf('<td class="%s">%s</td>',
+              cl(i, if (i == 1L) "" else "num"), cells[i]), ""), collapse = "")
     sprintf('<tr class="%s">%s</tr>', if (tot) "tot" else "", tds)
   }, "")
   paste0('<div class="scroll"><table><thead><tr>', th, "</tr></thead><tbody>",

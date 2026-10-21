@@ -95,6 +95,7 @@ tab_rotation <- function(rally, F, opp_rally, Opp, o) {
     setrows <- c(setrows, list(tot_row(c("Total", eff_td(st$eff), pct(st$k), pct(st$eb),
                                          pct(st$sq), pct(st$so), pct(st$fbso), pct(st$ps)))))
     paste0(
+      phase_by_rot_card(pl, label, cls),
       sprintf('<div class="card %s"><h3>Rotational analysis · %s</h3>%s</div>', cls, label,
               tbl_generic(c("Rot", "SO%", "ESO%", "FBSO%", "PS%", "+/-", "Ace", "Err"), rows)),
       sprintf('<div class="card %s"><h3>Analysis by set · %s</h3>%s</div>', cls, label,

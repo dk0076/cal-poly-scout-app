@@ -290,6 +290,9 @@
     if (active && active.style.display === "none") shown[0].click();
     labelSimplify();
     applyDetail();
+    // Simplify is a state of the page, not just a shorter tab bar: the
+    // stylesheet reads it to drop the charted columns as well.
+    document.body.classList.toggle("simplified", simplified());
     measureHeader();
   }
 
