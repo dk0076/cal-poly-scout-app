@@ -51,6 +51,16 @@ The small number beside it, like v1.12, is the version. It goes up every time
 the app changes, so it is worth reading out if something looks wrong. Hover
 it for the exact build.
 
+## Getting the iPads on
+
+The opening screen shows a QR code. Point an iPad camera at the laptop
+screen and tap the link that appears. Once a match is loaded the code moves
+behind the **Connect** button in the header, so a tablet arriving at the end
+of the second set can still be pointed at it.
+
+The code holds the laptop name address, the one that survives changing
+routers, so it keeps working at the next gym with no change.
+
 ## The address
 
 ```

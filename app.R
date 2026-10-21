@@ -14,7 +14,7 @@
 library(shiny)
 suppressMessages(library(data.table))
 
-for (f in c("core.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R",
+for (f in c("core.R", "net.R", "qr.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R",
             "tables.R", "tab_attack.R", "tab_serve.R", "tab_set.R",
             "tab_setter.R", "tab_passing.R", "tab_defense.R", "tab_rotation.R",
             "tab_last6.R",
@@ -154,7 +154,7 @@ DEFAULT_OPTS <- list(
   sView = "arrows", sBins = 3, srvType = "all", sPass = FALSE,
   eView = "points", eBins = 3, setSetter = "", setZones = character(),
   setterWho = "main", setterEx = character(), lastN = 6,
-  mono = FALSE, phases = character(), sys = character()
+  mono = FALSE, phases = character(), sys = character(), showshare = FALSE
 )
 
 # ---------------------------------------------------------------------------
@@ -423,9 +423,11 @@ server <- function(input, output, session) {
 
   output$body <- renderUI({
     if (!length(S$matches)) return(intro_ui(S$errors))
-    div(class = "wrap",
+    div(
+      if (isTRUE(S$o$showshare)) div(class = "sharebar", uiOutput("share")) else NULL,
+      div(class = "wrap",
         tags$aside(class = "rail", uiOutput("rail")),
-        tags$main(class = "panel", uiOutput("tabbar"), uiOutput("panel")))
+        tags$main(class = "panel", uiOutput("tabbar"), uiOutput("panel"))))
   })
 
   output$focus_pick <- renderUI({
@@ -443,9 +445,35 @@ server <- function(input, output, session) {
     )
   })
 
+  # The address to hand a tablet, with a code to point it at. Built from the
+  # port this browser connected on and the host names this machine answers
+  # to, never from the browser's own address: on the laptop that reads
+  # localhost, which is no use to anyone else in the gym.
+  share_urls <- reactive({
+    port <- session$clientData$url_port
+    if (is.null(port) || !nzchar(as.character(port))) port <- "7815"
+    lan_urls(port)
+  })
+
+  output$share <- renderUI({
+    u <- share_urls()
+    if (!length(u)) return(div(class = "share",
+      div(class = "sharenote", "No network address. Check the laptop is on the router.")))
+    div(class = "share",
+        HTML(qr_svg(u[1], px = 150, alt = paste("QR code for", u[1]))),
+        div(class = "sharetxt",
+            div(class = "sharelbl", "Point an iPad at this"),
+            div(class = "shareurl", u[1]),
+            if (length(u) > 1)
+              div(class = "sharealt", sprintf("or type %s", u[2])) else NULL))
+  })
+
   output$header_tools <- renderUI({
     if (!length(S$matches)) return(NULL)
     tagList(
+      tags$button(class = "chip", `data-o` = "showshare",
+                  `data-v` = if (isTRUE(S$o$showshare)) "false" else "true",
+                  if (isTRUE(S$o$showshare)) "Hide code" else "Connect"),
       # Only drawn while a file is being followed. It carries the clock time of
       # the last refresh, so a frozen feed is visible as a stale time rather
       # than as numbers that quietly stop moving.
@@ -546,6 +574,7 @@ intro_ui <- function(errors) {
           textInput("watch_path", NULL, width = "100%",
                     placeholder = "or paste a file path to follow it live"),
           actionButton("watch_go", "Watch", class = "chip")),
+      uiOutput("share"),
       # Only offered when a sample is actually present. data/ is not in the
       # repository, match files are not ours to publish, so a fresh clone has
       # none, and a link that only produces an error is worse than no link.

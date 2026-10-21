@@ -98,6 +98,15 @@ this machine. All that matters is that the devices are on the same router.
 Use the first line. It is the laptop's own name, so it survives changing
 routers, which the address does not. iPads resolve it natively.
 
+The app shows that address as a QR code, on the opening screen and behind
+the Connect button once a match is loaded, so a tablet is pointed at the
+laptop rather than typed at. The encoder is in `R/qr.R`, written out rather
+than taken from a package because a missing package cannot be installed in a
+gym with no internet. It was checked module for module against an
+independent implementation, 416 of 416 matrices over versions 1 to 6 and all
+eight masks, and the matrices are kept in `tests/verify.R` so that check
+still runs offline.
+
 It checks the two things that stop it working and prints the command to fix
 each: a network Windows has filed as Public, and a missing firewall rule.
 The rule is once ever, the network is once per router. Campus and venue
@@ -165,6 +174,8 @@ run.R              serve it on any router, printing the address
 BENCH.md           the match-day sheet
 app.R              UI, server, shared file watch, filter rail, file intake
 R/core.R           geometry, zones, season codes, VolleyStation symbol table
+R/net.R            the addresses this machine answers on
+R/qr.R             a QR encoder, so a tablet can be pointed at the screen
 R/parse_vsm.R      VolleyStation JSON reader
 R/parse_dvw.R      DataVolley text reader
 R/model.R          rally linking, roles, 5-1/6-2, stat lines, filters

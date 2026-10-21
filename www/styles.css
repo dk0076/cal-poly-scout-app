@@ -254,3 +254,20 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 .railtop{display:none}
 @media (max-width:900px){.railtop{display:block}}
 @media print{.railtop{display:none}}
+
+/* ---- the address, with a code to point a tablet at ---------------------- */
+.share{display:flex;align-items:center;gap:16px;border:1px solid var(--rule);
+  background:var(--panel);padding:14px;margin-top:18px}
+.share .qr{flex:none;display:block}
+.sharetxt{min-width:0}
+.sharelbl{font:11px var(--mono);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3)}
+.shareurl{font:15px var(--mono);color:var(--accent);margin-top:4px;
+  word-break:break-all}
+.sharealt{font:12px var(--mono);color:var(--ink-3);margin-top:5px;
+  word-break:break-all}
+.sharenote{font-size:12.5px;color:var(--ink-3)}
+.sharebar{padding:0 0 4px}
+.sharebar .share{margin:14px 0 0}
+#intro .share{text-align:left;margin-top:16px}
+@media print{.sharebar,#intro .share{display:none}}
