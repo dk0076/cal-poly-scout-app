@@ -52,17 +52,21 @@ tab_serve <- function(F, o, coords_ok) {
          s = "m past net")
   )))
 
-  heat <- identical(o$sView, "heat")
+  # Same rule as the attack chart: arrows while they are readable, the
+  # landing grid when a whole team's serves would be a ball of wool.
+  sView <- view_for(o$sView %||% "auto", sum(V$has_xy))
+  auto_grid <- identical(o$sView %||% "auto", "auto") && identical(sView, "heat")
+  heat <- identical(sView, "heat")
   cells <- if (heat)
     cell_layer(grid_bins(xy, "x1", "y1", rect, o$sBins, o$sBins),
                o$sBins, o$sBins, rect, "volume") else ""
   ps <- passer_start(V)
   marks <- paste0(
-    if (identical(o$sView, "arrows"))
+    if (identical(sView, "arrows"))
       arrow_layer(xy, "S", 1, mono,
                   extra = function(r) paste(vapply(r$y1 - COURT$NET, m1, ""), "m past net"))
     else "",
-    if (identical(o$sView, "arrows") && isTRUE(o$tend))
+    if (identical(sView, "arrows") && isTRUE(o$tend))
       tendency_layer(V, "S", 1, 2, "serve", mono = mono) else "",
     if (isTRUE(o$sPass)) passer_start_layer(ps, 1, mono) else "")
 
@@ -72,12 +76,15 @@ tab_serve <- function(F, o, coords_ok) {
                      mono = mono, coords_ok = coords_ok)
 
   left <- plain_card(c(
-    viewbar(vbtn("sView", "arrows", "Trajectories", o$sView),
-            vbtn("sView", "heat", "Landing grid", o$sView),
+    viewbar(vbtn("sView", "arrows", "Trajectories", sView),
+            vbtn("sView", "heat", "Landing grid", sView),
             if (heat) c(vbtn("sBins", "3", "3×3 zones", as.character(o$sBins)),
                         vbtn("sBins", "6", "6×6", as.character(o$sBins))) else character(),
-            if (identical(o$sView, "arrows")) vtoggle("tend", "Tendency lines", o$tend) else character(),
+            if (identical(sView, "arrows")) vtoggle("tend", "Tendency lines", o$tend) else character(),
             vtoggle("sPass", "Passer start", o$sPass)),
+    if (auto_grid)
+      tiny(sprintf("%d serves is too many arrows to read at once, so this is where they landed. Pick a server in the rail, or press Trajectories to draw them anyway.",
+                   sum(V$has_xy))) else "",
     court,
     legend(c("var(--kill)", "ace"), c("var(--inplay)", "returned"),
            c("var(--blocked)", "opponent scramble"), c("var(--err)", "error"),

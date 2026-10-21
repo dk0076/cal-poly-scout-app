@@ -39,15 +39,19 @@ tab_attack <- function(F, o, coords_ok) {
          s = "m past net")
   )))
 
-  heat <- identical(o$aView, "heat")
+  # Which view to draw. The count that matters is the one actually drawn,
+  # so errors and blocks are in or out of it exactly as the toggle says.
+  aView <- view_for(o$aView %||% "auto", sum(shown$has_xy))
+  auto_grid <- identical(o$aView %||% "auto", "auto") && identical(aView, "heat")
+  heat <- identical(aView, "heat")
   cells <- if (heat)
     cell_layer(grid_bins(shown[shown$has_xy, ], "x1", "y1", rect, o$aBins, o$aBins),
                o$aBins, o$aBins, rect, o$aColor) else ""
-  marks <- if (identical(o$aView, "arrows"))
+  marks <- if (identical(aView, "arrows"))
     paste0(arrow_layer(shown, "A", 1, mono,
                        extra = function(r) paste(vapply(r$y1 - COURT$NET, m1, ""), "m past net")),
            if (isTRUE(o$tend)) tendency_layer(shown, "A", 1, 2, "attack", mono = mono) else "")
-  else if (identical(o$aView, "contact")) dot_layer(shown, "x0", "y0", 1)
+  else if (identical(aView, "contact")) dot_layer(shown, "x0", "y0", 1)
   else ""
 
   court <- court_svg("A", x_min = -170, x_max = 1070,
@@ -58,14 +62,17 @@ tab_attack <- function(F, o, coords_ok) {
                      mono = mono, coords_ok = coords_ok)
 
   left <- plain_card(c(
-    viewbar(vbtn("aView", "arrows", "Trajectories", o$aView),
-            vbtn("aView", "heat", "Landing grid", o$aView),
-            vbtn("aView", "contact", "Contact points", o$aView)),
+    viewbar(vbtn("aView", "arrows", "Trajectories", aView),
+            vbtn("aView", "heat", "Landing grid", aView),
+            vbtn("aView", "contact", "Contact points", aView)),
+    if (auto_grid)
+      tiny(sprintf("%d attacks is too many arrows to read at once, so this is where they landed. Pick a hitter in the rail, or press Trajectories to draw them anyway.",
+                   sum(shown$has_xy))) else "",
     viewbar(if (heat) c(vbtn("aBins", "3", "3×3 zones", as.character(o$aBins)),
                         vbtn("aBins", "6", "6×6", as.character(o$aBins)),
                         vbtn("aColor", "volume", "By volume", o$aColor),
                         vbtn("aColor", "eff", "By hitting %", o$aColor)) else character(),
-            if (identical(o$aView, "arrows")) vtoggle("tend", "Tendency lines", o$tend) else character(),
+            if (identical(aView, "arrows")) vtoggle("tend", "Tendency lines", o$tend) else character(),
             vtoggle("aIncErr", "Include errors &amp; blocks", o$aIncErr)),
     court,
     legend(c("var(--kill)", "kill"), c("var(--inplay)", "in play"),

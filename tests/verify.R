@@ -1235,5 +1235,58 @@ ok("a card asked for with something behind it is drawn",
 ok("no rows means no lines", !has_lines(Fp[0, ]))
 ok("a missing column means no lines", !has_lines(data.frame(x = 1)))
 
+
+# ---------------------------------------------------------------------------
+# A chart that is readable at the size it is drawn
+# ---------------------------------------------------------------------------
+# A team's swings drawn as arrows is a ball of wool: eighty lines crossing
+# each other over one court, where neither direction nor volume survives. One
+# hitter's swings is the scale the chart was built for, so the view follows
+# the count unless a staff says otherwise.
+
+cat("\n== charts that stay readable\n")
+
+ok("below the limit the arrows are drawn",
+   identical(view_for("auto", ARROWS_READABLE), "arrows"))
+ok("above it the landing grid is",
+   identical(view_for("auto", ARROWS_READABLE + 1L), "heat"))
+ok("an explicit choice is obeyed however much there is",
+   identical(view_for("arrows", 1000L), "arrows") &&
+     identical(view_for("heat", 1L), "heat") &&
+     identical(view_for("contact", 1000L), "contact"))
+
+o_auto <- o; o_auto$aView <- "auto"; o_auto$sView <- "auto"; o_auto$tend <- FALSE
+A_all <- Fp[Fp$skill == "A", ]
+h_team <- paste(tab_attack(Fp, o_auto, ck), collapse = "")
+many <- sum(A_all$has_xy) > ARROWS_READABLE
+ok(sprintf("a whole team of %d charted attacks draws %s",
+           sum(A_all$has_xy), if (many) "the grid" else "arrows"),
+   grepl("too many arrows", h_team, fixed = TRUE) == many)
+
+if (nrow(A_all) && any(!is.na(A_all$num))) {
+  who <- as.integer(names(sort(table(A_all$num[!is.na(A_all$num)]), decreasing = TRUE))[1])
+  sel_one <- sel; sel_one$players <- who
+  F_one <- focus_plays(matches, sel_one, focus)
+  n_one <- sum(F_one$skill == "A" & F_one$has_xy)
+  h_one <- paste(tab_attack(F_one, o_auto, ck), collapse = "")
+  ok(sprintf("one hitter with %d charted draws %s", n_one,
+             if (n_one > ARROWS_READABLE) "the grid" else "arrows"),
+     grepl("too many arrows", h_one, fixed = TRUE) == (n_one > ARROWS_READABLE))
+}
+
+o_arrows <- o_auto; o_arrows$aView <- "arrows"
+ok("pressing Trajectories overrides the switch",
+   !grepl("too many arrows", paste(tab_attack(Fp, o_arrows, ck), collapse = ""),
+          fixed = TRUE))
+
+# Tendency lines are a summary drawn over the evidence, and were the only
+# legible thing on a team-sized chart. Off unless asked for, everywhere.
+has_tend <- function(h) grepl("tendency", paste(h, collapse = ""), ignore.case = TRUE)
+o_on <- o_arrows; o_on$tend <- TRUE
+ok("tendency lines are not drawn unless asked for",
+   !grepl("<g class=\"tend", paste(tab_attack(Fp, o_arrows, ck), collapse = ""), fixed = TRUE))
+ok("asking for them brings them back",
+   has_tend(tab_attack(Fp, o_on, ck)))
+
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)

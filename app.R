@@ -171,8 +171,12 @@ TABS <- list(c("attack", "Attacking"), c("serve", "Serve direction"),
              c("plays", "Plays &amp; export"), c("roster", "Roster"))
 
 DEFAULT_OPTS <- list(
-  aView = "arrows", aBins = 3, aColor = "volume", aIncErr = TRUE, tend = TRUE,
-  sView = "arrows", sBins = 3, srvType = "all", sPass = FALSE,
+  # "auto" draws arrows while they are readable and the landing grid when
+  # they are not. Tendency lines are off: they are a summary drawn over the
+  # evidence, and they were the only legible thing on a team-sized chart,
+  # which is a sign of covering a mess rather than showing anything.
+  aView = "auto", aBins = 3, aColor = "volume", aIncErr = TRUE, tend = FALSE,
+  sView = "auto", sBins = 3, srvType = "all", sPass = FALSE,
   eView = "points", eBins = 3, setSetter = "", setZones = character(),
   setterWho = "main", setterEx = character(), lastN = 6,
   mono = FALSE, phases = character(), sys = character(), showshare = FALSE,

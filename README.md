@@ -159,6 +159,15 @@ than sitting beside it, so the numbers are the first thing on the screen.
 
 ## Worth knowing
 
+**The chart follows how much there is to draw.** A team's swings as arrows
+is a ball of wool: eighty lines over one court, where neither direction nor
+volume survives. Above thirty the landing grid is drawn instead, below it
+the arrows, and pressing Trajectories overrides either. Filter to a hitter
+and the arrows come back by themselves, which is the scale the chart was
+built for. Tendency lines are off unless asked for: they are a summary drawn
+over the evidence, and on a team-sized chart they were the only legible
+thing on it.
+
 **Shot charts only work on files coded with lines.** No coordinates, no charts.
 The tables still work. Either format can carry them.
 

@@ -65,7 +65,11 @@ server_block <- function(S_all, jersey, name, o, coords_ok) {
                        arrow_layer(xy, "NS", 1, mono,
                                    extra = function(r)
                                      paste(vapply(r$y1 - COURT$NET, m1, ""), "m past net")),
-                       tendency_layer(q, "NS", 1, 2, "serve", mono = mono)),
+                       # The same toggle as the other charts, so turning
+                       # tendency lines off means off everywhere rather than
+                       # everywhere except the one page that draws them.
+                       if (isTRUE(o$tend))
+                         tendency_layer(q, "NS", 1, 2, "serve", mono = mono) else ""),
                      alt = sprintf("where #%s %s serves", jersey, name),
                      mono = mono, coords_ok = coords_ok)
 
@@ -122,7 +126,7 @@ server_block <- function(S_all, jersey, name, o, coords_ok) {
   # stays first to read and leaves room for the rest.
   c(kpi,
     cols2(
-      plain_card(court),
+      plain_card(c(viewbar(vtoggle("tend", "Tendency lines", o$tend)), court)),
       c(card("Where she serves",
              if (length(zone_rows))
                tbl_generic(c("Target", "Serves", "Share", "Eff"), zone_rows)

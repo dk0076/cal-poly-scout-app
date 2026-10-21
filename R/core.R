@@ -480,3 +480,27 @@ pos_label <- function(code) {
 }
 
 is_pin <- function(pos) pos %in% PINS
+
+# ---------------------------------------------------------------------------
+# When a trajectory chart stops being readable
+# ---------------------------------------------------------------------------
+# A team's worth of swings drawn as arrows is a ball of wool. Eighty attacks
+# over one court is not a picture of anything: the lines cross each other so
+# often that neither direction nor volume survives, and the two tendency
+# arrows laid on top are the only thing left to read.
+#
+# A single hitter's swings in a match is the scale this chart was built for,
+# which is why the default view follows the count rather than being fixed.
+# Above this many, the landing grid says the same thing and says it legibly;
+# below it, the arrows are worth more. Either is one click away regardless.
+ARROWS_READABLE <- 30L
+
+#' The view to draw, given what the staff asked for and how much there is
+#'
+#' "auto" is the default and means "whichever is readable". An explicit
+#' choice is always obeyed, including an explicit choice of arrows for a
+#' hundred attacks: a coach who presses Trajectories wants trajectories.
+view_for <- function(chosen, n) {
+  if (!identical(chosen, "auto")) return(chosen)
+  if (n > ARROWS_READABLE) "heat" else "arrows"
+}
