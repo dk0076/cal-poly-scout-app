@@ -64,8 +64,16 @@ server_block <- function(S_all, num, name, o, coords_ok) {
                      alt = sprintf("where #%s %s serves", num, name),
                      mono = mono, coords_ok = coords_ok)
 
+  drawn <- sum(q$has_xy)
   kpi <- kpis(list(
-    list(k = "Serves", v = st$n),
+    # Both numbers, because the staff scout sheet counts the charted ones and
+    # this counts every serve. Checked against their own UCSB sheet: all nine
+    # servers agree to three decimals on serves, aces and efficiency once the
+    # uncharted serves are set aside, so the two differ only in population.
+    # Every serve is the fuller answer, and the chart can only draw the ones
+    # with a line, so both belong on the screen.
+    list(k = "Serves", v = st$n,
+         s = if (drawn < st$n) sprintf("%d drawn", drawn) else "all drawn"),
     list(k = "Eff", v = eff(st$eff), s = "VolleyStation"),
     list(k = "Aces", v = st$ace, s = pct(st$acepct)),
     list(k = "Errors", v = st$err, s = pct(st$errpct)),
@@ -122,6 +130,9 @@ server_block <- function(S_all, num, name, o, coords_ok) {
                        list(win)),
            sprintf('<div class="atts">%s</div>', recent),
            tiny("Each chip is one serve: the zone it landed in, then the grade. Oldest on the left. The arrow compares the window with her whole match."))),
+    if (drawn < nrow(q))
+      tiny(sprintf("The chart shows %d of her %d serves. The other %d were coded without a line, so they count in the numbers and cannot be drawn. A staff sheet built from the chart will show %d.",
+                   drawn, nrow(q), nrow(q) - drawn, drawn)) else "",
     card("Her last serve",
          tbl_generic(c("Set", "Score", "Target", "Type", "Outcome"),
                      list(c(last$set_no, esc(last$score %||% ""),

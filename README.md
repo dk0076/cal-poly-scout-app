@@ -208,6 +208,14 @@ Plays tab, and the count appears in a banner.
 blockers on every attack, and digs are never graded `#`. The Defense tab says
 so rather than printing a table built on a constant.
 
+**A printed scout sheet will show fewer serves than this does.** The sheets are
+built from the chart, so they count only plays coded with a line. Checked
+against the staff's own UCSB sheet over four films: all nine servers agree
+exactly on serves, aces and efficiency once uncharted serves are set aside,
+and the attacker page agrees without any adjustment. The Next server tab
+counts every serve and prints the charted count beside it, so the two
+reconcile on sight.
+
 ## Metrics are defined against VolleyStation
 
 Not reconciled afterwards. VolleyStation computes every skill efficiency with
