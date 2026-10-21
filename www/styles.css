@@ -74,7 +74,7 @@ header.appbar select{border:1px solid var(--rule);background:var(--panel);paddin
 
 /* ---------- layout ---------- */
 .wrap{display:grid;grid-template-columns:222px minmax(0,1fr);gap:0;align-items:start}
-@media (max-width:900px){.wrap{grid-template-columns:1fr}}
+@media (max-width:1180px){.wrap{grid-template-columns:1fr}}
 aside.rail{position:sticky;top:52px;max-height:calc(100vh - 52px);overflow:auto;
   background:var(--panel);border-right:1px solid var(--rule);padding:14px 13px 40px}
 main.panel{padding:16px 18px 60px;min-width:0}
@@ -226,7 +226,7 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
    folded away behind a Filters button until someone wants it.
 
    Touch targets go up at the same time. A 3px chip is a mouse control. */
-@media (max-width:900px){
+@media (max-width:1180px){
   /* Open over the panel, not under it. Stacked, the rail lands two screens
      down, so the button that opens it looks like it did nothing. */
   /* aside.rail, not .rail: the desktop rule above is an element+class and
@@ -248,11 +248,11 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 }
 /* Shown only where the rail can be folded away. */
 .railbtn{display:none}
-@media (max-width:900px){.railbtn{display:inline-block}}
+@media (max-width:1180px){.railbtn{display:inline-block}}
 @media print{.railbtn{display:none}}
 
 .railtop{display:none}
-@media (max-width:900px){.railtop{display:block}}
+@media (max-width:1180px){.railtop{display:block}}
 @media print{.railtop{display:none}}
 
 /* ---- the address, with a code to point a tablet at ---------------------- */
@@ -300,3 +300,30 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
    whenever both teams are up. */
 .twoup .side .cols{grid-template-columns:minmax(0,1fr)}
 .twoup .side .card{overflow-x:auto}
+
+/* ---- roster: the position chips ---------------------------------------- */
+.poschips{display:flex;gap:3px;flex-wrap:wrap}
+.poschips .chip{padding:3px 8px;font-size:11.5px;min-width:34px;text-align:center}
+.chip.ghost{border-color:transparent;background:transparent;color:var(--ink-3);
+  padding:2px 5px}
+.chip.ghost:hover{color:var(--accent)}
+
+/* ---- the header, out of the way on a tablet ---------------------------- */
+/* On an iPad the controls were taking a third of the screen before a number
+   appeared. They collapse behind one button, and what stays visible is the
+   live indicator, because a stale clock is the thing worth seeing without
+   asking for it. */
+.hidechrome{display:none}
+@media (max-width:1180px){
+  .hidechrome{display:inline-block}
+  .appbar .uploadwrap,
+  body:not(.chrome-open) .appbar .toolset{display:none}
+  .appbar{padding-top:6px;padding-bottom:6px;row-gap:4px}
+  .appbar .brand h1{font-size:15px}
+  body.chrome-open .appbar .toolset{display:flex;flex-wrap:wrap;gap:4px}
+}
+@media print{.hidechrome{display:none}}
+
+/* One breakpoint for the whole tablet treatment: the rail folds, the header
+   folds, and the two teams stack, all at the width where they stop fitting.
+   An iPad in landscape is 1024, so 900 never reached it. */

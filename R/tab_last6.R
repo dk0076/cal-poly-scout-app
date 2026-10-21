@@ -23,10 +23,22 @@ LAST_N <- 6
 #' Roster position tags are unreliable for scouted opponents, so role comes
 #' from behaviour: a hitter whose attacks are at least half middle-targeted is
 #' a middle. See infer_roles().
-attack_group <- function(role) {
-  ifelse(is.na(role), "Other",
-         ifelse(role == "MB", "Middles",
-                ifelse(role == "OH", "Pins", "Other")))
+#' Pins, middles, or neither
+#'
+#' `pos` is the position the file lists the player at, which is the honest
+#' answer when it is there. `role` is inferred from the attack codes a player
+#' actually runs, which is the only answer available for a scouted opponent
+#' whose roster came in blank. Listed position wins where it exists, and the
+#' inference is the fallback rather than the other way round.
+attack_group <- function(role, pos = NULL) {
+  by_role <- ifelse(is.na(role), "Other",
+                    ifelse(role == "MB", "Middles",
+                           ifelse(role == "OH", "Pins", "Other")))
+  if (is.null(pos)) return(by_role)
+  by_pos <- ifelse(is.na(pos) | pos == "?", NA_character_,
+                   ifelse(pos == "MB", "Middles",
+                          ifelse(pos %in% PINS, "Pins", "Other")))
+  ifelse(is.na(by_pos), by_role, by_pos)
 }
 
 #' One attempt, as a coloured chip.
@@ -50,7 +62,7 @@ tab_last6 <- function(F, o) {
   if (!nrow(A)) return(empty("No attacks in the current filter."))
   # chronological: the whole point is which swing came last
   data.table::setorder(A, date, match_id, set_no, rally_no, seq)
-  A$grp <- attack_group(A$role)
+  A$grp <- attack_group(A$role, A$pos)
 
   n <- as.integer(o$lastN %||% LAST_N)
   if (is.na(n) || n < 3) n <- LAST_N
@@ -98,9 +110,9 @@ tab_last6 <- function(F, o) {
 
   body <- c(
     block("Pins", "Pins",
-          "Outsides and opposites: every hitter whose attacks are not mostly middle-targeted. Eff is VolleyStation's own formula, (# − / − =) ÷ attempts, applied to all their attempts and then to the recent window. The arrow compares the two."),
+          "Outsides and opposites, as the file lists them. Eff is VolleyStation's own formula, (# − / − =) ÷ attempts, applied to all their attempts and then to the recent window. The arrow compares the two."),
     block("Middles", "Middles",
-          "Hitters whose attacks are at least half middle-targeted, worked out from what they actually run rather than from a roster tag, which is unreliable for a scouted opponent."),
+          "Middles, as the file lists them. Where a roster carries no position, which happens on a scouted opponent, the split falls back to what each hitter actually runs."),
     if (any(A$grp == "Other"))
       block("Other", "Setters, liberos and unclassified",
             "Anyone the role inference could not place as a pin or a middle: setter dumps, a libero swing, or a hitter with too few attempts to classify.") else NULL)

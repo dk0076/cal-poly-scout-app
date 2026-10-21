@@ -14,10 +14,10 @@
 library(shiny)
 suppressMessages(library(data.table))
 
-for (f in c("core.R", "net.R", "qr.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R",
+for (f in c("core.R", "net.R", "qr.R", "positions.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R",
             "tables.R", "tab_attack.R", "tab_serve.R", "tab_set.R",
             "tab_setter.R", "tab_passing.R", "tab_defense.R", "tab_rotation.R",
-            "tab_last6.R",
+            "tab_last6.R", "tab_roster.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -148,11 +148,11 @@ local({
 # a wide table where a second copy would only cost width.
 PAIRED_TABS <- c("attack", "serve", "setting", "setter", "passing", "last6")
 
-TABS <- list(c("attack", "Attack direction"), c("serve", "Serve direction"),
+TABS <- list(c("attack", "Attacking"), c("serve", "Serve direction"),
              c("setting", "Set origin"), c("setter", "Setter"),
              c("passing", "Pass quality"), c("defense", "Defense"),
              c("rotation", "Rotations"), c("last6", "Last 6"),
-             c("plays", "Plays &amp; export"))
+             c("plays", "Plays &amp; export"), c("roster", "Roster"))
 
 DEFAULT_OPTS <- list(
   aView = "arrows", aBins = 3, aColor = "volume", aIncErr = TRUE, tend = TRUE,
@@ -194,10 +194,14 @@ ui <- fluidPage(
         span(class = "mark"),
         h1(HTML("Cal Poly <span>Scout</span>")),
         span(class = "v", title = app_version$build, app_version$label)),
-    div(style = "min-width:260px", uiOutput("uploader", inline = TRUE)),
+    div(class = "uploadwrap", style = "min-width:260px",
+        uiOutput("uploader", inline = TRUE)),
     div(class = "spacer"),
     uiOutput("focus_pick", inline = TRUE),
-    uiOutput("header_tools", inline = TRUE)
+    uiOutput("header_tools", inline = TRUE),
+    # Only on a narrow screen. Everything above folds behind it, so a tablet
+    # opens on numbers rather than on controls.
+    tags$button(class = "chip hidechrome", `data-chrome` = "1", "Tools")
   ),
   uiOutput("body")
 )
@@ -212,7 +216,8 @@ server <- function(input, output, session) {
     matches = list(), focus_name = "", focus = list(),
     sel = list(matches = character(), sets = integer(), players = integer(),
                rots = character(), passers = integer()),
-    o = DEFAULT_OPTS, tab = "attack", errors = character(), warnings = character()
+    o = DEFAULT_OPTS, tab = "attack", errors = character(), warnings = character(),
+    pos_ov = read_positions()
   )
 
   # ------------------------------------------------------------ file intake
@@ -312,7 +317,9 @@ server <- function(input, output, session) {
   # after every live refresh, so it has to be safe to run ten times a minute.
   settle <- function(keep_view = FALSE) {
     if (!length(S$matches)) return(invisible(FALSE))
-    ms <- S$matches
+    # Re-applied on every refresh: a live re-parse rebuilds the plays from
+    # the file, which would otherwise undo every correction mid-match.
+    ms <- apply_positions(S$matches, S$pos_ov)
     ms <- ms[order(vapply(ms, function(m) paste0(m$date %||% "", "|", m$file_name), ""))]
     ms <- classify_systems(ms)
     ms <- add_season_codes(ms)
@@ -365,6 +372,20 @@ server <- function(input, output, session) {
          else if (!is.na(suppressWarnings(as.numeric(v))) && nzchar(v)) as.numeric(v)
          else v
     S$o[[k]] <- v
+  })
+
+  # team|jersey|position, with an empty position meaning "back to the file"
+  observeEvent(input$js_pos, {
+    parts <- strsplit(input$js_pos$val, "|", fixed = TRUE)[[1]]
+    if (length(parts) < 2) return()
+    team <- parts[1]; num <- parts[2]
+    pos <- if (length(parts) >= 3) parts[3] else ""
+    S$pos_ov <- set_position(S$pos_ov, team, num, pos)
+    ok <- tryCatch(write_positions(S$pos_ov), error = function(e) {
+      S$errors <- sprintf("Could not save positions: %s", conditionMessage(e))
+      FALSE
+    })
+    settle(keep_view = TRUE)
   })
 
   observeEvent(input$js_sel, {
@@ -477,12 +498,9 @@ server <- function(input, output, session) {
   output$header_tools <- renderUI({
     if (!length(S$matches)) return(NULL)
     tagList(
-      tags$button(class = "chip", `data-o` = "showshare",
-                  `data-v` = if (isTRUE(S$o$showshare)) "false" else "true",
-                  if (isTRUE(S$o$showshare)) "Hide code" else "Connect"),
-      # Only drawn while a file is being followed. It carries the clock time of
-      # the last refresh, so a frozen feed is visible as a stale time rather
-      # than as numbers that quietly stop moving.
+      # Outside the fold. A frozen feed is the one thing worth seeing on a
+      # tablet without asking for it, and Filters is how the rail is reached
+      # once the rail itself is off screen.
       # The watch is app-wide, so the badge names the file: on a tablet across
       # the gym, "Live" alone does not say live off what.
       if (nzchar(LIVE$path))
@@ -491,18 +509,24 @@ server <- function(input, output, session) {
             span(class = "lbl", sprintf("Live %s", LIVE$at)),
             span(class = "who", LIVE$name),
             actionButton("watch_stop", "Stop", class = "chip ghost")) else NULL,
-      tags$button(class = "chip", `data-o` = "mono",
-                  `data-v` = if (isTRUE(S$o$mono)) "false" else "true",
-                  if (isTRUE(S$o$mono)) "Colour" else "Mono (print)"),
-      # Only where there are two sides to show. On Rotations and Defense both
-      # teams are already on the screen.
-      if (S$tab %in% PAIRED_TABS)
-        tags$button(class = "chip", `data-o` = "pair",
-                    `data-v` = if (isTRUE(S$o$pair)) "false" else "true",
-                    if (isTRUE(S$o$pair)) "One team" else "Both teams") else NULL,
       tags$button(class = "chip railbtn", `data-rail` = "1", "Filters"),
-      tags$button(class = "chip", onclick = "window.print()", "Print"),
-      downloadButton("csv", "CSV", class = "chip")
+      # Everything a coach does not need mid-rally folds behind Tools.
+      div(class = "toolset",
+        tags$button(class = "chip", `data-o` = "showshare",
+                    `data-v` = if (isTRUE(S$o$showshare)) "false" else "true",
+                    if (isTRUE(S$o$showshare)) "Hide code" else "Connect"),
+        tags$button(class = "chip", `data-o` = "mono",
+                    `data-v` = if (isTRUE(S$o$mono)) "false" else "true",
+                    if (isTRUE(S$o$mono)) "Colour" else "Mono (print)"),
+        # Only where there are two sides to show. On Rotations and Defense
+        # both teams are already on the screen.
+        if (S$tab %in% PAIRED_TABS)
+          tags$button(class = "chip", `data-o` = "pair",
+                      `data-v` = if (isTRUE(S$o$pair)) "false" else "true",
+                      if (isTRUE(S$o$pair)) "One team" else "Both teams") else NULL,
+        tags$button(class = "chip", onclick = "window.print()", "Print"),
+        downloadButton("csv", "CSV", class = "chip")
+      )
     )
   })
 
@@ -540,6 +564,8 @@ server <- function(input, output, session) {
         else two_up(ours, one_side(opponent_plays(S$matches, S$sel, S$focus), o),
                     side_labels(S)$us, side_labels(S)$them)
       }
+      else if (S$tab == "roster")
+        tab_roster(position_table(S$matches, S$pos_ov), S$focus_name)
       else if (S$tab == "defense") {
         sel_all <- S$sel; sel_all$rots <- character()
         tab_defense(F(), opponent_plays(S$matches, S$sel, S$focus),

@@ -40,6 +40,18 @@ network, choose Private network.
 Pin scout.bat to the taskbar or make a desktop shortcut for it, so match day
 is one click.
 
+## Before the first match off a new roster
+
+Open the **Roster** tab. Both file formats already carry a position for every
+player, so it arrives filled in and usually needs nothing. Correct one where
+the file is wrong or blank, which is normal for an opponent typed from a
+lineup sheet. Undo puts a player back to what the file says.
+
+This is worth two minutes before coding, because every mention of pins and
+middles on the other tabs reads it. A correction is kept by team and jersey
+number, so it holds through the match, a restart, and the next file off the
+same roster.
+
 ## Starting over
 
 Press **Cal Poly Scout** in the top left. It clears the loaded files and goes

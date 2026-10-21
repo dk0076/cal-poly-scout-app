@@ -24,7 +24,8 @@ vsm_roster <- function(side) {
   libero <- unlist(side$libero %||% list())
   if (!length(players))
     return(data.frame(num = integer(), last = character(), full = character(),
-                      libero = logical(), stringsAsFactors = FALSE))
+                      libero = logical(), pos = character(),
+                      stringsAsFactors = FALSE))
   rows <- lapply(players, function(p) {
     n <- suppressWarnings(as.integer(p$shirtNumber %||% p$number %||% NA))
     if (is.na(n)) return(NULL)
@@ -35,13 +36,20 @@ vsm_roster <- function(side) {
     nm <- if (bogus) paste0("#", n) else last
     full <- if (!bogus && nzchar(first) && !grepl("^player$", first, ignore.case = TRUE))
       paste(first, nm) else nm
-    data.frame(num = n, last = nm, full = full, libero = n %in% libero,
-               stringsAsFactors = FALSE)
+    code <- suppressWarnings(as.integer(p$position %||% NA))
+    lib <- n %in% libero | (!is.na(code) & code == 0L)
+    # An export without a position field is still telling us about its
+    # liberos, since it lists them separately. Older exports do exactly this.
+    pos <- pos_label(code)
+    if (lib && pos == "?") pos <- "L"
+    data.frame(num = n, last = nm, full = full, libero = lib,
+               pos = pos, stringsAsFactors = FALSE)
   })
   rows <- rows[!vapply(rows, is.null, logical(1))]
   if (!length(rows))
     return(data.frame(num = integer(), last = character(), full = character(),
-                      libero = logical(), stringsAsFactors = FALSE))
+                      libero = logical(), pos = character(),
+                      stringsAsFactors = FALSE))
   do.call(rbind, rows)
 }
 

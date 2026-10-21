@@ -37,7 +37,7 @@ Rscript tests/verify.R path/to/match.vsm path/to/another.dvw
 
 | Tab | What it answers |
 | --- | --- |
-| **Attack direction** | Where each hitter puts the ball and what it returns. Trajectories, landing grid, lanes, line/cross, depth, middle routes, serve-receive vs transition. |
+| **Attacking** | Where each hitter puts the ball and what it returns. Trajectories, landing grid, lanes, line/cross, depth, middle routes, serve-receive vs transition. |
 | **Serve direction** | Contact to landing. By type, server, target zone, depth, and where to stand a passer against each server. |
 | **Set origin** | Where the setter touched it and what she could run from there. Click zones of her own half to cut by lane and distance off the net. |
 | **Setter** | Distribution and efficiency. Every player who set is listed and any can be switched off. |
@@ -46,8 +46,9 @@ Rscript tests/verify.R path/to/match.vsm path/to/another.dvw
 | **Rotations** | SO%, ESO%, FBSO%, PS%, +/-, aces and errors per rotation, both teams, then the same by set. |
 | **Last 6** | Who is swinging well now. Recent attempts as chips, split into pins and middles. |
 | **Plays & export** | The raw touches, and a CSV of every filtered play. |
+| **Roster** | Who plays where. Set before coding, since every mention of pins and middles reads it. |
 
-Attack, Serve, Set origin, Setter, Pass quality and Last 6 show both teams
+Attacking, Serve, Set origin, Setter, Pass quality and Last 6 show both teams
 at once, side by side, ours in green and theirs in red. Nothing to switch
 between, and the comparison is the point. The **One team** button gives a
 single side the full width, and below 1180px the two stack rather than
@@ -141,6 +142,15 @@ than sitting beside it, so the numbers are the first thing on the screen.
 **Shot charts only work on files coded with lines.** No coordinates, no charts.
 The tables still work. Either format can carry them.
 
+**Positions come from the file.** Both formats store one per player, using
+VolleyStation's own codes, so pins and middles are read rather than guessed.
+The Roster tab shows what the file said and lets a staff correct it where the
+file is wrong or blank, which is usual for an opponent typed from a lineup
+sheet. A correction is kept by team and jersey number in ,
+so it holds through live refreshes, a restart, and the next file off the same
+roster. Where a roster carries no position at all, the pins and middles split
+falls back to what each hitter actually runs.
+
 **Rotation labels are sequence-based.** R1 is the setter in zone 1, then 6, 5,
 4, 3, 2, so R1 to R3 are the setter-back-row rotations.
 
@@ -185,6 +195,7 @@ app.R              UI, server, shared file watch, filter rail, file intake
 R/core.R           geometry, zones, season codes, VolleyStation symbol table
 R/net.R            the addresses this machine answers on
 R/qr.R             a QR encoder, so a tablet can be pointed at the screen
+R/positions.R      position overrides, kept by team and jersey
 R/parse_vsm.R      VolleyStation JSON reader
 R/parse_dvw.R      DataVolley text reader
 R/model.R          rally linking, roles, 5-1/6-2, stat lines, filters

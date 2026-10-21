@@ -446,3 +446,37 @@ file_sig <- function(path) {
   if (is.na(fi$size)) return("")
   sprintf("%.6f/%.0f", as.numeric(fi$mtime), fi$size)
 }
+
+# ---------------------------------------------------------------------------
+# Positions
+# ---------------------------------------------------------------------------
+# Nobody has to type these in: both formats already carry a position per
+# player. The codes are VolleyStation's own, read out of its enum rather than
+# inferred, and a .dvw stores the same code one higher.
+#
+#   0 libero, 1 outside hitter, 2 opposite, 3 middle blocker, 4 setter
+#
+# Cal Poly says "pins" for outside hitters and opposites together, as against
+# middles, which is the split the Last 6 tab is built on.
+
+POS_CODES <- c("L", "OH", "OPP", "MB", "S")        # index = code + 1
+POS_NAMES <- c(L = "Libero", OH = "Outside", OPP = "Opposite",
+               MB = "Middle", S = "Setter")
+POS_ORDER <- c("OH", "OPP", "MB", "S", "L", "?")
+PINS <- c("OH", "OPP")
+
+#' A stored position code to its short label
+#'
+#' Anything out of range becomes "?" rather than a guess. VolleyStation falls
+#' back to middle blocker here, which is a sensible default for coding and a
+#' bad one for a report: a player silently filed as a middle would be counted
+#' against the middles' numbers with nothing on the screen to say so.
+pos_label <- function(code) {
+  i <- suppressWarnings(as.integer(code)) + 1L
+  out <- rep("?", length(i))
+  ok <- !is.na(i) & i >= 1L & i <= length(POS_CODES)
+  out[ok] <- POS_CODES[i[ok]]
+  out
+}
+
+is_pin <- function(pos) pos %in% PINS

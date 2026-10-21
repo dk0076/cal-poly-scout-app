@@ -17,7 +17,7 @@ tab_attack <- function(F, o, coords_ok) {
   rect <- list(x0 = 0, y0 = COURT$NET, x1 = COURT$W, y1 = COURT$L)
   mono <- isTRUE(o$mono)
 
-  H <- hdr("Attack direction",
+  H <- hdr("Attacking",
            sprintf("%s attempts · %s with trajectory · contact→landing",
                    nrow(A), nrow(xy)))
   H <- c(H, kpis(list(

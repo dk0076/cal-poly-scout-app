@@ -17,7 +17,7 @@
   }
 
   document.addEventListener("click", function (ev) {
-    var el = ev.target.closest("[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
+    var el = ev.target.closest("[data-chrome],[data-pos],[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
     if (!el) return;
 
     // Folds the filter rail away on a tablet. Purely local: nothing the
@@ -34,6 +34,12 @@
       document.body.classList.toggle("rail-open");
       return;
     }
+    // Folds the header controls away on a tablet. Local only, like the rail.
+    if (el.hasAttribute("data-chrome")) {
+      document.body.classList.toggle("chrome-open");
+      return;
+    }
+    if (el.hasAttribute("data-pos")) return send("js_pos", { val: el.getAttribute("data-pos") });
     if (el.hasAttribute("data-tab")) return send("js_tab", { tab: el.getAttribute("data-tab") });
     // a panel view option: key plus the value to store
     if (el.hasAttribute("data-o"))

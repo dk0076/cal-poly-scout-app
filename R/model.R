@@ -9,7 +9,7 @@
 # ---------------------------------------------------------------------------
 
 PLAY_COLS <- c("uid", "match_id", "file_name", "date", "set_no", "rally_no", "seq",
-               "side", "tag", "team_name", "num", "player", "player_short", "libero",
+               "side", "tag", "team_name", "num", "player", "player_short", "libero", "pos",
                "skill", "hit_type", "effect", "skill_type", "call", "call_name",
                "setter_call", "target", "blockers", "start_zone", "start_sub_zone",
                "end_zone", "end_sub_zone", "zone6", "custom", "time",
@@ -35,6 +35,28 @@ finalize_match <- function(m) {
   if (!nrow(p)) return(m)
   data.table::setDT(p)
 
+  # The position each player is listed at, carried onto every touch so a tab
+  # can group by it without going back to the roster. Both formats store it,
+  # so this is a lookup and not a guess; anyone not on the roster stays "?".
+  p[, pos := NA_character_]
+  for (sd in c("home", "away")) {
+    r <- m$rosters[[sd]]
+    if (is.null(r) || !nrow(r) || !"pos" %in% names(r)) next
+    # Kept beside the working column and never written to again, so the
+    # Roster tab can still say what the file thought after a staff has
+    # corrected it. Without this the editor reports its own override back as
+    # the file's answer, and a disagreement becomes invisible.
+    if (!"pos_file" %in% names(r)) {
+      r$pos_file <- r$pos
+      m$rosters[[sd]] <- r
+    }
+    sel <- p$side == sd
+    if (!any(sel)) next
+    i <- match(p$num[sel], r$num)
+    p[sel, pos := ifelse(is.na(i), "?", r$pos[i])]
+  }
+  p[is.na(pos), pos := "?"]
+
   if (all(is.na(p$seq))) p[, seq := seq_len(.N), by = .(set_no, rally_no)]
 
   blanks <- list(atk_uid = NA_integer_, atk_num = NA_integer_,
@@ -53,7 +75,7 @@ finalize_match <- function(m) {
   # which cost more than the walk itself on a league file.
   v <- list(skill = p$skill, side = p$side, num = p$num, uid = p$uid,
             effect = p$effect, call = p$call, call_name = p$call_name,
-            player_short = p$player_short, start_zone = p$start_zone,
+            player_short = p$player_short, pos = p$pos, start_zone = p$start_zone,
             x0 = p$x0, y0 = p$y0, x1 = p$x1, y1 = p$y1,
             phase = p$phase, passer = p$passer, rec_effect = p$rec_effect,
             atk_uid = p$atk_uid, atk_num = p$atk_num, atk_player = p$atk_player,

@@ -16,9 +16,9 @@
 suppressMessages(library(data.table))
 root <- dirname(dirname(normalizePath(sub("--file=", "", grep("--file=", commandArgs(FALSE), value = TRUE)[1]))))
 setwd(root)
-for (f in c("core.R", "net.R", "qr.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R", "tables.R",
+for (f in c("core.R", "net.R", "qr.R", "positions.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R", "tables.R",
             "tab_attack.R", "tab_serve.R", "tab_set.R", "tab_setter.R",
-            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R",
+            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -771,6 +771,100 @@ lab <- side_labels(S_fake)
 ok("each column gets a label", nzchar(lab$us) && nzchar(lab$them))
 ok("the two labels are never the same word", !identical(lab$us, lab$them),
    sprintf("%s vs %s", lab$us, lab$them))
+
+# ---------------------------------------------------------------------------
+# Positions
+# ---------------------------------------------------------------------------
+# Both formats carry a position per player, so this is a lookup rather than a
+# guess, and the two readers have to agree about it the way they agree about
+# everything else. The overrides on top are the part that can go quietly
+# wrong: applied in place they are a one-way door, and Undo does nothing.
+
+cat("\n== positions\n")
+
+ok("every play carries a position",
+   "pos" %in% names(Fp) && !any(is.na(Fp$pos)))
+ok("positions are from the known set or the unknown marker",
+   all(Fp$pos %in% c(POS_CODES, "?")),
+   paste(setdiff(unique(Fp$pos), c(POS_CODES, "?")), collapse = ", "))
+
+r1 <- matches[[1]]$rosters$home
+ok("the roster keeps the file's own answer beside the working one",
+   "pos_file" %in% names(r1) && identical(r1$pos, r1$pos_file))
+ok("a libero is flagged and coded as one",
+   !any(r1$libero) || all(r1$pos[r1$libero] == "L"))
+
+ok("the code mapping is VolleyStation's own enum",
+   identical(pos_label(0:4), c("L", "OH", "OPP", "MB", "S")))
+ok("an out-of-range code is unknown, not quietly a middle",
+   identical(pos_label(c(-1, 5, NA)), c("?", "?", "?")))
+ok("pins are outsides and opposites, not middles",
+   all(is_pin(c("OH", "OPP"))) && !any(is_pin(c("MB", "S", "L", "?"))))
+
+# Listed position wins; inference is only the fallback.
+ok("a listed position beats the code inference",
+   identical(attack_group("MB", "OH"), "Pins") &&
+     identical(attack_group("OH", "MB"), "Middles"))
+ok("an unknown position falls back to what they actually run",
+   identical(attack_group("MB", "?"), "Middles") &&
+     identical(attack_group(NA, "?"), "Other"))
+ok("no position column at all still groups",
+   identical(attack_group(c("MB", "OH")), c("Middles", "Pins")))
+
+# The round trip that broke: set, then clear, and land back on the file.
+team1 <- matches[[1]]$teams$home$name
+num1 <- r1$num[1]
+was <- r1$pos_file[1]
+other <- setdiff(c("OH", "MB"), was)[1]
+
+ov <- set_position(list(), team1, num1, other)
+m2 <- apply_positions(matches, ov)
+ok("an override reaches the roster",
+   identical(m2[[1]]$rosters$home$pos[1], other))
+ok("an override reaches the plays",
+   !nrow(m2[[1]]$plays) ||
+     all(m2[[1]]$plays$pos[m2[[1]]$plays$side == "home" &
+                           m2[[1]]$plays$num == num1] == other))
+ok("the file's own answer is untouched by an override",
+   identical(m2[[1]]$rosters$home$pos_file[1], was))
+
+ov2 <- set_position(ov, team1, num1, "")
+m3 <- apply_positions(m2, ov2)
+ok("clearing an override puts the player back to the file",
+   identical(m3[[1]]$rosters$home$pos[1], was),
+   sprintf("file said %s, got %s", was, m3[[1]]$rosters$home$pos[1]))
+ok("clearing the last override leaves no empty team behind",
+   !length(ov2))
+ok("applying the same overrides twice changes nothing the second time",
+   identical(apply_positions(m2, ov)[[1]]$rosters$home$pos,
+             m2[[1]]$rosters$home$pos))
+
+# On disk, because the point is that they outlive the session.
+tf <- tempfile(fileext = ".json")
+write_positions(ov, tf)
+ok("overrides survive a write and a read", identical(read_positions(tf), ov))
+ok("a missing file is no overrides, not an error",
+   identical(read_positions(file.path(tempdir(), "nope.json")), list()))
+writeLines("{ not json", tf)
+ok("a damaged file is ignored rather than fatal",
+   identical(read_positions(tf), list()))
+unlink(tf)
+
+PT <- position_table(matches, ov)
+ok("the editor lists every player on both teams", nrow(PT) > 0)
+ok("the editor shows the file's answer and the override separately",
+   all(c("from_file", "override", "in_force") %in% names(PT)))
+ok("the override is what is in force where one is set",
+   all(PT$in_force[nzchar(PT$override)] == PT$override[nzchar(PT$override)]))
+ok("the file's answer is in force where none is set",
+   all(PT$in_force[!nzchar(PT$override)] == PT$from_file[!nzchar(PT$override)]))
+
+r <- tryCatch({ tab_roster(PT, focus_name); "rendered" },
+              error = function(e) paste("ERROR:", conditionMessage(e)))
+ok("the roster tab renders", r == "rendered", r)
+r <- tryCatch({ tab_roster(PT[0, ], focus_name); "rendered" },
+              error = function(e) paste("ERROR:", conditionMessage(e)))
+ok("the roster tab survives having no players", r == "rendered", r)
 
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)

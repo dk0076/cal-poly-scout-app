@@ -122,15 +122,20 @@ parse_dvw <- function(text, file_name) {
     out <- data.frame(num = integer(), last = character(), full = character(),
                       libero = logical(), stringsAsFactors = FALSE)
     if (length(raw)) {
-      m <- dv_matrix(raw, 12L)
+      m <- dv_matrix(raw, 14L)
       num <- suppressWarnings(as.integer(trimws(m[, 2])))
       ok <- !is.na(num)
       last <- trimws(m[ok, 10]); first <- trimws(m[ok, 11]); num <- num[ok]
       bogus <- !nzchar(last) | grepl("^#?\\d+$", last)
       nm <- ifelse(bogus, paste0("#", num), last)
+      # Column 14 is the position, one higher than the code VolleyStation
+      # stores in a .vsm; column 13 carries L for a libero separately.
+      code <- suppressWarnings(as.integer(trimws(m[ok, 14]))) - 1L
+      lib <- toupper(trimws(m[ok, 13])) == "L"
       out <- data.frame(num = num, last = nm,
                         full = ifelse(!bogus & nzchar(first), paste(first, nm), nm),
-                        libero = FALSE, stringsAsFactors = FALSE)
+                        libero = lib | (!is.na(code) & code == 0L),
+                        pos = pos_label(code), stringsAsFactors = FALSE)
     }
     rosters[[kv[2]]] <- out
     dup <- unique(out$num[duplicated(out$num)])
