@@ -958,3 +958,56 @@ side_labels <- function(S) {
               else if (identical(them, us)) "Them"
               else them)
 }
+
+#' Both sides' plays, under the match and set filters only
+#'
+#' Who serves next is a fact about the match, not about whichever team is in
+#' focus, so it has to be worked out from the whole rally sequence. The
+#' rotation, system, player and phase filters are deliberately not applied:
+#' they are there to narrow a page, and narrowing the record of who served
+#' would change the answer to a question about the match itself.
+all_plays <- function(matches, sel) {
+  out <- list()
+  for (m in matches) {
+    if (length(sel$matches) && !(m$match_id %in% sel$matches)) next
+    p <- m$plays
+    if (!nrow(p)) next
+    keep <- is.null(p$reportable) | p$reportable
+    if (length(sel$sets)) keep <- keep & p$set_no %in% sel$sets
+    if (any(keep)) out[[length(out) + 1L]] <- p[keep, ]
+  }
+  if (!length(out)) return(data.table::data.table())
+  data.table::rbindlist(out, fill = TRUE)
+}
+
+#' Files involving the team we are playing tonight
+#'
+#' A scouting library is several opponents, not one. Pooling them so the
+#' Next server tab has "more history" would put UC Davis's servers in the
+#' card for Grand Canyon's #12, which is worse than having no history: it
+#' reads as knowledge and is noise. So the tendency pages use every file
+#' against THIS opponent and no others.
+#'
+#' `opponent` is the name to match. With none, or with no file against them,
+#' the selection is left alone and the caller says so on the page.
+sel_same_opponent <- function(matches, sel, focus, opponent) {
+  if (is.null(opponent) || !nzchar(opponent)) return(sel)
+  keep <- character()
+  for (m in matches) {
+    fs <- focus[[m$match_id]]
+    if (is.null(fs) || is.na(fs)) next
+    opp <- m$teams[[if (fs == "home") "away" else "home"]]$name %||% ""
+    if (identical(opp, opponent)) keep <- c(keep, m$match_id)
+  }
+  if (!length(keep)) return(sel)
+  sel$matches <- keep
+  sel
+}
+
+#' Who the live file says we are playing
+live_opponent <- function(live_match, focus) {
+  if (is.null(live_match)) return("")
+  fs <- focus[[live_match$match_id]]
+  if (is.null(fs) || is.na(fs)) return("")
+  live_match$teams[[if (fs == "home") "away" else "home"]]$name %||% ""
+}

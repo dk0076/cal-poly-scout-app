@@ -17,7 +17,7 @@ suppressMessages(library(data.table))
 for (f in c("core.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R",
             "tables.R", "tab_attack.R", "tab_serve.R", "tab_set.R",
             "tab_setter.R", "tab_passing.R", "tab_defense.R", "tab_rotation.R",
-            "tab_last6.R", "tab_roster.R",
+            "tab_last6.R", "tab_roster.R", "tab_nextserver.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -167,6 +167,7 @@ TABS <- list(c("attack", "Attacking"), c("serve", "Serve direction"),
              c("setting", "Set origin"), c("setter", "Setter"),
              c("passing", "Pass quality"), c("defense", "Defense"),
              c("rotation", "Rotations"), c("last6", "Last 6"),
+             c("nextserver", "Next server"),
              c("plays", "Plays &amp; export"), c("roster", "Roster"))
 
 DEFAULT_OPTS <- list(
@@ -469,9 +470,29 @@ server <- function(input, output, session) {
 
   # ------------------------------------------------------------- reactives
 
-  F <- reactive(focus_plays(S$matches, S$sel, S$focus))
-  F_nosys <- reactive(focus_plays(S$matches, S$sel, S$focus, ignore_sys = TRUE))
-  coords_ok <- reactive(coords_available(S$matches, S$sel))
+  # ---- what each tab is allowed to see --------------------------------
+  # Scouting files are loaded before a match so the Next server tab has a
+  # history to read: where their #12 serves, which of their passers to go
+  # at. Every other tab is about the match being played, and pooling last
+  # month's film into tonight's hitting percentage would be wrong in the
+  # quiet way, producing a number that looks like tonight and is not.
+  #
+  # So once a file is being followed, everything except Next server is
+  # scoped to it. Picking matches by hand in the rail overrides this: an
+  # explicit choice is an explicit choice.
+  sel_live <- reactive({
+    sel <- S$sel
+    if (length(sel$matches)) return(sel)
+    m <- LIVE$match
+    if (is.null(m) || !nzchar(LIVE$path)) return(sel)
+    if (!(m$match_id %in% names(S$matches))) return(sel)
+    sel$matches <- m$match_id
+    sel
+  })
+
+  F <- reactive(focus_plays(S$matches, sel_live(), S$focus))
+  F_nosys <- reactive(focus_plays(S$matches, sel_live(), S$focus, ignore_sys = TRUE))
+  coords_ok <- reactive(coords_available(S$matches, sel_live()))
 
   # ------------------------------------------------------------------- body
 
@@ -536,6 +557,16 @@ server <- function(input, output, session) {
             span(class = "lbl", sprintf("Live %s", LIVE$at)),
             span(class = "who", LIVE$name),
             actionButton("watch_stop", "Stop", class = "chip ghost")) else NULL,
+      # The same control as the opening screen, because the order of a match
+      # day is load the scouting files, then start following tonight's. Once
+      # a file is loaded the opening screen is gone, and with it the only way
+      # to point the watch at a different file. The two never render at the
+      # same time, so they can share their ids and their observers.
+      if (!nzchar(LIVE$path))
+        div(class = "watchrow tight",
+            textInput("watch_path", NULL, width = "260px",
+                      placeholder = "path of the file being coded"),
+            actionButton("watch_go", "Watch", class = "chip")) else NULL,
       tags$button(class = "chip railbtn", `data-rail` = "1", "Filters"),
       # Everything a coach does not need mid-rally folds behind Tools.
       div(class = "toolset",
@@ -584,23 +615,47 @@ server <- function(input, output, session) {
       if (S$tab %in% PAIRED_TABS) {
         ours <- one_side(F(), o,
                          sys_rows = system_card(F_nosys(),
-                                                convert_rallies(S$matches, S$sel, S$focus)))
+                                                convert_rallies(S$matches, sel_live(), S$focus)))
         if (!isTRUE(o$pair)) ours
         # The opponent's own plays, read in their own frame: their attacks
         # from their side, not mirrored into ours. Mirroring is for the
         # Defense tab, where the question is what we see coming.
-        else two_up(ours, one_side(opponent_plays(S$matches, S$sel, S$focus), o),
+        else two_up(ours, one_side(opponent_plays(S$matches, sel_live(), S$focus), o),
                     side_labels(S)$us, side_labels(S)$them)
+      }
+      else if (S$tab == "nextserver") {
+        # The two halves of this tab come from different places on purpose.
+        # Who serves next is a fact about the match being played, so it is
+        # read from the live file alone, and from both sides, since it is
+        # not a fact about whichever team is in focus. What that player
+        # does with the serve is a tendency, so it reads everything loaded,
+        # which is why the scouting files were loaded in the first place.
+        ns <- next_server(all_plays(S$matches, sel_live()))
+        ours <- !is.null(ns) && !is.na(ns$side) &&
+          any(vapply(S$matches, function(m)
+            identical(S$focus[[m$match_id]], ns$side), TRUE))
+        # Every file against tonight's opponent, and no others. A scouting
+        # library holds several teams, and more history is only better when
+        # it is history of the same people.
+        opp_name <- live_opponent(LIVE$match, S$focus)
+        sel_hist <- if (length(S$sel$matches)) S$sel
+                    else sel_same_opponent(S$matches, S$sel, S$focus, opp_name)
+        tab_nextserver(focus_plays(S$matches, sel_hist, S$focus),
+                       opponent_plays(S$matches, sel_hist, S$focus), ns, o,
+                       coords_available(S$matches, sel_hist), side_labels(S), ours,
+                       n_files = if (length(sel_hist$matches)) length(sel_hist$matches)
+                                 else length(S$matches),
+                       live_only = nzchar(LIVE$path) && !length(S$sel$matches),
+                       opponent = opp_name)
       }
       else if (S$tab == "roster")
         tab_roster(position_table(S$matches, ROSTER$ov), S$focus_name)
       else if (S$tab == "defense") {
-        sel_all <- S$sel; sel_all$rots <- character()
-        tab_defense(F(), opponent_plays(S$matches, S$sel, S$focus),
-                    convert_rallies(S$matches, S$sel, S$focus), o, coords_ok())
+        tab_defense(F(), opponent_plays(S$matches, sel_live(), S$focus),
+                    convert_rallies(S$matches, sel_live(), S$focus), o, coords_ok())
       }
       else if (S$tab == "rotation") {
-        sel_all <- S$sel; sel_all$rots <- character()
+        sel_all <- sel_live(); sel_all$rots <- character()
         # an opponent play already carries the opponent's own rotation in
         # `rot`; `opp_rot` on it is ours
         Op <- opponent_plays(S$matches, sel_all, S$focus)

@@ -60,6 +60,18 @@ Each iPad remembers its own set, so one can sit on serve and pass while
 another sits on attacking and defence, both reading the same live match.
 Show all puts them back.
 
+## Scouting files, before the game
+
+Load the opponent's previous matches with Browse, then point the watch at
+tonight's file. The previous matches feed the **Next server** tab and nothing
+else: every other tab counts tonight only, so a hitting percentage is
+tonight's.
+
+The Next server tab follows the match. When we serve it lists their passers
+worst first, which is who to serve. When they serve it shows the player about
+to serve, her chart first, then where she goes and how she has been serving
+lately. The line under the heading says which files it is reading.
+
 ## Starting over
 
 Press **Cal Poly Scout** in the top left. It clears the loaded files and goes

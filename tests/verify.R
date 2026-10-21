@@ -18,7 +18,7 @@ root <- dirname(dirname(normalizePath(sub("--file=", "", grep("--file=", command
 setwd(root)
 for (f in c("core.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R", "tables.R",
             "tab_attack.R", "tab_serve.R", "tab_set.R", "tab_setter.R",
-            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R",
+            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R", "tab_nextserver.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -912,8 +912,8 @@ for (nm in names(matches)) {
        sprintf("%.1f%%", rate))
 }
 
-m1 <- matches[[1]]
-ns <- next_server(m1$plays)
+match_one <- matches[[1]]
+ns <- next_server(match_one$plays)
 ok("the prediction says which side, who, and on what evidence",
    is.null(ns) || all(c("side", "num", "name", "rot", "basis", "known") %in% names(ns)))
 ok("holding serve is recognised as holding serve",
@@ -922,21 +922,109 @@ ok("holding serve is recognised as holding serve",
                                   "not seen in this rotation yet",
                                   "no serve from them yet"))
 ok("too little to go on returns nothing rather than a guess",
-   is.null(next_server(m1$plays[0, ])))
+   is.null(next_server(match_one$plays[0, ])))
 
-so_home <- serve_order(m1$plays, "home")
-so_away <- serve_order(m1$plays, "away")
+so_home <- serve_order(match_one$plays, "home")
+so_away <- serve_order(match_one$plays, "away")
 ok("each side gets a serve order", !is.null(so_home) && !is.null(so_away))
 # The bug this catches: a parameter named `side` is shadowed by the column of
 # the same name, every row passes the filter, and both teams come back equal.
 ok("the two sides are not the same six players",
-   identical(m1$teams$home$name, m1$teams$away$name) ||
+   identical(match_one$teams$home$name, match_one$teams$away$name) ||
      !identical(so_home$num, so_away$num),
    paste(so_home$num, collapse = ","))
 ok("a serve order has at most one server per rotation",
    is.null(so_home) || !any(duplicated(so_home$rot)))
 ok("serve efficiency stays a proportion",
    is.null(so_home) || all(is.na(so_home$eff) | abs(so_home$eff) <= 1))
+
+# ---------------------------------------------------------------------------
+# Live match against scouting history
+# ---------------------------------------------------------------------------
+# Scouting files are loaded before a match so the Next server tab has
+# something to read. Every other tab is about the match being played, and
+# pooling last month's film into tonight's hitting percentage would be wrong
+# in the quiet way: a number that looks like tonight and is not.
+#
+# A scouting library is also several opponents, so "more history" is only
+# better when it is history of the same people.
+
+cat("\n== live match against scouting history\n")
+
+if (length(matches) > 1L) {
+  live_id <- names(matches)[length(matches)]
+  sel_l <- sel; sel_l$matches <- live_id
+
+  n_all <- nrow(all_plays(matches, sel))
+  n_live <- nrow(all_plays(matches, sel_l))
+  ok("scoping to the live file is narrower than pooling", n_live < n_all,
+     sprintf("%d of %d plays", n_live, n_all))
+  ok("the live scope is one file's worth",
+     length(unique(all_plays(matches, sel_l)$match_id)) == 1L)
+
+  a_live <- sum(focus_plays(matches, sel_l, focus)$skill == "A")
+  a_all <- sum(focus_plays(matches, sel, focus)$skill == "A")
+  ok("a match tab would count tonight's attacks, not the season's",
+     a_live < a_all, sprintf("%d against %d", a_live, a_all))
+}
+
+# The filter that keeps one opponent's history to that opponent.
+opp_names <- unique(vapply(matches, function(m) {
+  fs <- focus[[m$match_id]]
+  if (is.null(fs) || is.na(fs)) return("")
+  m$teams[[if (fs == "home") "away" else "home"]]$name %||% ""
+}, ""))
+opp_names <- opp_names[nzchar(opp_names)]
+
+if (length(opp_names)) {
+  one <- opp_names[1]
+  sel_o <- sel_same_opponent(matches, sel, focus, one)
+  O <- opponent_plays(matches, sel_o, focus)
+  ok("history is kept to the one opponent",
+     !nrow(O) || identical(unique(O$team_name), one),
+     paste(unique(O$team_name), collapse = " + "))
+  if (length(opp_names) > 1L) {
+    O_pool <- opponent_plays(matches, sel, focus)
+    ok("pooling would have mixed opponents, which is what this prevents",
+       length(unique(O_pool$team_name)) > 1L)
+  }
+}
+
+ok("an opponent nobody has played leaves the selection alone",
+   identical(sel_same_opponent(matches, sel, focus, "Nobody University"), sel))
+ok("no opponent named leaves the selection alone",
+   identical(sel_same_opponent(matches, sel, focus, ""), sel))
+
+lm <- matches[[1]]
+ok("the live opponent is the side we are not",
+   {
+     nm <- live_opponent(lm, focus)
+     fs <- focus[[lm$match_id]]
+     is.null(fs) || is.na(fs) || identical(nm, lm$teams[[if (fs == "home") "away" else "home"]]$name)
+   })
+ok("no live match means no opponent, rather than an error",
+   identical(live_opponent(NULL, focus), ""))
+
+# The tab itself, in both modes and with nothing to go on.
+ns1 <- next_server(all_plays(matches, sel))
+labs <- side_labels(list(matches = matches, focus = focus,
+                         focus_name = focus_name, sel = sel))
+Opp_ns <- opponent_plays(matches, sel, focus)
+for (mode in c(TRUE, FALSE)) {
+  r <- tryCatch({
+    tab_nextserver(Fp, Opp_ns, ns1, o, ck, labs, mode, n_files = length(matches))
+    "rendered"
+  }, error = function(e) paste("ERROR:", conditionMessage(e)))
+  ok(sprintf("next server renders with the serve %s",
+             if (mode) "ours" else "theirs"), r == "rendered", r)
+}
+r <- tryCatch({ tab_nextserver(Fp, Opp_ns, NULL, o, ck, labs, TRUE); "rendered" },
+              error = function(e) paste("ERROR:", conditionMessage(e)))
+ok("next server says so rather than failing when it cannot tell",
+   r == "rendered", r)
+r <- tryCatch({ tab_nextserver(Fp[0, ], Opp_ns[0, ], ns1, o, ck, labs, TRUE); "rendered" },
+              error = function(e) paste("ERROR:", conditionMessage(e)))
+ok("next server survives an empty set of plays", r == "rendered", r)
 
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)

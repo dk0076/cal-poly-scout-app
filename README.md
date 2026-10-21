@@ -45,6 +45,7 @@ Rscript tests/verify.R path/to/match.vsm path/to/another.dvw
 | **Defense** | What they manage against us, whether we touch it, and whether we win the rally after. Court drawn from our baseline. |
 | **Rotations** | SO%, ESO%, FBSO%, PS%, +/-, aces and errors per rotation, both teams, then the same by set. |
 | **Last 6** | Who is swinging well now. Recent attempts as chips, split into pins and middles. |
+| **Next server** | Follows the match. Our serve shows their passers, weakest first; their serve shows the player about to serve, chart first. |
 | **Plays & export** | The raw touches, and a CSV of every filtered play. |
 | **Roster** | Who plays where. Set before coding, since every mention of pins and middles reads it. |
 
@@ -156,6 +157,24 @@ than sitting beside it, so the numbers are the first thing on the screen.
 **Shot charts only work on files coded with lines.** No coordinates, no charts.
 The tables still work. Either format can carry them.
 
+**Scouting files and the live match are kept apart.** Load the opponent's
+previous matches before the game and they feed the Next server tab only:
+where their #12 serves, which of their passers to go at. Every other tab is
+scoped to the file being coded, because pooling last month's film into
+tonight's hitting percentage produces a number that looks like tonight and is
+not. Picking matches by hand in the rail overrides this.
+
+The history is also kept to the team you are playing. A scouting library is
+several opponents, and pooling them would put one team's servers in another
+team's card, which reads as knowledge and is noise.
+
+**Who serves next is worked out, not read off the lineup.** Three rules were
+measured against real matches: zone 1 of the lineup and "same server if they
+held" both managed 72% on side-outs, and the rule this uses, whoever served
+the last time that side was in the rotation they are about to be in, managed
+96.7%. The difference is serving substitutes. Per match it called 100% on one
+scouted opponent and 98% on another, and the tab says which rule answered.
+
 **Positions come from the file.** Both formats store one per player, using
 VolleyStation's own codes, so pins and middles are read rather than guessed.
 The Roster tab shows what the file said and lets a staff correct it where the
@@ -210,6 +229,7 @@ R/core.R           geometry, zones, season codes, VolleyStation symbol table
 R/net.R            the addresses this machine answers on
 R/qr.R             a QR encoder, so a tablet can be pointed at the screen
 R/positions.R      position overrides, kept by team and jersey
+R/next_server.R    who serves next, and each side's serve order
 R/parse_vsm.R      VolleyStation JSON reader
 R/parse_dvw.R      DataVolley text reader
 R/model.R          rally linking, roles, 5-1/6-2, stat lines, filters
