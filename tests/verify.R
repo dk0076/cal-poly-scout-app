@@ -990,6 +990,42 @@ if (length(opp_names)) {
   }
 }
 
+
+# A scouting film is the opponent playing a third party, so the team being
+# scouted has to be reachable by name. Through the focus team it is not
+# reachable at all, because the focus team is not in the file.
+all_team_names <- unique(unlist(lapply(matches, function(m)
+  c(m$teams$home$name %||% "", m$teams$away$name %||% ""))))
+all_team_names <- all_team_names[nzchar(all_team_names)]
+
+for (tn in all_team_names) {
+  TP <- team_plays(matches, sel_with_team(matches, sel, tn), tn)
+  ok(sprintf("every play found by name belongs to %s", substr(tn, 1, 22)),
+     !nrow(TP) || identical(unique(TP$team_name), tn),
+     paste(unique(TP$team_name), collapse = " + "))
+}
+
+ok("a team nobody has played gives nothing, not everything",
+   !nrow(team_plays(matches, sel, "Nobody University")))
+ok("no team named gives nothing",
+   !nrow(team_plays(matches, sel, "")))
+ok("selecting by name keeps only the files that team is in",
+   {
+     tn <- all_team_names[1]
+     s2 <- sel_with_team(matches, sel, tn)
+     all(vapply(s2$matches, function(id) {
+       m <- matches[[id]]
+       tn %in% c(m$teams$home$name %||% "", m$teams$away$name %||% "")
+     }, TRUE))
+   })
+ok("by name finds at least as much as going through the focus team",
+   {
+     tn <- all_team_names[1]
+     a <- nrow(team_plays(matches, sel_with_team(matches, sel, tn), tn))
+     b <- nrow(opponent_plays(matches, sel_same_opponent(matches, sel, focus, tn), focus))
+     a >= b
+   })
+
 ok("an opponent nobody has played leaves the selection alone",
    identical(sel_same_opponent(matches, sel, focus, "Nobody University"), sel))
 ok("no opponent named leaves the selection alone",

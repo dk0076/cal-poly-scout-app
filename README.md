@@ -164,9 +164,17 @@ scoped to the file being coded, because pooling last month's film into
 tonight's hitting percentage produces a number that looks like tonight and is
 not. Picking matches by hand in the rail overrides this.
 
-The history is also kept to the team you are playing. A scouting library is
-several opponents, and pooling them would put one team's servers in another
-team's card, which reads as knowledge and is noise.
+The history is also kept to the team you are playing, and found by team
+name rather than through your own side. A scouting film is the opponent
+playing somebody else, with your team not in it anywhere, so asking for
+"our opponent in that file" finds nothing and discards the whole library.
+On a real set of three files that was the difference between 66 serves with
+no coordinates and 193 serves with 127 charted.
+
+The team picker is remembered in `data/our_team.txt`. The default picks the
+team appearing in the most files, which is right until opponent films are
+loaded: three of theirs against one of yours and the app would decide you
+are Grand Canyon.
 
 **Who serves next is worked out, not read off the lineup.** Three rules were
 measured against real matches: zone 1 of the lineup and "same server if they

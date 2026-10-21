@@ -980,6 +980,42 @@ all_plays <- function(matches, sel) {
   data.table::rbindlist(out, fill = TRUE)
 }
 
+#' Every play by one team, across every file that team appears in
+#'
+#' Not "the opponent of our focus team", which is what opponent_plays means.
+#' A scouting film is the team being scouted playing somebody else entirely:
+#' Grand Canyon against Colorado State, with no Cal Poly in it anywhere. Ask
+#' for those plays through the focus team and the answer is nothing, because
+#' the focus team is not in the file. Ask for them by name and they are all
+#' there, which is the point of having scouted the film.
+team_plays <- function(matches, sel, team_name) {
+  if (is.null(team_name) || !nzchar(team_name)) return(data.table::data.table())
+  out <- list()
+  for (m in matches) {
+    if (length(sel$matches) && !(m$match_id %in% sel$matches)) next
+    p <- m$plays
+    if (!nrow(p)) next
+    keep <- p$team_name == team_name & (is.null(p$reportable) | p$reportable)
+    if (length(sel$sets)) keep <- keep & p$set_no %in% sel$sets
+    if (any(keep)) out[[length(out) + 1L]] <- p[keep, ]
+  }
+  if (!length(out)) return(data.table::data.table())
+  data.table::rbindlist(out, fill = TRUE)
+}
+
+#' Files that team appears in, on either side
+sel_with_team <- function(matches, sel, team_name) {
+  if (is.null(team_name) || !nzchar(team_name)) return(sel)
+  keep <- character()
+  for (m in matches) {
+    nms <- c(m$teams$home$name %||% "", m$teams$away$name %||% "")
+    if (team_name %in% nms) keep <- c(keep, m$match_id)
+  }
+  if (!length(keep)) return(sel)
+  sel$matches <- keep
+  sel
+}
+
 #' Files involving the team we are playing tonight
 #'
 #' A scouting library is several opponents, not one. Pooling them so the

@@ -137,3 +137,33 @@ position_table <- function(matches, ov) {
   out$in_force <- ifelse(nzchar(out$override), out$override, out$from_file)
   out[order(out$team, out$num), ]
 }
+
+# ---------------------------------------------------------------------------
+# Which team is ours
+# ---------------------------------------------------------------------------
+# Kept beside the position overrides, and for the same reason: it is a fact
+# about the staff, not about any one file.
+#
+# The default picks the team appearing in the most loaded files, which is
+# right until a scouting library is loaded. Three films of the opponent and
+# one match of ours, and the opponent is in all four: the app would decide we
+# are Grand Canyon and put their numbers under our colour. So once a staff
+# says which team is theirs, that answer is written down and used for every
+# file afterwards.
+
+TEAM_FILE <- file.path("data", "our_team.txt")
+
+read_our_team <- function(path = TEAM_FILE) {
+  if (!file.exists(path)) return("")
+  out <- tryCatch(trimws(paste(readLines(path, warn = FALSE), collapse = "")),
+                  error = function(e) "")
+  out
+}
+
+write_our_team <- function(name, path = TEAM_FILE) {
+  dir.create(dirname(path), showWarnings = FALSE, recursive = TRUE)
+  tmp <- paste0(path, ".tmp")
+  writeLines(as.character(name), tmp)
+  file.rename(tmp, path)
+  invisible(TRUE)
+}

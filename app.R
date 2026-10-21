@@ -340,10 +340,15 @@ server <- function(input, output, session) {
     ms <- add_season_codes(ms)
     S$matches <- ms
     idx <- team_index(ms)
-    # The focus team is the one appearing in the most files; ties break
-    # alphabetically and are fully overridable from the header picker.
-    if (!nzchar(S$focus_name) || !(S$focus_name %in% idx$name))
-      S$focus_name <- idx$name[1]
+    # The default is the team appearing in the most files, ties breaking
+    # alphabetically. That is right until a scouting library is loaded:
+    # three films of the opponent against one match of ours and the opponent
+    # is in all four, so the app would decide we are Grand Canyon. A
+    # remembered choice therefore wins over the count.
+    if (!nzchar(S$focus_name) || !(S$focus_name %in% idx$name)) {
+      saved <- read_our_team()
+      S$focus_name <- if (nzchar(saved) && saved %in% idx$name) saved else idx$name[1]
+    }
     S$focus <- focus_sides(ms, S$focus_name)
     if (!keep_view) S$sel$players <- integer()
     invisible(TRUE)
@@ -463,6 +468,8 @@ server <- function(input, output, session) {
 
   observeEvent(input$focus_team, {
     req(input$focus_team)
+    # Written down, so loading the opponent's films later cannot move it.
+    tryCatch(write_our_team(input$focus_team), error = function(e) NULL)
     S$focus_name <- input$focus_team
     S$focus <- focus_sides(S$matches, input$focus_team)
     S$sel$players <- integer()
@@ -637,11 +644,15 @@ server <- function(input, output, session) {
         # Every file against tonight's opponent, and no others. A scouting
         # library holds several teams, and more history is only better when
         # it is history of the same people.
+        # By team name, not through the focus team. A scouting film is the
+        # opponent playing somebody else, with us not in it at all, so
+        # asking for "our opponent in that file" finds nothing and throws
+        # away the whole library.
         opp_name <- live_opponent(LIVE$match, S$focus)
         sel_hist <- if (length(S$sel$matches)) S$sel
-                    else sel_same_opponent(S$matches, S$sel, S$focus, opp_name)
-        tab_nextserver(focus_plays(S$matches, sel_hist, S$focus),
-                       opponent_plays(S$matches, sel_hist, S$focus), ns, o,
+                    else sel_with_team(S$matches, S$sel, opp_name)
+        tab_nextserver(focus_plays(S$matches, sel_live(), S$focus),
+                       team_plays(S$matches, sel_hist, opp_name), ns, o,
                        coords_available(S$matches, sel_hist), side_labels(S), ours,
                        n_files = if (length(sel_hist$matches)) length(sel_hist$matches)
                                  else length(S$matches),

@@ -62,8 +62,9 @@ Show all puts them back.
 
 ## Scouting files, before the game
 
-Load the opponent's previous matches with Browse, then point the watch at
-tonight's file. The previous matches feed the **Next server** tab and nothing
+Load the opponent's scouting films with Browse, then point the watch at
+tonight's file. The films can be the opponent playing anyone, which is what
+they usually are. The previous matches feed the **Next server** tab and nothing
 else: every other tab counts tonight only, so a hitting percentage is
 tonight's.
 
