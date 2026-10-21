@@ -17,7 +17,7 @@
   }
 
   document.addEventListener("click", function (ev) {
-    var el = ev.target.closest("[data-tabpick],[data-chrome],[data-pos],[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
+    var el = ev.target.closest("[data-simplify],[data-tabpick],[data-chrome],[data-pos],[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
     if (!el) return;
 
     // Folds the filter rail away on a tablet. Purely local: nothing the
@@ -32,6 +32,10 @@
     }
     if (el.hasAttribute("data-rail")) {
       document.body.classList.toggle("rail-open");
+      return;
+    }
+    if (el.hasAttribute("data-simplify")) {
+      toggleSimplify();
       return;
     }
     // Which tabs this device shows. Local only: one laptop serves every
@@ -135,6 +139,47 @@
      who had already set a preference. */
   var TABS_KEY = "scoutr.hiddenTabs";
 
+  /* The tabs a coach decides something from while the match is running. Each
+     one answers a question that is live: who to serve, who is swinging well
+     now, which rotation is bleeding. The rest are preparation and review,
+     which is real work but not work done between two rallies.
+
+     Attacking is left out on purpose rather than by oversight: Last 6 is the
+     same question asked about the last ten minutes, which is the one that
+     changes a decision mid-match. One tap in Tabs puts anything back. */
+  var MATCH_DAY = ["nextserver", "last6", "passing", "rotation"];
+
+  function simplified() {
+    var hidden = hiddenTabs();
+    var all = [].slice.call(document.querySelectorAll(".tabs .tab"))
+      .map(function (b) { return b.getAttribute("data-tab"); });
+    if (!all.length) return false;
+    return all.every(function (id) {
+      return MATCH_DAY.indexOf(id) !== -1 ? hidden.indexOf(id) === -1
+                                          : hidden.indexOf(id) !== -1;
+    });
+  }
+
+  function toggleSimplify() {
+    if (simplified()) {
+      setHiddenTabs([]);
+    } else {
+      var all = [].slice.call(document.querySelectorAll(".tabs .tab"))
+        .map(function (b) { return b.getAttribute("data-tab"); });
+      setHiddenTabs(all.filter(function (id) { return MATCH_DAY.indexOf(id) === -1; }));
+    }
+    applyTabs();
+    var p = document.getElementById("tabpick");
+    if (p) p.remove();
+  }
+
+  // The button says what pressing it will do, and it is the client that
+  // knows, since the choice lives in this browser and never reaches R.
+  function labelSimplify() {
+    var b = document.querySelector("[data-simplify]");
+    if (b) b.textContent = simplified() ? "All tabs" : "Simplify";
+  }
+
   function hiddenTabs() {
     try {
       var raw = window.localStorage.getItem(TABS_KEY);
@@ -173,6 +218,7 @@
     // that is no longer in the bar, so move to the first one still there.
     var active = document.querySelector(".tabs .tab.on");
     if (active && active.style.display === "none") shown[0].click();
+    labelSimplify();
   }
 
   function tabPanel() {
@@ -202,6 +248,15 @@
       });
       wrap.appendChild(row);
     });
+    var simp = document.createElement("button");
+    simp.className = "chip ghost";
+    simp.textContent = simplified() ? "All tabs" : "Simplify to match day";
+    simp.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      toggleSimplify();
+    });
+    wrap.appendChild(simp);
+
     var foot = document.createElement("button");
     foot.className = "chip ghost";
     foot.textContent = "Show all";

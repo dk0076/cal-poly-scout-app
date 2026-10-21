@@ -596,6 +596,9 @@ server <- function(input, output, session) {
           tags$button(class = "chip", `data-o` = "pair",
                       `data-v` = if (isTRUE(S$o$pair)) "false" else "true",
                       if (isTRUE(S$o$pair)) "One team" else "Both teams") else NULL,
+        # Cuts the tab bar to the four a coach decides from mid-match. The
+        # label is rewritten by the browser, since the choice lives there.
+        tags$button(class = "chip", `data-simplify` = "1", "Simplify"),
         tags$button(class = "chip", `data-tabpick` = "1", "Tabs"),
         tags$button(class = "chip", onclick = "window.print()", "Print"),
         downloadButton("csv", "CSV", class = "chip")
