@@ -52,6 +52,13 @@ middles on the other tabs reads it. A correction is kept by team and jersey
 number, so it holds through the match, a restart, and the next file off the
 same roster.
 
+## Setting up each iPad
+
+Press **Tools**, then **Tabs**, and turn off what that coach does not want.
+Each iPad remembers its own set, so one can sit on serve and pass while
+another sits on attacking and defence, both reading the same live match.
+Show all puts them back.
+
 ## Starting over
 
 Press **Cal Poly Scout** in the top left. It clears the loaded files and goes

@@ -327,3 +327,14 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 /* One breakpoint for the whole tablet treatment: the rail folds, the header
    folds, and the two teams stack, all at the width where they stop fitting.
    An iPad in landscape is 1024, so 900 never reached it. */
+
+/* ---- which tabs this device shows -------------------------------------- */
+#tabpick{position:absolute;z-index:70;width:214px;background:var(--panel);
+  border:1px solid var(--rule);box-shadow:0 2px 0 var(--gold),0 6px 18px rgba(0,0,0,.09);
+  padding:9px;display:flex;flex-direction:column;gap:3px}
+.tabpick-h{font:10.5px var(--mono);letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-3);padding-bottom:5px;border-bottom:1px solid var(--rule-2);
+  margin-bottom:4px}
+#tabpick .chip.wide{padding:6px 9px}
+#tabpick .chip.ghost{margin-top:4px;text-align:center}
+@media print{#tabpick{display:none}}

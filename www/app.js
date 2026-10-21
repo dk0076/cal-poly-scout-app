@@ -17,7 +17,7 @@
   }
 
   document.addEventListener("click", function (ev) {
-    var el = ev.target.closest("[data-chrome],[data-pos],[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
+    var el = ev.target.closest("[data-tabpick],[data-chrome],[data-pos],[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
     if (!el) return;
 
     // Folds the filter rail away on a tablet. Purely local: nothing the
@@ -32,6 +32,12 @@
     }
     if (el.hasAttribute("data-rail")) {
       document.body.classList.toggle("rail-open");
+      return;
+    }
+    // Which tabs this device shows. Local only: one laptop serves every
+    // iPad, so this must not reach the server.
+    if (el.hasAttribute("data-tabpick")) {
+      tabPanel();
       return;
     }
     // Folds the header controls away on a tablet. Local only, like the rail.
@@ -116,4 +122,129 @@
       var i = fileInput(); if (i) i.click();
     }
   });
+
+  /* ---- which tabs this device shows ------------------------------------
+     One laptop serves every iPad on the bench, so this cannot live on the
+     server: the coach watching serve and pass and the coach watching attack
+     and defence are looking at the same session. It is a property of the
+     device, so the device remembers it, in localStorage, which also means it
+     survives a reload and needs no round trip to apply.
+
+     Hidden tabs are stored rather than shown ones. A tab added in a later
+     version then appears by default instead of being invisible to everyone
+     who had already set a preference. */
+  var TABS_KEY = "scoutr.hiddenTabs";
+
+  function hiddenTabs() {
+    try {
+      var raw = window.localStorage.getItem(TABS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      // Private browsing, or storage switched off. Show everything rather
+      // than fail: a coach with no tabs is worse off than one with all.
+      return [];
+    }
+  }
+
+  function setHiddenTabs(list) {
+    try {
+      window.localStorage.setItem(TABS_KEY, JSON.stringify(list));
+    } catch (e) { /* nothing to do; the choice lasts this page only */ }
+  }
+
+  function applyTabs() {
+    var hidden = hiddenTabs();
+    var all = [].slice.call(document.querySelectorAll(".tabs .tab"));
+    if (!all.length) return;
+    var shown = [];
+    all.forEach(function (b) {
+      var id = b.getAttribute("data-tab");
+      var off = hidden.indexOf(id) !== -1;
+      b.style.display = off ? "none" : "";
+      if (!off) shown.push(b);
+    });
+    // Never leave a coach with nothing. If every tab is off, the setting is
+    // ignored rather than obeyed.
+    if (!shown.length) {
+      all.forEach(function (b) { b.style.display = ""; });
+      return;
+    }
+    // Hiding the tab you are on would leave the panel below showing a tab
+    // that is no longer in the bar, so move to the first one still there.
+    var active = document.querySelector(".tabs .tab.on");
+    if (active && active.style.display === "none") shown[0].click();
+  }
+
+  function tabPanel() {
+    var old = document.getElementById("tabpick");
+    if (old) { old.remove(); return; }
+    var hidden = hiddenTabs();
+    var wrap = document.createElement("div");
+    wrap.id = "tabpick";
+    var h = document.createElement("div");
+    h.className = "tabpick-h";
+    h.textContent = "Tabs on this device";
+    wrap.appendChild(h);
+    [].slice.call(document.querySelectorAll(".tabs .tab")).forEach(function (b) {
+      var id = b.getAttribute("data-tab");
+      var on = hidden.indexOf(id) === -1;
+      var row = document.createElement("button");
+      row.className = "chip wide" + (on ? " on" : "");
+      row.textContent = b.textContent.trim();
+      row.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        var list = hiddenTabs();
+        var i = list.indexOf(id);
+        if (i === -1) list.push(id); else list.splice(i, 1);
+        setHiddenTabs(list);
+        row.classList.toggle("on");
+        applyTabs();
+      });
+      wrap.appendChild(row);
+    });
+    var foot = document.createElement("button");
+    foot.className = "chip ghost";
+    foot.textContent = "Show all";
+    foot.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      setHiddenTabs([]);
+      applyTabs();
+      wrap.remove();
+    });
+    wrap.appendChild(foot);
+    document.body.appendChild(wrap);
+    var btn = document.querySelector("[data-tabpick]");
+    if (btn) {
+      var r = btn.getBoundingClientRect();
+      wrap.style.top = Math.round(r.bottom + window.scrollY + 6) + "px";
+      wrap.style.left = Math.round(Math.min(r.left, window.innerWidth - 230)) + "px";
+    }
+  }
+
+  /* The tab bar does not exist when this script runs: it is inside an output
+     the server renders once the session connects, and it is replaced again on
+     every panel change, which throws away the inline styles. Watching the
+     document rather than the bar is the version that survives both, since
+     there is nothing to attach to at load time. */
+  // setTimeout rather than requestAnimationFrame: a page in a background
+  // tab gets no animation frames, so an iPad left on another app would come
+  // back showing every tab again.
+  var pending = false;
+  function scheduleApply() {
+    if (pending) return;
+    pending = true;
+    setTimeout(function () { pending = false; applyTabs(); }, 0);
+  }
+  new MutationObserver(scheduleApply).observe(document.documentElement,
+    { childList: true, subtree: true });
+  document.addEventListener("shiny:value", scheduleApply);
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", scheduleApply);
+  else scheduleApply();
+
+  document.addEventListener("click", function (ev) {
+    var p = document.getElementById("tabpick");
+    if (p && !p.contains(ev.target) && !ev.target.closest("[data-tabpick]")) p.remove();
+  });
+
 })();

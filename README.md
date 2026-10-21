@@ -57,6 +57,14 @@ squeeze. Rotations and Defense already had both teams by construction.
 The team picker in the header no longer decides whose numbers you see. It
 says which team is yours, which is what sets the colours and the order.
 
+**Each device picks its own tabs.** The **Tabs** button hides the ones a
+coach does not want, and the choice is remembered on that device. One laptop
+serves every iPad on the bench, so this is kept in the browser rather than on
+the server: the coach watching serve and pass and the coach watching attack
+and defence are looking at the same session. Hiding the tab you are on moves
+you to the first one still showing, and hiding every tab is ignored rather
+than obeyed.
+
 The left rail filters everything at once: matches, which side is your team,
 sets, rotation, system, phase, passer, players.
 
