@@ -57,9 +57,10 @@ squeeze. Rotations and Defense already had both teams by construction.
 The team picker in the header no longer decides whose numbers you see. It
 says which team is yours, which is what sets the colours and the order.
 
-**What is shared and what is yours.** The match being followed and the
-roster belong to everyone: correct a position on the laptop and every screen
-already watching changes, with nobody reloading. Which tabs you want, and
+**What is shared and what is yours.** The loaded files, the match being
+followed and the roster belong to everyone: load a scouting film or correct
+a position on the laptop and every screen already watching changes, with
+nobody reloading. Which tabs you want, and
 the filters and view options, are yours alone, so one coach cutting to R1
 does not cut the whole bench to R1.
 

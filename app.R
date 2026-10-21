@@ -126,6 +126,58 @@ LIVE <- reactiveValues(path = "", name = "", at = "", match = NULL, gen = 0L)
 # a change across the room.
 ROSTER <- reactiveValues(ov = read_positions(), gen = 0L)
 
+# The files that are loaded. App scope for the same reason as the watch and
+# the roster: the laptop loads the opponent's films before a match and every
+# iPad on the bench is meant to be looking at them. Held per session, which
+# is where this started, the films existed only in the browser that uploaded
+# them and the tablets saw the live file and nothing else.
+#
+# `gen` counts changes. Sessions mirror this into their own copy rather than
+# reading it directly, so the forty-odd places that already say S$matches
+# keep working and there is one place where sharing can go wrong instead of
+# forty.
+LIB <- reactiveValues(matches = list(), focus_name = "", focus = list(),
+                      gen = 0L)
+
+#' Order, label and focus whatever is loaded, once for everyone
+#'
+#' Was per session, which meant this ran once per connected tablet and each
+#' one kept its own answer. It is a property of the files, so it happens here
+#' and the result is broadcast.
+lib_settle <- function() {
+  if (!length(LIB$matches)) {
+    LIB$gen <- LIB$gen + 1L
+    return(invisible(FALSE))
+  }
+  # Re-applied every time: a live re-parse rebuilds the plays from the file,
+  # which would otherwise undo every roster correction mid-match.
+  ms <- apply_positions(LIB$matches, ROSTER$ov)
+  ms <- ms[order(vapply(ms, function(m) paste0(m$date %||% "", "|", m$file_name), ""))]
+  ms <- classify_systems(ms)
+  ms <- add_season_codes(ms)
+  LIB$matches <- ms
+  idx <- team_index(ms)
+  # The default is the team appearing in the most files, ties breaking
+  # alphabetically. That is right until a scouting library is loaded: three
+  # films of the opponent against one match of ours and the opponent is in
+  # all four, so the app would decide we are Grand Canyon. A remembered
+  # choice therefore wins over the count.
+  if (!nzchar(LIB$focus_name) || !(LIB$focus_name %in% idx$name)) {
+    saved <- read_our_team()
+    LIB$focus_name <- if (nzchar(saved) && saved %in% idx$name) saved else idx$name[1]
+  }
+  LIB$focus <- focus_sides(ms, LIB$focus_name)
+  LIB$gen <- LIB$gen + 1L
+  invisible(TRUE)
+}
+
+#' Put one parsed match into the library
+lib_add <- function(m) {
+  if (is.null(m)) return(invisible(FALSE))
+  LIB$matches[[m$match_id]] <- m
+  invisible(TRUE)
+}
+
 local({
   w_sig <- ""        # the file as it was when last parsed
   w_seen <- ""       # the file as it looked on the previous tick
@@ -154,6 +206,8 @@ local({
     w_sig <<- sig
     LIVE$match <- m
     LIVE$at <- format(Sys.time(), "%H:%M:%S")
+    lib_add(m)
+    lib_settle()
     LIVE$gen <- LIVE$gen + 1L
   }, domain = NULL)
 })
@@ -326,6 +380,8 @@ server <- function(input, output, session) {
   # home takes the bench's feed with it, which is why it asks first.
   observeEvent(input$js_home, {
     LIVE$path <- ""; LIVE$at <- ""; LIVE$name <- ""; LIVE$match <- NULL
+    LIB$matches <- list(); LIB$focus_name <- ""; LIB$focus <- list()
+    LIB$gen <- LIB$gen + 1L
     S$matches <- list()
     S$focus_name <- ""; S$focus <- list()
     S$sel <- list(matches = character(), sets = integer(), players = integer(),
@@ -335,14 +391,17 @@ server <- function(input, output, session) {
     S$errors <- character(); S$warnings <- character()
   })
 
-  # Every refresh, and once on connect, so a tablet that joins at the end of
-  # the second set does not sit empty until the next touch is coded.
+  # Every change to the library, and once on connect, so a tablet that joins
+  # at the end of the second set has the films and the match already.
+  observeEvent(LIB$gen, {
+    S$matches <- LIB$matches
+    S$focus_name <- LIB$focus_name
+    S$focus <- LIB$focus
+  }, ignoreInit = FALSE)
+
   observeEvent(LIVE$gen, {
     m <- LIVE$match
-    if (is.null(m)) return()
-    S$matches[[m$match_id]] <- m
-    S$live_id <- m$match_id
-    settle(keep_view = TRUE)
+    if (!is.null(m)) S$live_id <- m$match_id
   }, ignoreInit = FALSE)
 
   # Stopping the watch does not unload the file, but it does stop it being
@@ -356,28 +415,12 @@ server <- function(input, output, session) {
   # out from under whoever is reading it mid-rally.
   # Order, label and focus whatever is now loaded. Called after an upload and
   # after every live refresh, so it has to be safe to run ten times a minute.
+  # The ordering and focus pass lives at app scope now; this only carries
+  # the one piece that is the viewer's own.
   settle <- function(keep_view = FALSE) {
-    if (!length(S$matches)) return(invisible(FALSE))
-    # Re-applied on every refresh: a live re-parse rebuilds the plays from
-    # the file, which would otherwise undo every correction mid-match.
-    ms <- apply_positions(S$matches, ROSTER$ov)
-    ms <- ms[order(vapply(ms, function(m) paste0(m$date %||% "", "|", m$file_name), ""))]
-    ms <- classify_systems(ms)
-    ms <- add_season_codes(ms)
-    S$matches <- ms
-    idx <- team_index(ms)
-    # The default is the team appearing in the most files, ties breaking
-    # alphabetically. That is right until a scouting library is loaded:
-    # three films of the opponent against one match of ours and the opponent
-    # is in all four, so the app would decide we are Grand Canyon. A
-    # remembered choice therefore wins over the count.
-    if (!nzchar(S$focus_name) || !(S$focus_name %in% idx$name)) {
-      saved <- read_our_team()
-      S$focus_name <- if (nzchar(saved) && saved %in% idx$name) saved else idx$name[1]
-    }
-    S$focus <- focus_sides(ms, S$focus_name)
+    lib_settle()
     if (!keep_view) S$sel$players <- integer()
-    invisible(TRUE)
+    invisible(length(LIB$matches) > 0L)
   }
 
   ingest <- function(files, sample = FALSE, keep_view = FALSE) {
@@ -393,13 +436,13 @@ server <- function(input, output, session) {
       warns <- c(warns, m$warnings)
       if (!nrow(m$plays))
         warns <- c(warns, sprintf("%s: loaded, no coded rallies yet.", files$name[i]))
-      S$matches[[m$match_id]] <- m
+      lib_add(m)
       got <- got + 1L
     }
     # Mid-match, a torn read is routine and self-correcting. Painting its error
     # over a screen that still holds the last good parse would mean a banner
     # flashing every few seconds for something nobody can act on.
-    if (!keep_view || !length(S$matches)) S$errors <- errs
+    if (!keep_view || !length(LIB$matches)) S$errors <- errs
     settle(keep_view)
     if (sample)
       warns <- c("Bundled sample loaded. fixture_coords.vsm is SYNTHETIC, its events are real but its coordinates are generated, so read it as a demonstration of the charts, never as a measurement.",
@@ -477,6 +520,8 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$js_side, {
+    LIB$focus[[input$js_side$id]] <- input$js_side$val
+    LIB$gen <- LIB$gen + 1L
     S$focus[[input$js_side$id]] <- input$js_side$val
     S$sel$players <- integer()
   })
@@ -496,6 +541,9 @@ server <- function(input, output, session) {
     req(input$focus_team)
     # Written down, so loading the opponent's films later cannot move it.
     tryCatch(write_our_team(input$focus_team), error = function(e) NULL)
+    LIB$focus_name <- input$focus_team
+    LIB$focus <- focus_sides(LIB$matches, input$focus_team)
+    LIB$gen <- LIB$gen + 1L
     S$focus_name <- input$focus_team
     S$focus <- focus_sides(S$matches, input$focus_team)
     S$sel$players <- integer()
