@@ -364,3 +364,9 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 .slot #drop .big{font-size:13.5px}
 .slot .watchrow{margin-top:0}
 .grpnote{color:var(--ink-3);margin:-2px 0 7px;font-size:11px}
+
+/* ---- picking a server by hand ------------------------------------------ */
+.srvpick{margin-bottom:12px}
+.srvpick .chip{padding:4px 9px}
+.srvpick .chip .thin{margin-left:4px}
+.nsname .thin{font-size:12px;font-weight:400;margin-left:6px}

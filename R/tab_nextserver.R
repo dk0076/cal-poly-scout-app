@@ -43,11 +43,16 @@ window_row <- function(rows, skill) {
 }
 
 #' Them serving: the server's chart, then her numbers
-server_block <- function(S_all, num, name, o, coords_ok) {
-  q <- S_all[!is.na(S_all$num) & S_all$num == num, ]
+server_block <- function(S_all, jersey, name, o, coords_ok) {
+  # jersey, not num. A data.table expression resolves a bare name to its own
+  # column first, so a parameter called num compares the column with itself,
+  # every row passes, and the card shows the whole team's serves under one
+  # player's name. The same shadowing bit serve_order() earlier.
+  keep <- !is.na(S_all$num) & S_all$num == jersey
+  q <- S_all[keep, ]
   if (!nrow(q))
-    return(empty(sprintf("#%s %s has not served yet in what is loaded.",
-                         num, esc(name))))
+    return(empty(sprintf("#%s %s has not served in what is loaded.",
+                         jersey, esc(if (is.na(name)) "" else name))))
   data.table::setorder(q, date, match_id, set_no, rally_no, seq)
   st <- serve_line(q)
   mono <- isTRUE(o$mono)
@@ -61,7 +66,7 @@ server_block <- function(S_all, num, name, o, coords_ok) {
                                    extra = function(r)
                                      paste(vapply(r$y1 - COURT$NET, m1, ""), "m past net")),
                        tendency_layer(q, "NS", 1, 2, "serve", mono = mono)),
-                     alt = sprintf("where #%s %s serves", num, name),
+                     alt = sprintf("where #%s %s serves", jersey, name),
                      mono = mono, coords_ok = coords_ok)
 
   drawn <- sum(q$has_xy)
@@ -180,11 +185,36 @@ passer_block <- function(Opp, o) {
          tiny("Avg is the staff 0 to 4 pass scale, so lower is worse and the top row is the one to serve. Pos% is receptions graded # or +, VolleyStation's own positive reception. The three windows are her last 6, 10 and 15 receptions, as reception efficiency.")))
 }
 
+#' The row of servers, with whichever one is pinned marked
+#'
+#' The prediction is right about 97% of the time on a side-out, which leaves
+#' a handful a match where it is not, and a coach cannot use a page that is
+#' confidently about the wrong player. So every server they have is one tap
+#' away, and "Follow the match" gives the prediction back.
+#'
+#' Pinning is per viewer, like the filters and unlike the roster. Two coaches
+#' watching the same match can be reading different servers, and one of them
+#' looking ahead does not drag the bench along.
+server_chips <- function(Opp, pinned) {
+  S <- Opp[Opp$skill == "S" & !is.na(Opp$num), ]
+  if (!nrow(S)) return("")
+  tab <- table(paste(S$num, S$player_short, sep = "|"))
+  keys <- names(sort(tab, decreasing = TRUE))
+  chips <- paste0(vapply(keys, function(k) {
+    parts <- strsplit(k, "|", fixed = TRUE)[[1]]
+    sprintf('<button class="chip %s" data-o="pinServer" data-v="%s">%s <span class="thin">%s</span><span class="n">%d</span></button>',
+            if (identical(pinned, parts[1])) "on" else "",
+            esc(parts[1]), esc(parts[1]), esc(parts[2]), as.integer(tab[[k]]))
+  }, ""), collapse = "")
+  sprintf('<div class="viewbar srvpick"><button class="chip %s" data-o="pinServer" data-v="">Follow the match</button>%s</div>',
+          if (!nzchar(pinned)) "on" else "", chips)
+}
+
 #' Before the first serve: their six servers, and their passers
 #'
 #' Not an error page. The films are loaded, the match has not started, and
 #' this is the view a staff goes through on the bus.
-prematch_block <- function(Opp, o, labels, n_files, opponent, why) {
+prematch_block <- function(Opp, o, labels, n_files, opponent, why, coords_ok = TRUE) {
   H <- hdr("Next server", sprintf(
     "%s · before the first serve",
     if (nzchar(opponent)) esc(opponent) else esc(labels$them)))
@@ -193,6 +223,18 @@ prematch_block <- function(Opp, o, labels, n_files, opponent, why) {
                     else "Nothing coded in tonight's file yet."))
   if (is.null(Opp) || !nrow(Opp))
     return(paste0(c(H, empty("No scouting films loaded for them yet. Add their previous matches on the opening screen.")), collapse = ""))
+
+  pinned <- as.character(o$pinServer %||% "")
+  chips <- server_chips(Opp, pinned)
+  if (nzchar(pinned)) {
+    S_all <- Opp[Opp$skill == "S", ]
+    nm <- S_all$player_short[!is.na(S_all$num) & S_all$num == as.integer(pinned)][1]
+    return(paste0(c(H, chips,
+                    sprintf('<h3 class="nsname">#%s %s <span class="thin">picked by hand</span></h3>',
+                            esc(pinned), esc(nm %||% "")),
+                    server_block(S_all, as.integer(pinned), nm %||% "", o, coords_ok)),
+                  collapse = ""))
+  }
 
   so <- serve_order(Opp)
   srv <- if (is.null(so)) empty("Their serves carry no rotation, so there is no order to read.")
@@ -203,7 +245,7 @@ prematch_block <- function(Opp, o, labels, n_files, opponent, why) {
               so$serves[i], so$ace[i], so$err[i], eff_td(so$eff[i])))),
         tiny("Who serves in each rotation, from what they have actually done rather than from a lineup sheet, so a serving substitute appears as herself. Eff is VolleyStation's serve formula.")))
 
-  paste0(c(H, srv, passer_block(Opp, o), note(sprintf(
+  paste0(c(H, chips, srv, passer_block(Opp, o), note(sprintf(
     "Read off %s. Once tonight's file has a rally in it this page switches to following the match: their server with her chart when they serve, their passers when we do.",
     if (n_files > 1L) sprintf("%d scouting films", n_files) else "the one file loaded"
   ))), collapse = "")
@@ -215,9 +257,11 @@ tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
   # exactly when a staff opens this: the films are loaded and the match has
   # not started. So the same page falls back to the whole scouting picture,
   # which is what was wanted before a match anyway.
-  if (is.null(ns) || !isTRUE(ns$known))
+  pinned <- as.character(o$pinServer %||% "")
+
+  if (is.null(ns) || (!isTRUE(ns$known) && !nzchar(pinned)))
     return(prematch_block(Opp, o, labels, n_files, opponent,
-                          if (is.null(ns)) "" else ns$basis))
+                          if (is.null(ns)) "" else ns$basis, coords_ok))
 
   who <- if (isTRUE(ours)) labels$us else labels$them
   H <- hdr("Next server", sprintf(
@@ -240,20 +284,26 @@ tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
     H <- c(H, sprintf('<div class="warn">Which of their players serves next is not settled yet: %s. The page below is still the right side, just not pinned to a player.</div>',
                       esc(ns$basis)))
 
-  body <- if (isTRUE(ours)) {
-    passer_block(Opp, o)
+  S_all <- Opp[Opp$skill == "S", ]
+  chips <- server_chips(Opp, pinned)
+
+  body <- if (nzchar(pinned)) {
+    # A pin overrides the prediction and the side: the coach has said who
+    # they want, and the page should be about her whoever is serving.
+    nm <- S_all$player_short[!is.na(S_all$num) & S_all$num == as.integer(pinned)][1]
+    c(chips,
+      sprintf('<h3 class="nsname">#%s %s <span class="thin">picked by hand</span></h3>',
+              esc(pinned), esc(nm %||% "")),
+      server_block(S_all, as.integer(pinned), nm %||% "", o, coords_ok))
+  } else if (isTRUE(ours)) {
+    c(chips, passer_block(Opp, o))
   } else {
-    S_all <- Opp[Opp$skill == "S", ]
-    if (isTRUE(ns$known) && !is.na(ns$num))
-      c(sprintf('<h3 class="nsname">#%s %s</h3>', ns$num, esc(ns$name %||% "")),
-        server_block(S_all, ns$num, ns$name %||% "", o, coords_ok))
-    else
-      card("Their serve order",
-           tbl_generic(c("Rot", "Server", "Serves", "Ace", "Err", "Eff"),
-                       list()))
+    c(chips,
+      sprintf('<h3 class="nsname">#%s %s</h3>', ns$num, esc(ns$name %||% "")),
+      server_block(S_all, ns$num, ns$name %||% "", o, coords_ok))
   }
 
   paste0(c(H, body, note(
-    "This page follows the match: when the serve is ours it shows who to serve at, and when it is theirs it shows who is about to serve. Who serves next is worked out from the rotation each side has actually served in, which handles a serving substitute correctly where reading zone 1 off the lineup does not. It was right on 100% of side-outs in one scouted match and 98% in another. Before a match, with no live file, the same pages read off whatever is loaded."
+    "Pick a server by hand when the rotation gets it wrong, or to read ahead; Follow the match hands it back. That choice is yours alone, so another coach on another iPad is unaffected. This page follows the match: when the serve is ours it shows who to serve at, and when it is theirs it shows who is about to serve. Who serves next is worked out from the rotation each side has actually served in, which handles a serving substitute correctly where reading zone 1 off the lineup does not. It was right on 100% of side-outs in one scouted match and 98% in another. Before a match, with no live file, the same pages read off whatever is loaded."
   )), collapse = "")
 }

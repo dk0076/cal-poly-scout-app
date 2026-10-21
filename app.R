@@ -176,7 +176,7 @@ DEFAULT_OPTS <- list(
   eView = "points", eBins = 3, setSetter = "", setZones = character(),
   setterWho = "main", setterEx = character(), lastN = 6,
   mono = FALSE, phases = character(), sys = character(), showshare = FALSE,
-  pair = TRUE
+  pair = TRUE, pinServer = ""
 )
 
 # ---------------------------------------------------------------------------

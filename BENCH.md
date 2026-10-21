@@ -70,6 +70,10 @@ playing anyone, which is what they usually are.
 The rail then lists them under **Tonight** and **Scouting films**, so it is
 always visible which is which.
 
+If the rotation picks the wrong server, tap her name in the row across the
+top of the Next server tab. **Follow the match** hands it back. That choice
+is yours alone, so another coach on another iPad is unaffected.
+
 Open Next server before the match and it shows the opponent's six servers by
 rotation and their passers worst first, read off the films. Once the first
 rally is coded it switches to following the match. The previous matches feed the **Next server** tab and nothing

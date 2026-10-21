@@ -1091,5 +1091,60 @@ r <- tryCatch({ tab_nextserver(Fp[0, ], Opp_ns[0, ], ns1, o, ck, labs, TRUE); "r
               error = function(e) paste("ERROR:", conditionMessage(e)))
 ok("next server survives an empty set of plays", r == "rendered", r)
 
+# Picking a server by hand, and the shadowing bug that class of code invites.
+# A data.table expression resolves a bare name to its own column first, so a
+# parameter named after a column silently compares the column with itself and
+# every row passes. It has now done this twice: once in serve_order, where
+# both teams came back identical, and once in server_block, where one
+# player's card showed the whole team's serves.
+Opp_ns2 <- opponent_plays(matches, sel, focus)
+S_ns <- Opp_ns2[Opp_ns2$skill == "S" & !is.na(Opp_ns2$num), ]
+if (nrow(S_ns)) {
+  who <- as.integer(names(sort(table(S_ns$num), decreasing = TRUE))[1])
+  hers <- sum(S_ns$num == who)
+  # The precise test for the shadowing bug, with no HTML scraping: the card
+  # built by naming her must equal the card built from her rows alone. Under
+  # the bug the first is built from every row and the two differ.
+  by_name <- paste(server_block(S_ns, who, "someone", o, ck), collapse = "")
+  by_rows <- paste(server_block(S_ns[S_ns$num == who, ], who, "someone", o, ck),
+                   collapse = "")
+  ok("a server's card counts her serves, not her team's",
+     identical(by_name, by_rows),
+     sprintf("she has %d of %d serves", hers, nrow(S_ns)))
+  other <- setdiff(unique(S_ns$num), who)
+  ok("two servers do not get the same card",
+     !length(other) ||
+       !identical(by_name, paste(server_block(S_ns, other[1], "other", o, ck),
+                                 collapse = "")))
+  ok("a card for a player who never served says so, rather than showing the team",
+     grepl("has not served",
+           paste(server_block(S_ns, 9999L, NA, o, ck), collapse = ""), fixed = TRUE))
+
+  chips <- server_chips(Opp_ns2, "")
+  ok("the picker lists every server", 
+     all(vapply(unique(S_ns$num), function(n)
+       grepl(sprintf('data-v="%d"', n), chips, fixed = TRUE), TRUE)))
+  ok("the picker offers a way back to following the match",
+     grepl('data-o="pinServer" data-v=""', chips, fixed = TRUE))
+  ok("the pinned one is the one marked",
+     grepl(sprintf('class="chip on" data-o="pinServer" data-v="%d"', who),
+           server_chips(Opp_ns2, as.character(who)), fixed = TRUE))
+
+  o_pin <- o; o_pin$pinServer <- who
+  labs2 <- side_labels(list(matches = matches, focus = focus,
+                            focus_name = focus_name, sel = sel))
+  # A pin wins over the prediction and over whose serve it is.
+  for (mine in c(TRUE, FALSE)) {
+    hh <- tab_nextserver(Fp, Opp_ns2, ns1, o_pin, ck, labs2, mine, n_files = 1L)
+    ok(sprintf("a pinned server is shown even when the serve is %s",
+               if (mine) "ours" else "theirs"),
+       grepl("picked by hand", hh, fixed = TRUE))
+  }
+  hh <- tab_nextserver(Fp, Opp_ns2, NULL, o_pin, ck, labs2, TRUE, n_files = 1L)
+  ok("a pin works before the match too, with no prediction at all",
+     grepl("picked by hand", hh, fixed = TRUE))
+}
+
+
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)
