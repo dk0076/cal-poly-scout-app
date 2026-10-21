@@ -39,9 +39,8 @@ Rscript tests/verify.R path/to/match.vsm path/to/another.dvw
 | --- | --- |
 | **Attacking** | Where each hitter puts the ball and what it returns. Trajectories, landing grid, lanes, line/cross, depth, middle routes, serve-receive vs transition. |
 | **Serve direction** | Contact to landing. By type, server, target zone, depth, and where to stand a passer against each server. |
-| **Set origin** | Where the setter touched it and what she could run from there. Click zones of her own half to cut by lane and distance off the net. |
 | **Setter** | Distribution and efficiency. Every player who set is listed and any can be switched off. |
-| **Pass quality** | Sorted worst first, because this page is for picking who to serve. Pass average, earned FBSO, 5-1 vs 6-2. No court: reception is read as grades, not geometry. |
+| **Serve receive** | Sorted worst first, because this page is for picking who to serve. Pass average, earned FBSO, 5-1 vs 6-2. No court: reception is read as grades, not geometry. |
 | **Defense** | What they manage against us, whether we touch it, and whether we win the rally after. Court drawn from our baseline. |
 | **Rotations** | SO%, ESO%, FBSO%, PS%, +/-, aces and errors per rotation, both teams, then the same by set. |
 | **Last 6** | Who is swinging well now. Recent attempts as chips, split into pins and middles. |
@@ -63,6 +62,19 @@ roster belong to everyone: correct a position on the laptop and every screen
 already watching changes, with nobody reloading. Which tabs you want, and
 the filters and view options, are yours alone, so one coach cutting to R1
 does not cut the whole bench to R1.
+
+**Detail** folds away the secondary breakdowns: landing third, line versus
+cross, depth, against the block, serve depth band, serving position. They
+are interesting rather than necessary, and they were crowding out the
+numbers a coach acts on. Nothing is deleted, the fold is per device, and one
+tap brings them back.
+
+**Set origin is retired.** Its chart wanted a coordinate on the setter's own
+contact, and no file here has one: not a match, not a practice, not an
+opponent film, where the scout charted attacks and serves and left set
+contacts alone. Its one table that never needed coordinates, the setter
+calls, moved to the Setter tab. The code is kept and the tab returns the day
+anyone codes set contacts.
 
 **Simplify** cuts the bar to three: Attacking, Pass quality, Rotations. The
 attacking numbers, the passing numbers and the rotational analysis, which is

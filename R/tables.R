@@ -79,6 +79,22 @@ card_if <- function(cond, label, body, ...) {
   card(label, body, ...)
 }
 
+#' A card that is interesting rather than necessary
+#'
+#' There is a difference between a number a coach acts on and a number worth
+#' knowing, and the second kind was crowding out the first. These are folded
+#' away behind the Detail button rather than deleted: nothing is lost, and a
+#' staff that wants the breakdown is one tap from it.
+#'
+#' Folded in the browser, not here, so the choice belongs to the device the
+#' way the tab picker does. One iPad showing the detail does not put it on
+#' everybody else's.
+card_extra <- function(cond, label, body, ...) {
+  inner <- card_if(cond, label, body, ...)
+  if (!nzchar(inner)) return("")
+  sprintf('<div class="extra">%s</div>', inner)
+}
+
 #' TRUE when at least one of these plays carries a position on the court
 has_lines <- function(rows, col = "has_xy") {
   if (is.null(rows) || !nrow(rows) || !col %in% names(rows)) return(FALSE)

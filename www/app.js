@@ -17,7 +17,7 @@
   }
 
   document.addEventListener("click", function (ev) {
-    var el = ev.target.closest("[data-simplify],[data-tabpick],[data-chrome],[data-pos],[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
+    var el = ev.target.closest("[data-detail],[data-simplify],[data-tabpick],[data-chrome],[data-pos],[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
     if (!el) return;
 
     // Folds the filter rail away on a tablet. Purely local: nothing the
@@ -32,6 +32,10 @@
     }
     if (el.hasAttribute("data-rail")) {
       document.body.classList.toggle("rail-open");
+      return;
+    }
+    if (el.hasAttribute("data-detail")) {
+      toggleDetail();
       return;
     }
     if (el.hasAttribute("data-simplify")) {
@@ -138,6 +142,25 @@
      version then appears by default instead of being invisible to everyone
      who had already set a preference. */
   var TABS_KEY = "scoutr.hiddenTabs";
+  var DETAIL_KEY = "scoutr.showDetail";
+
+  function detailOn() {
+    try { return window.localStorage.getItem(DETAIL_KEY) === "1"; }
+    catch (e) { return false; }
+  }
+
+  function applyDetail() {
+    var on = detailOn();
+    document.body.classList.toggle("detail-open", on);
+    var b = document.querySelector("[data-detail]");
+    if (b) b.textContent = on ? "Less detail" : "Detail";
+  }
+
+  function toggleDetail() {
+    try { window.localStorage.setItem(DETAIL_KEY, detailOn() ? "0" : "1"); }
+    catch (e) { /* the choice lasts this page only */ }
+    applyDetail();
+  }
 
   /* The three a coach asked for: the attacking numbers, the passing numbers,
      and the rotational analysis. Everything else is one tap away in Tabs.
@@ -219,6 +242,7 @@
     var active = document.querySelector(".tabs .tab.on");
     if (active && active.style.display === "none") shown[0].click();
     labelSimplify();
+    applyDetail();
   }
 
   function tabPanel() {

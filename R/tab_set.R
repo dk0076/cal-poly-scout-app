@@ -1,4 +1,19 @@
 # ---------------------------------------------------------------------------
+# RETIRED: this was the Set origin tab, and it is no longer in the tab bar.
+#
+# Its chart wanted a coordinate on the setter's own contact, and nothing in
+# this program has one. Not a Cal Poly match, not a practice, and not one of
+# the opponent films scouted off video, where the scout charted attacks and
+# serves and left set contacts alone. A tab that can only ever draw an empty
+# court is a tab worth retiring rather than apologising for.
+#
+# The file stays for two reasons. setter_calls_card() is used by the Setter
+# tab, which is where the one table here that never needed coordinates now
+# lives. And the rest of it works: the day somebody codes set contacts, the
+# tab goes back in TABS and draws.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 # SET ORIGIN
 #
 # Where the setter touched the ball, and what she could run from there. The

@@ -161,11 +161,17 @@ local({
 # Tabs that describe one team's play, and so can be shown for both at once.
 # Rotations and Defense already compare the two by construction, and Plays is
 # a wide table where a second copy would only cost width.
-PAIRED_TABS <- c("attack", "serve", "setting", "setter", "passing", "last6")
+PAIRED_TABS <- c("attack", "serve", "setter", "passing", "last6")
 
+# Set origin is not here. It was a second tab about setting whose own chart
+# needs a coordinate on the setter's contact, and no file in this program
+# carries one: not a match, not a practice, not an opponent film scouted off
+# video. Its one table that did not need coordinates, the setter calls, now
+# sits on the Setter tab. The code is kept, and the tab comes back the day
+# anyone codes set contacts.
 TABS <- list(c("attack", "Attacking"), c("serve", "Serve direction"),
-             c("setting", "Set origin"), c("setter", "Setter"),
-             c("passing", "Pass quality"), c("defense", "Defense"),
+             c("setter", "Setter"),
+             c("passing", "Serve receive"), c("defense", "Defense"),
              c("rotation", "Rotations"), c("last6", "Last 6"),
              c("nextserver", "Next server"),
              c("plays", "Plays &amp; export"), c("roster", "Roster"))
@@ -610,6 +616,9 @@ server <- function(input, output, session) {
                       if (isTRUE(S$o$pair)) "One team" else "Both teams") else NULL,
         # Cuts the tab bar to the four a coach decides from mid-match. The
         # label is rewritten by the browser, since the choice lives there.
+        # Folds the secondary breakdowns away. Local to this browser, like
+        # Simplify and the tab picker; the label is rewritten there.
+        tags$button(class = "chip", `data-detail` = "1", "Detail"),
         tags$button(class = "chip", `data-simplify` = "1", "Simplify"),
         tags$button(class = "chip", `data-tabpick` = "1", "Tabs"),
         tags$button(class = "chip", onclick = "window.print()", "Print"),
@@ -636,7 +645,6 @@ server <- function(input, output, session) {
   one_side <- function(P, o, sys_rows = NULL) {
     if (S$tab == "attack")       tab_attack(P, o, coords_ok())
     else if (S$tab == "serve")   tab_serve(P, o, coords_ok())
-    else if (S$tab == "setting") tab_set(P, o, coords_ok())
     else if (S$tab == "setter")  tab_setter(P, o, coords_ok())
     else if (S$tab == "passing") tab_passing(P, o, coords_ok(), sys_rows = sys_rows)
     # the rotation chips are dropped for this tab: it compares the six

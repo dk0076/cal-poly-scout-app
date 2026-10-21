@@ -414,3 +414,10 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 .livebox .who{color:#cfe0d6}
 .livebox .chip.ghost{color:#cfe0d6}
 .livebox .chip.ghost:hover{color:var(--avocado)}
+
+/* Interesting rather than necessary: folded away until Detail is pressed.
+   Kept in the page rather than dropped, so pressing it costs no round trip
+   and nothing has to be recomputed. */
+.extra{display:none}
+body.detail-open .extra{display:block}
+@media print{.extra{display:block}}
