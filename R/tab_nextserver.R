@@ -175,18 +175,27 @@ server_block <- function(S_all, jersey, name, o, coords_ok, live_id = "") {
 }
 
 #' Us serving: who to serve at, worst passer first
-passer_block <- function(Opp, o) {
+#'
+#' Her record is the whole library, because that is what the films are for
+#' and one match is too thin to pick a target from. Her form is tonight, for
+#' the reason the serve card narrowed: six receptions from three weeks ago
+#' are not how she is passing now, and the arrow was comparing tonight with
+#' a different month. A passer who has not received yet tonight keeps her
+#' row, with the windows blank.
+passer_block <- function(Opp, o, live_id = "") {
   R <- Opp[Opp$skill == "R", ]
   if (!nrow(R)) return(empty("No receptions from them in what is loaded."))
   data.table::setorder(R, date, match_id, set_no, rally_no, seq)
+  live <- nzchar(live_id) && any(R$match_id == live_id)
   keys <- unique(paste(R$num, R$player_short, sep = "|"))
   rows <- lapply(keys, function(k) {
     q <- R[paste(R$num, R$player_short, sep = "|") == k, ]
     rl <- receive_line(q)
+    qr <- if (live) q[q$match_id == live_id, ] else q
     parts <- strsplit(k, "|", fixed = TRUE)[[1]]
-    chips <- paste0(vapply(seq_len(nrow(utils::tail(q, 15))),
+    chips <- paste0(vapply(seq_len(nrow(utils::tail(qr, 15))),
                            function(i) {
-                             p <- utils::tail(q, 15)[i, ]
+                             p <- utils::tail(qr, 15)[i, ]
                              st <- land_status(p$effect)
                              col <- unname(OUTCOME[st])
                              sprintf('<span class="att %s" style="border-color:%s;color:%s" title="set %s · %s">%s</span>',
@@ -199,7 +208,8 @@ passer_block <- function(Opp, o) {
                    rl$n,
                    if (is.na(rl$avg)) "" else sprintf("%.2f", rl$avg),
                    pct(rl$pospct), pct(rl$errpct),
-                   paste(window_row(q, "R"), collapse = ""),
+                   if (nrow(qr)) paste(window_row(qr, "R"), collapse = "")
+                   else '<span class="thin">not yet tonight</span>',
                    sprintf('<div class="atts">%s</div>', chips)))
   })
   # Worst first: this page exists to pick a target, and the weakest passer is
@@ -207,10 +217,13 @@ passer_block <- function(Opp, o) {
   rows <- rows[order(vapply(rows, function(x) x$sort_key, 0))]
   card("Their passers, weakest first",
        c(tbl_generic(c("Passer", "Rec", "Avg", "Pos%", "Err%",
-                       paste(sprintf("L%d", SERVE_WINDOWS), collapse = " / "),
-                       "Last 15"),
+                       paste0(paste(sprintf("L%d", SERVE_WINDOWS), collapse = " / "),
+                              if (live) ' <span class="thin">tonight</span>' else ""),
+                       paste0("Last 15",
+                              if (live) ' <span class="thin">tonight</span>' else "")),
                      lapply(rows, function(x) x$cells)),
-         tiny("Avg is the staff 0 to 4 pass scale, so lower is worse and the top row is the one to serve. Pos% is receptions graded # or +, VolleyStation's own positive reception. The three windows are her last 6, 10 and 15 receptions, as reception efficiency.")))
+         tiny(sprintf("Avg is the staff 0 to 4 pass scale, so lower is worse and the top row is the one to serve. Pos%% is receptions graded # or +, VolleyStation's own positive reception. The three windows are her last 6, 10 and 15 receptions, as reception efficiency%s.",
+                      if (live) ", counted in tonight's match only, while Rec, Avg, Pos% and Err% are every file loaded" else ""))))
 }
 
 #' The row of servers, with whichever one is pinned marked
@@ -369,7 +382,7 @@ tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
               esc(pinned), esc(nm %||% "")),
       server_block(S_all, as.integer(pinned), nm %||% "", o, coords_ok, live_id))
   } else if (isTRUE(ours)) {
-    c(chips, passer_block(Opp, o))
+    c(chips, passer_block(Opp, o, live_id))
   } else {
     c(chips,
       sprintf('<h3 class="nsname">#%s %s</h3>', ns$num, esc(ns$name %||% "")),

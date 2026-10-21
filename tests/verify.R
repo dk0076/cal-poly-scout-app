@@ -1191,6 +1191,35 @@ if (nrow(S_ns)) {
     ok("the chart still draws everything loaded",
        grepl("Where she serves", h2, fixed = TRUE))
   }
+
+  # The passer card narrows the same way: her record is the whole library,
+  # her form is tonight.
+  Rr <- Opp_ns2[Opp_ns2$skill == "R" & !is.na(Opp_ns2$num), ]
+  if (nrow(Rr) > 4) {
+    mixed <- data.table::copy(Opp_ns2)
+    rec <- which(mixed$skill == "R")
+    mixed$match_id[rec[seq_len(floor(length(rec) / 2))]] <- "a-film-from-last-month"
+    # Tonight is the last film still carrying its own name, so there is
+    # something older than it to leave out.
+    live_rid <- mixed$match_id[rec[length(rec)]]
+    p_pre  <- paste(passer_block(mixed, o), collapse = "")
+    p_live <- paste(passer_block(mixed, o, live_rid), collapse = "")
+    ok("the passer windows say they are tonight's",
+       grepl("Last 15 <span class=\"thin\">tonight</span>", p_live, fixed = TRUE) &&
+         !grepl("tonight", p_pre, fixed = TRUE))
+    chips_all <- length(gregexpr('<span class="att ', p_pre, fixed = TRUE)[[1]])
+    chips_liv <- length(gregexpr('<span class="att ', p_live, fixed = TRUE)[[1]])
+    ok("the passer chips count tonight's receptions, not last month's",
+       chips_liv < chips_all,
+       sprintf("%d chips of %d loaded", chips_liv, chips_all))
+    ok("a passer with nothing tonight keeps her row",
+       length(gregexpr("</tr>", p_live, fixed = TRUE)[[1]]) ==
+         length(gregexpr("</tr>", p_pre, fixed = TRUE)[[1]]))
+    # Her record is still the library: the receptions column must not move.
+    recs <- function(h) regmatches(h, gregexpr('<td class="num">[0-9]+</td>', h))[[1]][1:3]
+    ok("her record is still every file loaded",
+       identical(recs(p_live), recs(p_pre)))
+  }
 }
 
 # A serve order row names one player, so its counts must be hers. Crediting
