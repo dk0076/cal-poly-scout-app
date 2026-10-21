@@ -62,6 +62,26 @@ cols2 <- function(left, right, cw = 460)
   sprintf('<div class="cols" style="--cw:%spx"><div>%s</div><div>%s</div></div>',
           cw, paste0(left, collapse = ""), paste0(right, collapse = ""))
 
+#' The same tab for both teams, beside each other
+#'
+#' A coach between rallies should not be choosing whose numbers to look at,
+#' and switching loses the comparison that makes either side mean anything.
+#' So the panel renders twice and the two sit side by side, the way the
+#' Rotations tab already reads.
+#'
+#' Colour carries the separation rather than a label alone: green is ours and
+#' red is theirs, the same pairing the rest of the app uses. The heading
+#' stays with each column while it scrolls, because the two halves are the
+#' same shape and lose their identity the moment the names leave the screen.
+two_up <- function(us, them, us_label, them_label) {
+  sprintf(paste0('<div class="twoup">',
+                 '<section class="side us"><h2 class="sidehdr">%s</h2>%s</section>',
+                 '<section class="side them"><h2 class="sidehdr">%s</h2>%s</section>',
+                 '</div>'),
+          esc(us_label), paste0(us, collapse = ""),
+          esc(them_label), paste0(them, collapse = ""))
+}
+
 legend <- function(..., trailing = NULL) {
   items <- list(...)
   body <- vapply(items, function(i)

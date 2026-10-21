@@ -143,6 +143,11 @@ local({
   }, domain = NULL)
 })
 
+# Tabs that describe one team's play, and so can be shown for both at once.
+# Rotations and Defense already compare the two by construction, and Plays is
+# a wide table where a second copy would only cost width.
+PAIRED_TABS <- c("attack", "serve", "setting", "setter", "passing", "last6")
+
 TABS <- list(c("attack", "Attack direction"), c("serve", "Serve direction"),
              c("setting", "Set origin"), c("setter", "Setter"),
              c("passing", "Pass quality"), c("defense", "Defense"),
@@ -154,7 +159,8 @@ DEFAULT_OPTS <- list(
   sView = "arrows", sBins = 3, srvType = "all", sPass = FALSE,
   eView = "points", eBins = 3, setSetter = "", setZones = character(),
   setterWho = "main", setterEx = character(), lastN = 6,
-  mono = FALSE, phases = character(), sys = character(), showshare = FALSE
+  mono = FALSE, phases = character(), sys = character(), showshare = FALSE,
+  pair = TRUE
 )
 
 # ---------------------------------------------------------------------------
@@ -434,7 +440,7 @@ server <- function(input, output, session) {
     idx <- team_index(S$matches)
     if (!nrow(idx)) return(NULL)
     tagList(
-      tags$label("Scouting"),
+      tags$label("Our team"),
       tags$select(id = "focus_team", class = "shiny-input-select",
                   onchange = "Shiny.setInputValue('focus_team', this.value)",
                   lapply(seq_len(nrow(idx)), function(i)
@@ -488,6 +494,12 @@ server <- function(input, output, session) {
       tags$button(class = "chip", `data-o` = "mono",
                   `data-v` = if (isTRUE(S$o$mono)) "false" else "true",
                   if (isTRUE(S$o$mono)) "Colour" else "Mono (print)"),
+      # Only where there are two sides to show. On Rotations and Defense both
+      # teams are already on the screen.
+      if (S$tab %in% PAIRED_TABS)
+        tags$button(class = "chip", `data-o` = "pair",
+                    `data-v` = if (isTRUE(S$o$pair)) "false" else "true",
+                    if (isTRUE(S$o$pair)) "One team" else "Both teams") else NULL,
       tags$button(class = "chip railbtn", `data-rail` = "1", "Filters"),
       tags$button(class = "chip", onclick = "window.print()", "Print"),
       downloadButton("csv", "CSV", class = "chip")
@@ -501,20 +513,33 @@ server <- function(input, output, session) {
 
   output$rail <- renderUI(HTML(rail_html(S)))
 
+  # One team's plays through whichever tab is showing. Called once for us and
+  # once for them, so the two columns can only differ by their input.
+  one_side <- function(P, o, sys_rows = NULL) {
+    if (S$tab == "attack")       tab_attack(P, o, coords_ok())
+    else if (S$tab == "serve")   tab_serve(P, o, coords_ok())
+    else if (S$tab == "setting") tab_set(P, o, coords_ok())
+    else if (S$tab == "setter")  tab_setter(P, o, coords_ok())
+    else if (S$tab == "passing") tab_passing(P, o, coords_ok(), sys_rows = sys_rows)
+    # the rotation chips are dropped for this tab: it compares the six
+    # against each other, so filtering to one would empty it
+    else if (S$tab == "last6")   tab_last6(P, o)
+  }
+
   output$panel <- renderUI({
     o <- S$o
     body <- tryCatch({
-      if (S$tab == "attack")       tab_attack(F(), o, coords_ok())
-      else if (S$tab == "serve")   tab_serve(F(), o, coords_ok())
-      else if (S$tab == "setting") tab_set(F(), o, coords_ok())
-      else if (S$tab == "setter")  tab_setter(F(), o, coords_ok())
-      else if (S$tab == "passing")
-        tab_passing(F(), o, coords_ok(),
-                    sys_rows = system_card(F_nosys(),
-                                           convert_rallies(S$matches, S$sel, S$focus)))
-      # the rotation chips are dropped for this tab: it compares the six
-      # against each other, so filtering to one would empty it
-      else if (S$tab == "last6") tab_last6(F(), o)
+      if (S$tab %in% PAIRED_TABS) {
+        ours <- one_side(F(), o,
+                         sys_rows = system_card(F_nosys(),
+                                                convert_rallies(S$matches, S$sel, S$focus)))
+        if (!isTRUE(o$pair)) ours
+        # The opponent's own plays, read in their own frame: their attacks
+        # from their side, not mirrored into ours. Mirroring is for the
+        # Defense tab, where the question is what we see coming.
+        else two_up(ours, one_side(opponent_plays(S$matches, S$sel, S$focus), o),
+                    side_labels(S)$us, side_labels(S)$them)
+      }
       else if (S$tab == "defense") {
         sel_all <- S$sel; sel_all$rots <- character()
         tab_defense(F(), opponent_plays(S$matches, S$sel, S$focus),

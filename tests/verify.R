@@ -717,5 +717,60 @@ ok("the svg carries a quiet zone", grepl('viewBox="0 0 37 37"', sv, fixed = TRUE
 ok("each module is a whole number of pixels",
    grepl('width="148"', sv, fixed = TRUE))
 
+# ---------------------------------------------------------------------------
+# Both teams at once
+# ---------------------------------------------------------------------------
+# Every single-team tab is rendered twice, once per side, so each one has to
+# survive being handed the opponent's plays as readily as our own. The
+# opponent's set is a different shape: different roster, often fewer rallies,
+# and on a practice file it can be the same team as us.
+
+cat("\n== both teams at once\n")
+
+PAIRED <- c("attack", "serve", "setting", "setter", "passing", "last6")
+tab_fn <- function(nm) get(paste0("tab_", if (nm == "setting") "set" else nm))
+
+Opp_all <- Op
+ok("the opponent has plays of their own to render", nrow(Opp_all) > 0)
+ok("the two sides are different sets of plays",
+   !identical(nrow(Opp_all), nrow(Fp)) || !identical(Opp_all$player_no, Fp$player_no))
+
+for (nm in PAIRED) {
+  f <- tab_fn(nm)
+  r <- tryCatch({
+    if (nm == "last6") f(Opp_all, o) else f(Opp_all, o, ck)
+    "rendered"
+  }, error = function(e) paste("ERROR:", conditionMessage(e)))
+  ok(sprintf("%s renders the opponent's plays", nm), r == "rendered", r)
+}
+
+# An empty opponent happens: one team's file, or a filter that excludes them.
+for (nm in PAIRED) {
+  f <- tab_fn(nm)
+  r <- tryCatch({
+    if (nm == "last6") f(Fp[0, ], o) else f(Fp[0, ], o, ck)
+    "rendered"
+  }, error = function(e) paste("ERROR:", conditionMessage(e)))
+  ok(sprintf("%s survives an empty opponent", nm), r == "rendered", r)
+}
+
+h <- two_up("<p>ours</p>", "<p>theirs</p>", "Cal Poly", "Grand Canyon")
+ok("two_up puts both sides in one block, each labelled",
+   grepl('class="side us"', h, fixed = TRUE) &&
+     grepl('class="side them"', h, fixed = TRUE) &&
+     grepl(">Cal Poly<", h, fixed = TRUE) && grepl(">Grand Canyon<", h, fixed = TRUE) &&
+     grepl("ours", h, fixed = TRUE) && grepl("theirs", h, fixed = TRUE))
+ok("a team name with markup in it is escaped, not rendered",
+   !grepl("<script>", two_up("", "", "<script>x</script>", "b"), fixed = TRUE))
+
+# Labels. The practice case is the one that bites: both sides are the same
+# team, so the names alone would label the two columns identically.
+S_fake <- list(matches = matches, focus = focus, focus_name = focus_name,
+               sel = sel)
+lab <- side_labels(S_fake)
+ok("each column gets a label", nzchar(lab$us) && nzchar(lab$them))
+ok("the two labels are never the same word", !identical(lab$us, lab$them),
+   sprintf("%s vs %s", lab$us, lab$them))
+
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)

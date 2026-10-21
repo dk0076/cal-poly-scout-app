@@ -271,3 +271,32 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 .sharebar .share{margin:14px 0 0}
 #intro .share{text-align:left;margin-top:16px}
 @media print{.sharebar,#intro .share{display:none}}
+
+/* ---- both teams at once ------------------------------------------------ */
+/* Two equal columns, unlike .cols, which is a fixed rail beside a flexible
+   panel. Below the breakpoint they stack: a coach scrolls rather than reads
+   two squeezed courts. */
+.twoup{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:0 22px;align-items:start}
+.twoup>.side{min-width:0}
+.sidehdr{position:sticky;top:0;z-index:5;margin:0 0 12px;padding:7px 0 6px;
+  background:var(--paper);font-size:13px;letter-spacing:.04em;
+  text-transform:uppercase}
+.side.us .sidehdr{color:var(--accent);border-bottom:2px solid var(--accent)}
+.side.them .sidehdr{color:var(--err);border-bottom:2px solid var(--err)}
+.side.them .kpi .v{color:var(--err)}
+@media (max-width:1180px){
+  .twoup{grid-template-columns:minmax(0,1fr);gap:26px 0}
+  .side.them{border-top:1px solid var(--rule);padding-top:6px}
+}
+@media print{
+  .twoup{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .sidehdr{position:static}
+}
+
+/* Inside a column there is no room for the chart-beside-table split that a
+   full-width panel uses. The breakpoint on .cols watches the window, which
+   is the wrong thing to watch once the panel is half a window, so stack them
+   whenever both teams are up. */
+.twoup .side .cols{grid-template-columns:minmax(0,1fr)}
+.twoup .side .card{overflow-x:auto}

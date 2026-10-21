@@ -912,3 +912,27 @@ convert_rallies <- function(matches, sel, focus) {
              won = vapply(out, function(r) isTRUE(r$won), logical(1)),
              stringsAsFactors = FALSE)
 }
+
+#' What to call each column when both teams are on the screen
+#'
+#' Usually the two team names. Two cases need care. A practice file has the
+#' same team on both sides, so the names would be identical and the columns
+#' would be telling a coach nothing; and several matches at once can mean
+#' several opponents, where one name on the column would be a lie. Both fall
+#' back to plain words, and the colour keeps carrying the distinction.
+side_labels <- function(S) {
+  us <- if (nzchar(S$focus_name)) S$focus_name else "Us"
+  them <- character()
+  for (m in S$matches) {
+    if (length(S$sel$matches) && !(m$match_id %in% S$sel$matches)) next
+    fs <- S$focus[[m$match_id]]
+    if (is.null(fs) || is.na(fs)) next
+    them <- c(them, m$teams[[if (fs == "home") "away" else "home"]]$name)
+  }
+  them <- unique(them[nzchar(them)])
+  list(us = if (length(them) == 1L && identical(them, us)) "Us" else us,
+       them = if (!length(them)) "Them"
+              else if (length(them) > 1L) "Opponents"
+              else if (identical(them, us)) "Them"
+              else them)
+}

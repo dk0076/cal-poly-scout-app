@@ -47,6 +47,15 @@ Rscript tests/verify.R path/to/match.vsm path/to/another.dvw
 | **Last 6** | Who is swinging well now. Recent attempts as chips, split into pins and middles. |
 | **Plays & export** | The raw touches, and a CSV of every filtered play. |
 
+Attack, Serve, Set origin, Setter, Pass quality and Last 6 show both teams
+at once, side by side, ours in green and theirs in red. Nothing to switch
+between, and the comparison is the point. The **One team** button gives a
+single side the full width, and below 1180px the two stack rather than
+squeeze. Rotations and Defense already had both teams by construction.
+
+The team picker in the header no longer decides whose numbers you see. It
+says which team is yours, which is what sets the colours and the order.
+
 The left rail filters everything at once: matches, which side is your team,
 sets, rotation, system, phase, passer, players.
 
