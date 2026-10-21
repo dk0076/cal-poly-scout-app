@@ -16,7 +16,7 @@
 suppressMessages(library(data.table))
 root <- dirname(dirname(normalizePath(sub("--file=", "", grep("--file=", commandArgs(FALSE), value = TRUE)[1]))))
 setwd(root)
-for (f in c("core.R", "net.R", "qr.R", "positions.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R", "tables.R",
+for (f in c("core.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R", "tables.R",
             "tab_attack.R", "tab_serve.R", "tab_set.R", "tab_setter.R",
             "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R",
             "tab_plays.R"))
@@ -865,6 +865,78 @@ ok("the roster tab renders", r == "rendered", r)
 r <- tryCatch({ tab_roster(PT[0, ], focus_name); "rendered" },
               error = function(e) paste("ERROR:", conditionMessage(e)))
 ok("the roster tab survives having no players", r == "rendered", r)
+
+# ---------------------------------------------------------------------------
+# Who serves next
+# ---------------------------------------------------------------------------
+# A prediction, so it is scored rather than eyeballed. The rule is measured
+# against every rally boundary in whatever files this run was given, and the
+# score is printed even when it passes, because the number is the point.
+
+cat("\n== who serves next\n")
+
+ok("a rotation advances by one and wraps at six",
+   identical(vapply(ROTS, rot_advance, ""),
+             c(R1 = "R2", R2 = "R3", R3 = "R4", R4 = "R5", R5 = "R6", R6 = "R1")))
+ok("a rotation label that makes no sense gives nothing back",
+   is.na(rot_advance("R9")) && is.na(rot_advance("x")) && is.na(rot_advance(NA)))
+
+for (nm in names(matches)) {
+  m <- matches[[nm]]
+  S <- serve_log(m$plays)
+  if (is.null(S) || nrow(S) < 10L) next
+
+  # Replay the match one rally at a time and ask, each time, who serves next.
+  hit <- miss <- unknown <- 0L
+  for (i in seq_len(nrow(S) - 1L)) {
+    upto <- m$plays[m$plays$set_no < S$set_no[i] |
+                    (m$plays$set_no == S$set_no[i] & m$plays$rally_no <= S$rally_no[i])]
+    g <- next_server(upto)
+    truth <- S$num[i + 1L]
+    if (S$set_no[i + 1L] != S$set_no[i]) next      # a new set starts afresh
+    if (is.null(g) || !isTRUE(g$known) || is.na(g$num)) unknown <- unknown + 1L
+    else if (identical(as.integer(g$num), as.integer(truth))) hit <- hit + 1L
+    else miss <- miss + 1L
+  }
+  n <- hit + miss
+  if (!n) next
+  rate <- 100 * hit / n
+  info(sprintf("%s: %.1f%% of %d called, %d not called",
+               substr(nm, 1, 34), rate, n, unknown))
+  # Intrasquad files are a wash drill: the two sides are one team and the
+  # rotation does not turn over, so they are reported and not graded.
+  intra <- identical(m$teams$home$name, m$teams$away$name)
+  if (!intra)
+    ok(sprintf("next server is called better than four in five on %s",
+               substr(nm, 1, 24)), rate >= 80,
+       sprintf("%.1f%%", rate))
+}
+
+m1 <- matches[[1]]
+ns <- next_server(m1$plays)
+ok("the prediction says which side, who, and on what evidence",
+   is.null(ns) || all(c("side", "num", "name", "rot", "basis", "known") %in% names(ns)))
+ok("holding serve is recognised as holding serve",
+   is.null(ns) || ns$basis %in% c("serving now", "holding serve",
+                                  "last time they were in this rotation",
+                                  "not seen in this rotation yet",
+                                  "no serve from them yet"))
+ok("too little to go on returns nothing rather than a guess",
+   is.null(next_server(m1$plays[0, ])))
+
+so_home <- serve_order(m1$plays, "home")
+so_away <- serve_order(m1$plays, "away")
+ok("each side gets a serve order", !is.null(so_home) && !is.null(so_away))
+# The bug this catches: a parameter named `side` is shadowed by the column of
+# the same name, every row passes the filter, and both teams come back equal.
+ok("the two sides are not the same six players",
+   identical(m1$teams$home$name, m1$teams$away$name) ||
+     !identical(so_home$num, so_away$num),
+   paste(so_home$num, collapse = ","))
+ok("a serve order has at most one server per rotation",
+   is.null(so_home) || !any(duplicated(so_home$rot)))
+ok("serve efficiency stays a proportion",
+   is.null(so_home) || all(is.na(so_home$eff) | abs(so_home$eff) <= 1))
 
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)

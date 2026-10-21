@@ -225,6 +225,18 @@ for (sn in sort(unique(p$set_no))) {
     }
     sc <- strsplit(p$score[ii[1]], "-", fixed = TRUE)[[1]]
     pw <- p$tag[ii][!is.na(p$point_won[ii]) & p$point_won[ii]]
+    # A rally the serving team lost outright is one play long: the service
+    # error itself, tagged for the server and marked lost. Nobody on the
+    # winning side touched the ball, so there is no winning play to take the
+    # tag from, and the rally went out with no winner recorded at all. That
+    # is 18 rallies in 135 on the sample, and it makes the fixture disagree
+    # with its own source about who won, which the fixture is not supposed
+    # to do: only its coordinates are invented.
+    if (!length(pw)) {
+      lost <- which(!is.na(p$point_won[ii]) & !p$point_won[ii])
+      if (length(lost))
+        pw <- setdiff(c("*", "a"), p$tag[ii][lost[1]])
+    }
     ex <- list(plays = plays)
     if (length(pw)) ex$point <- pw[1]
     events[[length(events) + 1L]] <- list(
