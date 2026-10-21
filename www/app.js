@@ -156,6 +156,19 @@
     catch (e) { /* the choice lasts this page only */ }
   }
 
+  // How far down the sticky tab bar has to sit. The header wraps to two rows
+  // at some widths, and a fixed offset would either leave a gap under it or
+  // cut the first row of numbers in half. Measured, not guessed.
+  function measureHeader() {
+    var h = document.querySelector("header.appbar");
+    if (!h) return;
+    var stuck = getComputedStyle(h).position === "sticky";
+    document.documentElement.style.setProperty(
+      "--appbar-h", (stuck ? Math.round(h.getBoundingClientRect().height) : 0) + "px");
+  }
+  window.addEventListener("resize", measureHeader);
+  window.addEventListener("load", measureHeader);
+
   var charts_said = false;
   function restoreCharts() {
     if (charts_said) return;
@@ -277,6 +290,7 @@
     if (active && active.style.display === "none") shown[0].click();
     labelSimplify();
     applyDetail();
+    measureHeader();
   }
 
   function tabPanel() {

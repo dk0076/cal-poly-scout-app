@@ -130,7 +130,26 @@ main.panel{padding:16px 18px 60px;min-width:0}
 .matchrow .meta{font:10.5px var(--mono);color:var(--ink-3);margin-top:3px}
 
 /* ---------- tabs ---------- */
-.tabs{display:flex;gap:2px;border-bottom:1px solid var(--rule);margin-bottom:14px;flex-wrap:wrap}
+/* The tab bar follows the page down. A coach reading the bottom of a table
+   and wanting another tab was scrolling back to the top to reach one, which
+   between rallies is the whole twenty seconds.
+   --appbar-h is written by app.js, because the header wraps to two rows at
+   some widths and a guessed offset would leave a gap or a cut-off row. */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--rule);margin-bottom:14px;
+  flex-wrap:wrap}
+/* The sticky element is the band around the bar, not the bar itself. A
+   sticky box can only travel inside its own parent, and the wrapper Shiny
+   puts around the tab bar is exactly as tall as the bar, so sticking the
+   bar moved it nowhere. */
+.topbar{position:sticky;top:var(--appbar-h,52px);z-index:15;
+  background:var(--paper);padding-top:6px;display:flex;align-items:flex-end;
+  gap:10px;margin-bottom:14px}
+.topbar #tabbar{flex:1 1 auto;min-width:0}
+.topbar .tabs{margin-bottom:0}
+/* The live clock rides with the tabs on a tablet, where the header it
+   normally sits in scrolls away. Nothing else from up there follows: a
+   stale feed is the one thing worth seeing without asking for it. */
+.tablive{display:none}
 .tab{background:none;border:0;border-bottom:2px solid transparent;padding:7px 13px 8px;
   cursor:pointer;font-size:13px;color:var(--ink-2)}
 .tab:hover{color:var(--ink)}
@@ -348,13 +367,23 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 .hidechrome{display:none}
 @media (max-width:1180px){
   .hidechrome{display:inline-block}
-  .appbar .uploadwrap,
+  /* A tablet never loads a file, picks the team or types a path: that is
+     done on the laptop and shared from there. So the header keeps only what
+     a bench uses, and it scrolls away rather than sticking, leaving the tab
+     bar alone at the top of the screen. */
+  .appbar .uploadwrap, .appbar #focus_pick, .appbar .watchrow,
   body:not(.chrome-open) .appbar .toolset{display:none}
+  header.appbar{position:static}
+  .topbar{top:0}
+  .tablive{display:inline-flex;align-items:center;gap:6px;flex:none;
+    padding:0 2px 9px;font:11px var(--mono);color:var(--accent);white-space:nowrap}
+  .tablive .dot{width:7px;height:7px;border-radius:50%;background:var(--avocado);
+    box-shadow:0 0 0 2px var(--poly-green)}
   .appbar{padding-top:6px;padding-bottom:6px;row-gap:4px}
   .appbar .brand h1{font-size:15px}
   body.chrome-open .appbar .toolset{display:flex;flex-wrap:wrap;gap:4px}
 }
-@media print{.hidechrome{display:none}}
+@media print{.hidechrome{display:none}.topbar{position:static}}
 
 /* One breakpoint for the whole tablet treatment: the rail folds, the header
    folds, and the two teams stack, all at the width where they stop fitting.

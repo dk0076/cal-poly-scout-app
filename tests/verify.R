@@ -1459,6 +1459,23 @@ ok("the chart switch is remembered by the device that pressed it",
 ok("and asked for again when that device reconnects",
    grepl("shiny:connected", js, fixed = TRUE) &&
      grepl('key: "charts", val: "false"', js, fixed = TRUE))
+# The tab bar follows the page down, and on a tablet it is the only thing
+# that does: a bench never loads a file or picks the team, so the header
+# scrolls away and takes the file controls with it.
+css <- paste(readLines("www/styles.css", warn = FALSE), collapse = "\n")
+ok("the tab bar sticks to the top as the page scrolls",
+   grepl(".topbar{position:sticky", css, fixed = TRUE))
+ok("it sticks under the header, by a height the browser measures",
+   grepl("top:var(--appbar-h", css, fixed = TRUE) &&
+     grepl("--appbar-h", js, fixed = TRUE))
+ok("on a tablet the header scrolls away instead",
+   grepl("header.appbar{position:static}", css, fixed = TRUE))
+ok("and the file controls are not on a tablet at all",
+   grepl(".appbar .uploadwrap, .appbar #focus_pick, .appbar .watchrow",
+         css, fixed = TRUE))
+ok("the live clock rides with the tabs there, and only there",
+   grepl(".tablive{display:none}", css, fixed = TRUE) &&
+     grepl(".tablive{display:inline-flex", css, fixed = TRUE))
 ok("the stylesheet drops the chart column below the numbers when stacked",
    grepl("chartcol{order:2}", paste(readLines("www/styles.css", warn = FALSE),
                                     collapse = ""), fixed = TRUE))

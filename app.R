@@ -582,7 +582,14 @@ server <- function(input, output, session) {
       if (isTRUE(S$o$showshare)) div(class = "sharebar", uiOutput("share")) else NULL,
       div(class = "wrap",
         tags$aside(class = "rail", uiOutput("rail")),
-        tags$main(class = "panel", uiOutput("tabbar"), uiOutput("panel"))))
+        tags$main(class = "panel",
+                  # The bar that stays at the top of the screen. The clock is
+                  # its own output so that a rally landing in the live file
+                  # redraws six characters rather than the whole tab bar
+                  # under a coach's finger.
+                  div(class = "topbar", uiOutput("tabbar"),
+                      uiOutput("tablive", inline = TRUE)),
+                  uiOutput("panel"))))
   })
 
   output$focus_pick <- renderUI({
@@ -675,10 +682,21 @@ server <- function(input, output, session) {
     )
   })
 
-  output$tabbar <- renderUI(HTML(paste0(vapply(TABS, function(t)
+  # The live clock is repeated here, not moved. On a laptop it belongs in the
+  # header beside the file it names; on a tablet the header scrolls away and
+  # this is the copy that stays in view. The stylesheet shows one or the
+  # other, never both.
+  output$tablive <- renderUI({
+    if (!nzchar(LIVE$path)) return(NULL)
+    HTML(sprintf('<span class="tablive" title="%s"><span class="dot"></span>Live %s</span>',
+                 esc(LIVE$path), esc(LIVE$at)))
+  })
+
+  output$tabbar <- renderUI(HTML(paste0(paste0(vapply(TABS, function(t)
     sprintf('<button class="tab %s" data-tab="%s">%s</button>',
             if (identical(S$tab, t[1])) "on" else "", t[1], t[2]), ""),
-    collapse = "") |> (\(x) sprintf('<div class="tabs">%s</div>', x))()))
+    collapse = "")) |>
+      (\(x) sprintf('<div class="tabs">%s</div>', x))()))
 
   output$rail <- renderUI(HTML(rail_html(S)))
   # Shiny stops rendering an output whose element is hidden, and below the
