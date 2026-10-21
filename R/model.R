@@ -1041,9 +1041,20 @@ sel_same_opponent <- function(matches, sel, focus, opponent) {
 }
 
 #' Who the live file says we are playing
-live_opponent <- function(live_match, focus) {
+live_opponent <- function(live_match, focus, focus_name = NULL) {
   if (is.null(live_match)) return("")
+  h <- live_match$teams$home$name %||% ""
+  a <- live_match$teams$away$name %||% ""
   fs <- focus[[live_match$match_id]]
-  if (is.null(fs) || is.na(fs)) return("")
-  live_match$teams[[if (fs == "home") "away" else "home"]]$name %||% ""
+  if (!is.null(fs) && !is.na(fs)) return(if (fs == "home") a else h)
+  # No side resolved yet, which is what a file looks like before the match
+  # starts: sides are worked out from who touched the ball, and nobody has.
+  # The two team names are in the file regardless, so compare those. Without
+  # this the whole scouting library sits unused until the first rally, which
+  # is the opposite of when it is wanted.
+  if (!is.null(focus_name) && nzchar(focus_name)) {
+    if (identical(focus_name, h)) return(a)
+    if (identical(focus_name, a)) return(h)
+  }
+  ""
 }

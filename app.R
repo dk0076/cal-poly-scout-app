@@ -232,7 +232,8 @@ server <- function(input, output, session) {
     matches = list(), focus_name = "", focus = list(),
     sel = list(matches = character(), sets = integer(), players = integer(),
                rots = character(), passers = integer()),
-    o = DEFAULT_OPTS, tab = "attack", errors = character(), warnings = character()
+    o = DEFAULT_OPTS, tab = "attack", errors = character(), warnings = character(),
+    live_id = ""
   )
 
   # ------------------------------------------------------------ file intake
@@ -322,8 +323,15 @@ server <- function(input, output, session) {
     m <- LIVE$match
     if (is.null(m)) return()
     S$matches[[m$match_id]] <- m
+    S$live_id <- m$match_id
     settle(keep_view = TRUE)
   }, ignoreInit = FALSE)
+
+  # Stopping the watch does not unload the file, but it does stop it being
+  # tonight's match, so it drops back to being one more file on the shelf.
+  observeEvent(LIVE$path, {
+    if (!nzchar(LIVE$path)) S$live_id <- ""
+  }, ignoreInit = TRUE)
 
   # `keep_view` is set on a live refresh. A re-parse every few seconds must not
   # reset the focus team or clear the player chips, or the rail resets itself
@@ -490,10 +498,9 @@ server <- function(input, output, session) {
   sel_live <- reactive({
     sel <- S$sel
     if (length(sel$matches)) return(sel)
-    m <- LIVE$match
-    if (is.null(m) || !nzchar(LIVE$path)) return(sel)
-    if (!(m$match_id %in% names(S$matches))) return(sel)
-    sel$matches <- m$match_id
+    id <- S$live_id
+    if (!nzchar(id) || !(id %in% names(S$matches))) return(sel)
+    sel$matches <- id
     sel
   })
 
@@ -602,6 +609,12 @@ server <- function(input, output, session) {
     collapse = "") |> (\(x) sprintf('<div class="tabs">%s</div>', x))()))
 
   output$rail <- renderUI(HTML(rail_html(S)))
+  # Shiny stops rendering an output whose element is hidden, and below the
+  # tablet breakpoint the rail is display:none until someone presses Filters.
+  # Left to itself that means the rail is never built on a tablet, so the
+  # button opens an empty panel. The cost of keeping it current is one small
+  # block of HTML.
+  outputOptions(output, "rail", suspendWhenHidden = FALSE)
 
   # One team's plays through whichever tab is showing. Called once for us and
   # once for them, so the two columns can only differ by their input.
@@ -648,7 +661,7 @@ server <- function(input, output, session) {
         # opponent playing somebody else, with us not in it at all, so
         # asking for "our opponent in that file" finds nothing and throws
         # away the whole library.
-        opp_name <- live_opponent(LIVE$match, S$focus)
+        opp_name <- live_opponent(LIVE$match, S$focus, S$focus_name)
         sel_hist <- if (length(S$sel$matches)) S$sel
                     else sel_with_team(S$matches, S$sel, opp_name)
         tab_nextserver(focus_plays(S$matches, sel_live(), S$focus),
@@ -709,16 +722,30 @@ intro_ui <- function(errors) {
       div(class = "lede", "Opponent & self scout"),
       div(class = "byline", "Andrew King"),
       div(class = "affil", "Statistics & Data Science, Cal Poly"),
-      div(id = "drop", tabindex = "0", role = "button",
-          `aria-label` = "Select or drag match files",
-          HTML('<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'),
-          div(class = "big", "Select or drag match files"),
-          div(class = "small", HTML("<code>.vsm</code> or <code>.dvw</code> · as many as you like"))),
-      # Watching needs a real path: an upload is a snapshot and never changes.
-      div(class = "watchrow",
-          textInput("watch_path", NULL, width = "100%",
-                    placeholder = "or paste a file path to follow it live"),
-          actionButton("watch_go", "Watch", class = "chip")),
+      # Two slots, in the order a match day happens, because the two kinds of
+      # file are treated differently and guessing which is which from a
+      # single drop zone is how they end up pooled.
+      div(class = "slot",
+          div(class = "slotn", "1"),
+          div(class = "slotbody",
+              div(class = "slott", "The match being coded"),
+              div(class = "slotd", "Every tab counts this file, and it alone."),
+              # Watching needs a real path: an upload is a snapshot of the
+              # file as it was when picked, and never changes again.
+              div(class = "watchrow",
+                  textInput("watch_path", NULL, width = "100%",
+                            placeholder = "paste the path of the .dvw being coded"),
+                  actionButton("watch_go", "Watch", class = "chip")))),
+      div(class = "slot",
+          div(class = "slotn", "2"),
+          div(class = "slotbody",
+              div(class = "slott", "Scouting films, optional"),
+              div(class = "slotd", HTML("Previous matches of tonight's opponent, including ones where they played somebody else. They feed the <b>Next server</b> tab: serve charts and passer history. Nothing else counts them.")),
+              div(id = "drop", tabindex = "0", role = "button",
+                  `aria-label` = "Select or drag scouting films",
+                  HTML('<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'),
+                  div(class = "big", "Select or drag films"),
+                  div(class = "small", HTML("<code>.vsm</code> or <code>.dvw</code> · as many as you like"))))),
       uiOutput("share"),
       # Only offered when a sample is actually present. data/ is not in the
       # repository, match files are not ours to publish, so a fresh clone has
@@ -768,8 +795,23 @@ rail_html <- function(S) {
   # than beside it and so needs a way out. CSS hides it on a wide screen.
   H <- c(H, '<div class="railtop"><button class="chip" data-rail="1">Done</button></div>')
 
-  H <- c(H, '<div class="grp"><div class="lbl">Matches <button data-clr="matches">all</button></div>')
-  for (m in S$matches) {
+  # Two kinds of file, kept apart on the screen because they are kept apart
+  # everywhere else. The match being coded is what every tab counts. The
+  # scouting films are the opponent playing somebody else, and they feed the
+  # Next server tab alone.
+  live_id <- S$live_id %||% ""
+  is_live <- vapply(S$matches, function(m) identical(m$match_id, live_id), TRUE)
+  groups <- list(
+    list(lbl = "Tonight", which = which(is_live),
+         note = "Every tab counts this file."),
+    list(lbl = "Scouting films", which = which(!is_live),
+         note = "Serve charts and passer history on the Next server tab. Counted nowhere else."))
+
+  for (g in groups) {
+    if (!length(g$which)) next
+    H <- c(H, sprintf('<div class="grp"><div class="lbl">%s <button data-clr="matches">all</button></div><div class="meta grpnote">%s</div>',
+                      g$lbl, g$note))
+  for (m in S$matches[g$which]) {
     on <- !length(S$sel$matches) || m$match_id %in% S$sel$matches
     has_focus <- identical(m$teams$home$name, S$focus_name) ||
                  identical(m$teams$away$name, S$focus_name)
@@ -795,8 +837,13 @@ rail_html <- function(S) {
         else if (has_focus) paste("vs", esc(opp))
         else paste(esc(m$teams$home$name), "vs", esc(m$teams$away$name)),
       if (on) "on" else "", esc(m$match_id), if (on) "on" else "off",
-      if (has_focus) "" else sprintf('<div class="meta" style="color:var(--blocked)">no "%s" in this file, contributes nothing until you switch focus team</div>',
-                                     esc(S$focus_name)),
+      # A scouting film has neither of our teams in it, which is normal and
+      # not a problem: it is read by the team being scouted, by name. Only
+      # say something when the file is in the group that is supposed to be
+      # ours and is not.
+      if (has_focus || !identical(m$match_id, live_id)) ""
+        else sprintf('<div class="meta" style="color:var(--blocked)">no "%s" in this file, so the match tabs have nothing to count. Switch the team above.</div>',
+                     esc(S$focus_name)),
       esc(m$match_id),
       # An intrasquad practice file has the same team name on both sides, so
       # the two options would be indistinguishable. Say which side each is.
@@ -807,8 +854,9 @@ rail_html <- function(S) {
       esc(m$date %||% "no date"), length(m$sets),
       sum(vapply(m$sets, function(s) s$rallies, 0)),
       if (m$no_coords) " · no coordinates" else ""))
+    }
+    H <- c(H, "</div>")
   }
-  H <- c(H, "</div>")
 
   H <- c(H, chip_group("Sets", "sets", lapply(sets_avail, function(n)
     list(v = n, l = paste("Set", n))), S$sel$sets))

@@ -1041,6 +1041,35 @@ ok("the live opponent is the side we are not",
 ok("no live match means no opponent, rather than an error",
    identical(live_opponent(NULL, focus), ""))
 
+# Before the first rally there are no plays, so nobody has a side yet, but
+# both team names are in the file. The scouting library is useless until this
+# resolves, and before the first rally is exactly when it is wanted.
+lm <- matches[[1]]
+h <- lm$teams$home$name %||% ""
+a <- lm$teams$away$name %||% ""
+no_side <- setNames(list(NA_character_), lm$match_id)
+ok("the opponent is found with no side resolved, from the team names",
+   identical(live_opponent(lm, no_side, h), a) &&
+     identical(live_opponent(lm, no_side, a), h))
+ok("a team that is in neither side gives nothing",
+   identical(live_opponent(lm, no_side, "Nobody University"), ""))
+ok("a resolved side still wins over the names",
+   {
+     fs <- focus[[lm$match_id]]
+     is.null(fs) || is.na(fs) ||
+       identical(live_opponent(lm, focus, h), live_opponent(lm, focus))
+   })
+
+# serve_order on one team's plays, which is what a film read by name gives.
+tn <- unique(c(h, a))[1]
+TP <- team_plays(matches, sel_with_team(matches, sel, tn), tn)
+so1 <- serve_order(TP)
+ok("a serve order reads from one team's plays with no side given",
+   is.null(so1) || (nrow(so1) >= 1 && !any(duplicated(so1$rot))))
+ok("that order names only that team's players",
+   is.null(so1) || all(so1$num %in% unique(TP$num)))
+
+
 # The tab itself, in both modes and with nothing to go on.
 ns1 <- next_server(all_plays(matches, sel))
 labs <- side_labels(list(matches = matches, focus = focus,

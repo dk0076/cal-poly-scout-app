@@ -62,9 +62,17 @@ Show all puts them back.
 
 ## Scouting files, before the game
 
-Load the opponent's scouting films with Browse, then point the watch at
-tonight's file. The films can be the opponent playing anyone, which is what
-they usually are. The previous matches feed the **Next server** tab and nothing
+The opening screen asks for the two separately, in the order a match day
+happens. Slot 1 is the file being coded: paste its path and press Watch.
+Slot 2 is the scouting films: drag them in. The films can be the opponent
+playing anyone, which is what they usually are.
+
+The rail then lists them under **Tonight** and **Scouting films**, so it is
+always visible which is which.
+
+Open Next server before the match and it shows the opponent's six servers by
+rotation and their passers worst first, read off the films. Once the first
+rally is coded it switches to following the match. The previous matches feed the **Next server** tab and nothing
 else: every other tab counts tonight only, so a hitting percentage is
 tonight's.
 

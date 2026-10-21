@@ -169,10 +169,44 @@ passer_block <- function(Opp, o) {
          tiny("Avg is the staff 0 to 4 pass scale, so lower is worse and the top row is the one to serve. Pos% is receptions graded # or +, VolleyStation's own positive reception. The three windows are her last 6, 10 and 15 receptions, as reception efficiency.")))
 }
 
+#' Before the first serve: their six servers, and their passers
+#'
+#' Not an error page. The films are loaded, the match has not started, and
+#' this is the view a staff goes through on the bus.
+prematch_block <- function(Opp, o, labels, n_files, opponent, why) {
+  H <- hdr("Next server", sprintf(
+    "%s · before the first serve",
+    if (nzchar(opponent)) esc(opponent) else esc(labels$them)))
+  H <- c(H, sprintf('<div class="tiny nssrc">%s Once the match starts this page follows it, rally by rally.</div>',
+                    if (nzchar(why)) sprintf("Who serves next is not settled yet: %s.", esc(why))
+                    else "Nothing coded in tonight's file yet."))
+  if (is.null(Opp) || !nrow(Opp))
+    return(paste0(c(H, empty("No scouting films loaded for them yet. Add their previous matches on the opening screen.")), collapse = ""))
+
+  so <- serve_order(Opp)
+  srv <- if (is.null(so)) empty("Their serves carry no rotation, so there is no order to read.")
+    else card("Their serve order",
+      c(tbl_generic(c("Rot", "Server", "Serves", "Ace", "Err", "Eff"),
+          lapply(seq_len(nrow(so)), function(i)
+            c(so$rot[i], sprintf("<b>%s</b> %s", so$num[i], esc(so$name[i])),
+              so$serves[i], so$ace[i], so$err[i], eff_td(so$eff[i])))),
+        tiny("Who serves in each rotation, from what they have actually done rather than from a lineup sheet, so a serving substitute appears as herself. Eff is VolleyStation's serve formula.")))
+
+  paste0(c(H, srv, passer_block(Opp, o), note(sprintf(
+    "Read off %s. Once tonight's file has a rally in it this page switches to following the match: their server with her chart when they serve, their passers when we do.",
+    if (n_files > 1L) sprintf("%d scouting films", n_files) else "the one file loaded"
+  ))), collapse = "")
+}
+
 tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
                            n_files = 1L, live_only = FALSE, opponent = "") {
-  if (is.null(ns))
-    return(empty("Not enough coded yet to say who serves next. It fills in after the first couple of rallies."))
+  # Before the first serve there is nothing to predict from, which is also
+  # exactly when a staff opens this: the films are loaded and the match has
+  # not started. So the same page falls back to the whole scouting picture,
+  # which is what was wanted before a match anyway.
+  if (is.null(ns) || !isTRUE(ns$known))
+    return(prematch_block(Opp, o, labels, n_files, opponent,
+                          if (is.null(ns)) "" else ns$basis))
 
   who <- if (isTRUE(ours)) labels$us else labels$them
   H <- hdr("Next server", sprintf(

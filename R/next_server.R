@@ -89,15 +89,27 @@ next_server <- function(P) {
 #' What a staff reads before the match: six rotations, who serves each, and
 #' how that serve has gone. Built from what happened rather than the lineup
 #' sheet, so a serving substitute shows up as herself.
-serve_order <- function(P, which_side) {
+serve_order <- function(P, which_side = NULL) {
   S <- serve_log(P)
   if (is.null(S)) return(NULL)
+  # With no side given the plays are already one team's, which is what
+  # team_plays() returns when a scouting film is read by team name.
+  if (is.null(which_side)) {
+    S <- S[!is.na(S$rot)]
+    if (!nrow(S)) return(NULL)
+    return(serve_order_rows(S))
+  }
   # Not `side`. A data.table expression resolves a bare name to its own
   # column first, so a parameter called side compares the column with
   # itself, every row passes, and both teams come back looking identical.
   keep <- S$side == which_side & !is.na(S$rot)
   S <- S[keep]
   if (!nrow(S)) return(NULL)
+  serve_order_rows(S)
+}
+
+#' The six rotations of one team's serve log
+serve_order_rows <- function(S) {
   out <- lapply(ROTS, function(r) {
     q <- S[S$rot == r]
     if (!nrow(q)) return(NULL)

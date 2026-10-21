@@ -157,6 +157,11 @@ than sitting beside it, so the numbers are the first thing on the screen.
 **Shot charts only work on files coded with lines.** No coordinates, no charts.
 The tables still work. Either format can carry them.
 
+The opening screen asks for the two separately, and the rail groups them
+under Tonight and Scouting films. Before the first rally the Next server tab
+shows the opponent's serve order and passers off the films; after it, it
+follows the match.
+
 **Scouting files and the live match are kept apart.** Load the opponent's
 previous matches before the game and they feed the Next server tab only:
 where their #12 serves, which of their passers to go at. Every other tab is
