@@ -295,11 +295,11 @@ The header carries the Mustangs primary mark, full colour on white, which is
 the version the athletics brand guide asks for on a light background. Scaled
 proportionally, never recoloured, as that guide requires.
 
-One thing left open: the athletics guide specifies **Copper Gold** `#B38F4F`
-and **Stadium Gold** `#F8E08E`, which is what the logo artwork itself uses,
-while the university palette gives Mustang Gold. The interface follows the
-university palette and the logo follows athletics, so two golds sit side by
-side in the header.
+Two golds sit side by side in the header, and that is the decision rather
+than an oversight. The athletics guide specifies **Copper Gold** `#B38F4F`
+and **Stadium Gold** `#F8E08E`, which is what the logo artwork uses, while
+the university palette gives Mustang Gold. The interface keeps Mustang Gold;
+the mark keeps the artwork it ships with.
 
 ## Layout
 
