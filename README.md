@@ -64,11 +64,9 @@ already watching changes, with nobody reloading. Which tabs you want, and
 the filters and view options, are yours alone, so one coach cutting to R1
 does not cut the whole bench to R1.
 
-**Simplify** cuts the bar to the four tabs a coach decides from while the
-match is running: Next server, Last 6, Pass quality, Rotations. Each answers
-a live question, and the rest are preparation or review. Attacking is left
-out deliberately rather than by oversight, since Last 6 asks the same
-question about the last ten minutes. Pressing it again brings everything
+**Simplify** cuts the bar to three: Attacking, Pass quality, Rotations. The
+attacking numbers, the passing numbers and the rotational analysis, which is
+what a staff asked to be left with. Pressing it again brings everything
 back, and the per-tab picker overrides it either way.
 
 **Each device picks its own tabs.** The **Tabs** button hides the ones a

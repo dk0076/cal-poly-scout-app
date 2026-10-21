@@ -139,15 +139,12 @@
      who had already set a preference. */
   var TABS_KEY = "scoutr.hiddenTabs";
 
-  /* The tabs a coach decides something from while the match is running. Each
-     one answers a question that is live: who to serve, who is swinging well
-     now, which rotation is bleeding. The rest are preparation and review,
-     which is real work but not work done between two rallies.
+  /* The three a coach asked for: the attacking numbers, the passing numbers,
+     and the rotational analysis. Everything else is one tap away in Tabs.
 
-     Attacking is left out on purpose rather than by oversight: Last 6 is the
-     same question asked about the last ten minutes, which is the one that
-     changes a decision mid-match. One tap in Tabs puts anything back. */
-  var MATCH_DAY = ["nextserver", "last6", "passing", "rotation"];
+     Deliberately not a tab per question. Three is a bar you read without
+     looking for anything, which is the point of pressing Simplify at all. */
+  var MATCH_DAY = ["attack", "passing", "rotation"];
 
   function simplified() {
     var hidden = hiddenTabs();
@@ -161,6 +158,9 @@
   }
 
   function toggleSimplify() {
+    // Pressed before the tab bar exists there is nothing to simplify, and
+    // writing an empty list would quietly wipe a choice already saved.
+    if (!document.querySelectorAll(".tabs .tab").length) return;
     if (simplified()) {
       setHiddenTabs([]);
     } else {

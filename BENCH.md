@@ -70,8 +70,8 @@ playing anyone, which is what they usually are.
 The rail then lists them under **Tonight** and **Scouting films**, so it is
 always visible which is which.
 
-**Simplify**, in Tools, cuts the tab bar to four: Next server, Last 6, Pass
-quality, Rotations. Press it again for all of them. It is remembered on that
+**Simplify**, in Tools, cuts the tab bar to three: Attacking, Pass quality,
+Rotations. Press it again for all of them. It is remembered on that
 iPad, so each one can be set up differently.
 
 If the rotation picks the wrong server, tap her name in the row across the
