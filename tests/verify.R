@@ -475,7 +475,9 @@ for (nm in names(H)) {
      sprintf("%d chars", nchar(h)))
   ok(sprintf("%s has no unresolved placeholder", nm),
      !grepl("NULL|NaN|\\bNA%\\b", h))
-  if (ck && nm %in% c("attack", "serve", "setting", "passing"))
+  # Passing is not here: reception is read as grades, not geometry, so that
+  # tab draws no court at all now.
+  if (ck && nm %in% c("attack", "serve", "setting"))
     ok(sprintf("%s drew marks on a court", nm),
        grepl("<svg class=\"court\"", h, fixed = TRUE) &&
        (grepl("<line", h, fixed = TRUE) || grepl("<circle", h, fixed = TRUE)))
@@ -1228,6 +1230,8 @@ for (nm in names(matches)) {
      drawn(h, "Against the block") == varies)
 }
 
+ok("the passing tab draws no court",
+   !grepl("<svg", paste(tab_passing(Fp, o, ck), collapse = ""), fixed = TRUE))
 ok("a card asked for with nothing behind it is not drawn",
    identical(card_if(FALSE, "Title", "body"), ""))
 ok("a card asked for with something behind it is drawn",

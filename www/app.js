@@ -257,12 +257,25 @@
     });
     wrap.appendChild(simp);
 
+    /* With everything already on, "Show all" does nothing, so it becomes
+       the opposite: clear the lot and keep the tab being read, since a bar
+       with nothing in it is not a state worth being able to reach. */
+    var allOn = hidden.length === 0;
     var foot = document.createElement("button");
     foot.className = "chip ghost";
-    foot.textContent = "Show all";
+    foot.textContent = allOn ? "Clear all" : "Show all";
     foot.addEventListener("click", function (ev) {
       ev.stopPropagation();
-      setHiddenTabs([]);
+      if (!allOn) {
+        setHiddenTabs([]);
+      } else {
+        var all = [].slice.call(document.querySelectorAll(".tabs .tab"))
+          .map(function (b) { return b.getAttribute("data-tab"); });
+        if (!all.length) return;
+        var active = document.querySelector(".tabs .tab.on");
+        var keep = active ? active.getAttribute("data-tab") : all[0];
+        setHiddenTabs(all.filter(function (id) { return id !== keep; }));
+      }
       applyTabs();
       wrap.remove();
     });

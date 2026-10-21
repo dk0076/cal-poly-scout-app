@@ -41,7 +41,7 @@ Rscript tests/verify.R path/to/match.vsm path/to/another.dvw
 | **Serve direction** | Contact to landing. By type, server, target zone, depth, and where to stand a passer against each server. |
 | **Set origin** | Where the setter touched it and what she could run from there. Click zones of her own half to cut by lane and distance off the net. |
 | **Setter** | Distribution and efficiency. Every player who set is listed and any can be switched off. |
-| **Pass quality** | Sorted worst first, because this page is for picking who to serve. Pass average, earned FBSO, 5-1 vs 6-2. |
+| **Pass quality** | Sorted worst first, because this page is for picking who to serve. Pass average, earned FBSO, 5-1 vs 6-2. No court: reception is read as grades, not geometry. |
 | **Defense** | What they manage against us, whether we touch it, and whether we win the rally after. Court drawn from our baseline. |
 | **Rotations** | SO%, ESO%, FBSO%, PS%, +/-, aces and errors per rotation, both teams, then the same by set. |
 | **Last 6** | Who is swinging well now. Recent attempts as chips, split into pins and middles. |
@@ -75,7 +75,9 @@ serves every iPad on the bench, so this is kept in the browser rather than on
 the server: the coach watching serve and pass and the coach watching attack
 and defence are looking at the same session. Hiding the tab you are on moves
 you to the first one still showing, and hiding every tab is ignored rather
-than obeyed.
+than obeyed. The button at the foot of the picker reads **Show all** when
+something is hidden and **Clear all** when nothing is, where it leaves the
+tab being read and hides the rest.
 
 The left rail filters everything at once: matches, which side is your team,
 sets, rotation, system, phase, passer, players.

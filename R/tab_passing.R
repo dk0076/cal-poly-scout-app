@@ -13,10 +13,9 @@
 tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
   R0 <- F[F$skill == "R", ]
   if (!nrow(R0)) return(empty("No receptions in the current filter."))
-  xy <- R0[R0$has_xy, ]
+
   t0 <- receive_line(R0)
-  rect <- list(x0 = 0, y0 = 0, x1 = COURT$W, y1 = COURT$NET)
-  mono <- isTRUE(o$mono)
+
 
   H <- hdr("Pass quality",
            sprintf("%s receptions · who to target before serving, sorted worst positive%% first",
@@ -37,20 +36,12 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
   by_player <- by_player[vapply(by_player, function(g) g$stat$n >= 3, logical(1))]
   by_player <- by_player[order(vapply(by_player, function(g) g$stat$pospct %||% 1, 1))]
 
-  court <- court_svg("P", x_min = -260, x_max = 1160, y_min = -260, y_max = 1010,
-                     halves = "own",
-                     marks = arrow_layer(xy, "P", 1, mono,
-                       extra = function(r) paste0("pass to ",
-                                                  vapply(COURT$NET - r$y1, m1, ""), " m off net")),
-                     labels = zone_number_layer("own", rect),
-                     alt = "reception contact to pass result",
-                     mono = mono, coords_ok = coords_ok)
-
-  left <- sprintf('<div class="card"><h3>Every reception, contact to pass result</h3>%s%s</div>',
-    court,
-    legend(c("var(--kill)", "perfect (#)"), c("var(--inplay)", "in play"),
-           c("var(--blocked)", "overpass"), c("var(--err)", "error / ace against"),
-           trailing = "net at top · own half only"))
+  # No court here. Reception is read as grades, not as geometry: a pass is
+  # good or it is not, and where the ball crossed the floor on the way does
+  # not change what the setter got. Drawn for a whole team it was a hundred
+  # arrows converging on one spot, which is what every reception looks like
+  # when it goes well, so the picture was the same whether the passing was
+  # good or bad. The tables below say which.
 
   Rc <- list()
 
@@ -81,7 +72,7 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
          if ("6-2" %in% (o$sys %||% character()))
            " In a 6-2, R4–R6 are the rotations with the setter slot front row: the opposite is in the slot and the other setter sets from zone 1, 6 or 5." else ""))))
 
-  paste0(c(H, cols2(left, Rc, 460)), collapse = "")
+  paste0(c(H, Rc), collapse = "")
 }
 
 #' 5-1 vs 6-2 side by side.
