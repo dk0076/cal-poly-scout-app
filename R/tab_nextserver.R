@@ -43,7 +43,19 @@ window_row <- function(rows, skill) {
 }
 
 #' Them serving: the server's chart, then her numbers
-server_block <- function(S_all, jersey, name, o, coords_ok) {
+#'
+#' Between rallies there is time to read one picture, not a page. So once a
+#' file is being coded, this is the chart and where she serves, and nothing
+#' else: her season totals, her serve types and her last serve are true but
+#' they are not what the next twenty seconds are about. They fold away behind
+#' Detail rather than going anywhere, and before a match, when there is time,
+#' they are all on screen as before.
+#'
+#' Recent form narrows the same way. Her last six serves from a film three
+#' weeks ago are not form, they are history, and the arrow beside them was
+#' comparing tonight with a different month. With a live file it counts only
+#' what has been coded tonight.
+server_block <- function(S_all, jersey, name, o, coords_ok, live_id = "") {
   # jersey, not num. A data.table expression resolves a bare name to its own
   # column first, so a parameter called num compares the column with itself,
   # every row passes, and the card shows the whole team's serves under one
@@ -56,6 +68,10 @@ server_block <- function(S_all, jersey, name, o, coords_ok) {
   data.table::setorder(q, date, match_id, set_no, rally_no, seq)
   st <- serve_line(q)
   mono <- isTRUE(o$mono)
+  # Live for this card only once she has actually served in tonight's file.
+  # A match that is being coded but in which she has not served yet is, for
+  # her, still a pre-match page.
+  live <- nzchar(live_id) && any(q$match_id == live_id)
 
   xy <- q[q$has_xy, ]
   rect <- list(x_min = -170, x_max = 1070, y_min = -260, y_max = 1990)
@@ -116,41 +132,46 @@ server_block <- function(S_all, jersey, name, o, coords_ok) {
 
   last <- q[nrow(q), ]
   lastz <- srv_zone6_or_coded(last$end_zone, last$x1, last$y1)
-  recent <- paste0(vapply(seq_len(nrow(utils::tail(q, 15))),
-                          function(i) serve_cell(utils::tail(q, 15)[i, ]), ""),
+  qr <- if (live) q[q$match_id == live_id, ] else q
+  chips15 <- utils::tail(qr, 15)
+  recent <- paste0(vapply(seq_len(nrow(chips15)),
+                          function(i) serve_cell(chips15[i, ]), ""),
                    collapse = "")
-  win <- window_row(q, "S")
+  win <- window_row(qr, "S")
 
   # The serve court is a tall portrait shape, so at full width it is the
   # whole screen and the numbers are below the fold. Beside the tables it
   # stays first to read and leaves room for the rest.
-  c(kpi,
+  c(fold(live, kpi),
     cols2(
       plain_card(c(viewbar(vtoggle("tend", "Tendency lines", o$tend)), court)),
       c(card("Where she serves",
              if (length(zone_rows))
                tbl_generic(c("Target", "Serves", "Share", "Eff"), zone_rows)
              else empty("No landing zone coded on her serves.")),
-        card("By type",
+        fold(live, card("By type",
              if (length(type_rows))
                tbl_generic(c("Type", "Serves", "Share", "Eff"), type_rows)
-             else empty("No serve type coded."))), 300),
-    card("Recent form",
+             else empty("No serve type coded.")))), 300),
+    if (live && !nrow(qr))
+      card("Recent form", empty("She has not served yet tonight."))
+    else card(if (live) "Recent form <span class=\"thin\">tonight</span>" else "Recent form",
          c(tbl_generic(c(sprintf("Last %d", SERVE_WINDOWS[1]),
                          sprintf("Last %d", SERVE_WINDOWS[2]),
                          sprintf("Last %d", SERVE_WINDOWS[3])),
                        list(win)),
            sprintf('<div class="atts">%s</div>', recent),
-           tiny("Each chip is one serve: the zone it landed in, then the grade. Oldest on the left. The arrow compares the window with her whole match."))),
+           tiny(sprintf("Each chip is one serve: the zone it landed in, then the grade. Oldest on the left. The arrow compares the window with %s.",
+                        if (live) "the rest of tonight" else "her whole match")))),
     if (drawn < nrow(q))
       tiny(sprintf("The chart shows %d of her %d serves. The other %d were coded without a line, so they count in the numbers and cannot be drawn. A staff sheet built from the chart will show %d.",
                    drawn, nrow(q), nrow(q) - drawn, drawn)) else "",
-    card("Her last serve",
+    fold(live, card("Her last serve",
          tbl_generic(c("Set", "Score", "Target", "Type", "Outcome"),
                      list(c(last$set_no, esc(last$score %||% ""),
                             if (is.na(lastz)) "?" else sprintf("Zone %s", lastz),
                             if (is.na(last$skill_type)) "" else esc(last$skill_type),
-                            land_status(last$effect))))))
+                            land_status(last$effect)))))))
 }
 
 #' Us serving: who to serve at, worst passer first
@@ -263,7 +284,8 @@ serve_order_cards <- function(Opp) {
 #'
 #' Not an error page. The films are loaded, the match has not started, and
 #' this is the view a staff goes through on the bus.
-prematch_block <- function(Opp, o, labels, n_files, opponent, why, coords_ok = TRUE) {
+prematch_block <- function(Opp, o, labels, n_files, opponent, why, coords_ok = TRUE,
+                           live_id = "") {
   H <- hdr("Next server", sprintf(
     "%s · before the first serve",
     if (nzchar(opponent)) esc(opponent) else esc(labels$them)))
@@ -281,7 +303,8 @@ prematch_block <- function(Opp, o, labels, n_files, opponent, why, coords_ok = T
     return(paste0(c(H, chips,
                     sprintf('<h3 class="nsname">#%s %s <span class="thin">picked by hand</span></h3>',
                             esc(pinned), esc(nm %||% "")),
-                    server_block(S_all, as.integer(pinned), nm %||% "", o, coords_ok)),
+                    server_block(S_all, as.integer(pinned), nm %||% "", o,
+                                 coords_ok, live_id)),
                   collapse = ""))
   }
 
@@ -301,7 +324,8 @@ prematch_block <- function(Opp, o, labels, n_files, opponent, why, coords_ok = T
 }
 
 tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
-                           n_files = 1L, live_only = FALSE, opponent = "") {
+                           n_files = 1L, live_only = FALSE, opponent = "",
+                           live_id = "") {
   # Before the first serve there is nothing to predict from, which is also
   # exactly when a staff opens this: the films are loaded and the match has
   # not started. So the same page falls back to the whole scouting picture,
@@ -310,7 +334,7 @@ tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
 
   if (is.null(ns) || (!isTRUE(ns$known) && !nzchar(pinned)))
     return(prematch_block(Opp, o, labels, n_files, opponent,
-                          if (is.null(ns)) "" else ns$basis, coords_ok))
+                          if (is.null(ns)) "" else ns$basis, coords_ok, live_id))
 
   who <- if (isTRUE(ours)) labels$us else labels$them
   H <- hdr("Next server", sprintf(
@@ -343,13 +367,13 @@ tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
     c(chips,
       sprintf('<h3 class="nsname">#%s %s <span class="thin">picked by hand</span></h3>',
               esc(pinned), esc(nm %||% "")),
-      server_block(S_all, as.integer(pinned), nm %||% "", o, coords_ok))
+      server_block(S_all, as.integer(pinned), nm %||% "", o, coords_ok, live_id))
   } else if (isTRUE(ours)) {
     c(chips, passer_block(Opp, o))
   } else {
     c(chips,
       sprintf('<h3 class="nsname">#%s %s</h3>', ns$num, esc(ns$name %||% "")),
-      server_block(S_all, ns$num, ns$name %||% "", o, coords_ok))
+      server_block(S_all, ns$num, ns$name %||% "", o, coords_ok, live_id))
   }
 
   paste0(c(H, body, note(

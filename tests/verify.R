@@ -1145,6 +1145,52 @@ if (nrow(S_ns)) {
   hh <- tab_nextserver(Fp, Opp_ns2, NULL, o_pin, ck, labs2, TRUE, n_files = 1L)
   ok("a pin works before the match too, with no prediction at all",
      grepl("picked by hand", hh, fixed = TRUE))
+
+  # Between rallies the card is the chart and where she serves. The season
+  # totals, the serve types and her last serve are still in the page, folded
+  # behind Detail, and before a match they are open.
+  hers_rows <- S_ns[S_ns$num == who, ]
+  live_id <- hers_rows$match_id[1]
+  pre  <- paste(server_block(S_ns, who, "someone", o, ck), collapse = "")
+  mid  <- paste(server_block(S_ns, who, "someone", o, ck, live_id), collapse = "")
+  ok("with a file being coded the season totals fold away",
+     grepl('<div class="extra"><div class="kpis">', mid, fixed = TRUE))
+  ok("before a match they are on screen",
+     !grepl('class="extra"><div class="kpis"', pre, fixed = TRUE))
+  for (lbl in c("By type", "Her last serve")) {
+    ok(sprintf('"%s" folds away during a match', lbl),
+       grepl(sprintf('<div class="extra"><div class="card"><h3>%s</h3>', lbl), mid, fixed = TRUE))
+    ok(sprintf('"%s" is open before one', lbl),
+       !grepl(sprintf('<div class="extra"><div class="card"><h3>%s</h3>', lbl), pre, fixed = TRUE))
+  }
+  ok("recent form says it is tonight's only, once there is a tonight",
+     grepl("Recent form <span class=\"thin\">tonight</span>", mid, fixed = TRUE) &&
+       !grepl("tonight", pre, fixed = TRUE))
+
+  # And it counts tonight only. Her serves from a film three weeks ago are
+  # history, not form: relabel half of them as another match and the chips
+  # must drop to the half that is tonight.
+  chip_count <- function(h) {
+    i <- regexpr('<div class="atts">', h, fixed = TRUE)
+    if (i < 0) return(0L)
+    rest <- substr(h, i, i + 6000L)
+    rest <- substr(rest, 1, regexpr("</div>", rest, fixed = TRUE))
+    length(gregexpr('<span class="att ', rest, fixed = TRUE)[[1]])
+  }
+  if (nrow(hers_rows) >= 4) {
+    mixed <- data.table::copy(S_ns)
+    mine_rows <- which(!is.na(mixed$num) & mixed$num == who)
+    old_half <- mine_rows[seq_len(floor(length(mine_rows) / 2))]
+    mixed$match_id[old_half] <- "a-film-from-last-month"
+    h2 <- paste(server_block(mixed, who, "someone", o, ck, live_id), collapse = "")
+    tonight <- length(mine_rows) - length(old_half)
+    ok("recent form counts tonight's serves, not last month's",
+       chip_count(h2) == min(15L, tonight),
+       sprintf("%d chips for %d serves tonight of %d loaded",
+               chip_count(h2), tonight, length(mine_rows)))
+    ok("the chart still draws everything loaded",
+       grepl("Where she serves", h2, fixed = TRUE))
+  }
 }
 
 # A serve order row names one player, so its counts must be hers. Crediting

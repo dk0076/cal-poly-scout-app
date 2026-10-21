@@ -741,7 +741,7 @@ server <- function(input, output, session) {
                        n_files = if (length(sel_hist$matches)) length(sel_hist$matches)
                                  else length(S$matches),
                        live_only = nzchar(LIVE$path) && !length(S$sel$matches),
-                       opponent = opp_name)
+                       opponent = opp_name, live_id = S$live_id %||% "")
       }
       else if (S$tab == "roster")
         tab_roster(position_table(S$matches, ROSTER$ov), S$focus_name)

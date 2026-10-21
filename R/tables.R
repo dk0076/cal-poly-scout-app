@@ -95,6 +95,17 @@ card_extra <- function(cond, label, body, ...) {
   sprintf('<div class="extra">%s</div>', inner)
 }
 
+#' Fold a piece of a page away behind Detail, but only when asked
+#'
+#' The same mechanism as card_extra, for the cards that are worth reading
+#' before a match and in the way during one. The condition is the context,
+#' not the content.
+fold <- function(cond, html) {
+  html <- paste0(html, collapse = "")
+  if (!isTRUE(cond) || !nzchar(html)) return(html)
+  sprintf('<div class="extra">%s</div>', html)
+}
+
 #' TRUE when at least one of these plays carries a position on the court
 has_lines <- function(rows, col = "has_xy") {
   if (is.null(rows) || !nrow(rows) || !col %in% names(rows)) return(FALSE)
