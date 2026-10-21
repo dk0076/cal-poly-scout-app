@@ -236,7 +236,7 @@ DEFAULT_OPTS <- list(
   # evidence, and they were the only legible thing on a team-sized chart,
   # which is a sign of covering a mess rather than showing anything.
   aView = "auto", aBins = 3, aColor = "volume", aIncErr = TRUE, tend = FALSE,
-  sView = "auto", sBins = 3, srvType = "all", sPass = FALSE,
+  sView = "auto", sBins = 3, srvType = "all", sPass = FALSE, charts = TRUE,
   eView = "points", eBins = 3, setSetter = "", setZones = character(),
   setterWho = "main", setterEx = character(), lastN = 6,
   mono = FALSE, phases = character(), sys = character(), showshare = FALSE,

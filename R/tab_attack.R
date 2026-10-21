@@ -39,6 +39,9 @@ tab_attack <- function(F, o, coords_ok) {
          s = "m past net")
   )))
 
+  H <- c(H, charts_toggle(o))
+  show_chart <- charts_on(o)
+
   # Which view to draw. The count that matters is the one actually drawn,
   # so errors and blocks are in or out of it exactly as the toggle says.
   aView <- view_for(o$aView %||% "auto", sum(shown$has_xy))
@@ -114,7 +117,9 @@ tab_attack <- function(F, o, coords_ok) {
         pct(s$kpct), eff_td(s$eff))
     }))))
 
-  R <- c(R, middle_routes(A, coords_ok, mono))
+  # Draws a row of little courts of its own, so it belongs to the chart
+  # switch even though it sits in the numbers column.
+  R <- c(R, middle_routes(A, coords_ok && show_chart, mono))
 
   R <- c(R, card("By hit type", tbl_generic(
     c("Hit type", "Code", "Att", "K%", "Hit", "Most-used lane"),
@@ -171,7 +176,9 @@ tab_attack <- function(F, o, coords_ok) {
       c(paste0(g$key, if (g$key == "1") " blocker" else " blockers"),
         g$stat$ta, pct(g$stat$kpct), eff_td(g$stat$eff))))))
 
-  paste0(c(H, cols2(left, R, 460)), collapse = "")
+  if (!show_chart) left <- character()
+  paste0(c(H, if (show_chart) cols2(left, R, 460, "chartcol")
+             else paste0(R, collapse = "")), collapse = "")
 }
 
 #' One row per hitter: where they hit from, where it lands, and what it returns.

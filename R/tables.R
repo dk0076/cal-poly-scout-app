@@ -58,9 +58,26 @@ hdr <- function(title, cap = NULL)
           if (!is.null(cap)) sprintf('<span class="cap">%s</span>', cap) else "")
 
 #' Two-column panel layout. `left` is the chart column, `right` the tables.
-cols2 <- function(left, right, cw = 460)
-  sprintf('<div class="cols" style="--cw:%spx"><div>%s</div><div>%s</div></div>',
-          cw, paste0(left, collapse = ""), paste0(right, collapse = ""))
+#' A fixed rail beside a flexible panel.
+#'
+#' `left_class` marks the rail for the stylesheet. "chartcol" says the rail is
+#' a chart: side by side it stays on the left, and wherever the two columns
+#' stack, which is every tablet and both panels of the side-by-side view, it
+#' drops below the numbers. A chart is worth a scroll; a table of numbers a
+#' coach is reading between rallies is not worth scrolling past a court.
+cols2 <- function(left, right, cw = 460, left_class = "")
+  sprintf('<div class="cols" style="--cw:%spx"><div class="%s">%s</div><div>%s</div></div>',
+          cw, left_class, paste0(left, collapse = ""), paste0(right, collapse = ""))
+
+#' The switch for a tab's charts, and whether they are on
+#'
+#' On by default, because the charts are the reason most of this exists. Off
+#' is for the bench: a landing grid of a whole team's serves takes the screen
+#' and tells a coach between rallies less than one row of the table under it.
+#' Per viewer, like the other view switches, so one iPad turning it off does
+#' not take the charts off everybody else's.
+charts_on <- function(o) !identical(o$charts, FALSE)
+charts_toggle <- function(o) viewbar(vtoggle("charts", "Shot chart", charts_on(o)))
 
 #' A card, dropped when it has nothing in it to read
 #'

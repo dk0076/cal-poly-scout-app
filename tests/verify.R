@@ -1427,5 +1427,34 @@ ok("tendency lines are not drawn unless asked for",
 ok("asking for them brings them back",
    has_tend(tab_attack(Fp, o_on, ck)))
 
+# A chart is worth a scroll; a table a coach reads between rallies is not
+# worth scrolling past a court. So the numbers come first wherever the two
+# columns stack, and the charts come off altogether on request.
+cat("\n== charts off, numbers first\n")
+for (nm in c("attack", "serve")) {
+  fn <- if (nm == "attack") tab_attack else tab_serve
+  on  <- paste(fn(Fp, o_auto, ck), collapse = "")
+  o_off <- o_auto; o_off$charts <- FALSE
+  off <- paste(fn(Fp, o_off, ck), collapse = "")
+  ok(sprintf("%s: the chart is drawn by default", nm),
+     grepl("<svg", on, fixed = TRUE))
+  ok(sprintf("%s: turning it off takes every court with it", nm),
+     !grepl("<svg", off, fixed = TRUE))
+  ok(sprintf("%s: the numbers stay", nm),
+     grepl("<table", off, fixed = TRUE) &&
+       grepl(if (nm == "attack") "By hitter" else "By server", off, fixed = TRUE))
+  ok(sprintf("%s: the switch is still there to press", nm),
+     grepl('data-o="charts"', off, fixed = TRUE) &&
+       grepl('data-o="charts"', on, fixed = TRUE))
+  ok(sprintf("%s: the chart column is marked so it can stack under", nm),
+     grepl('class="chartcol"', on, fixed = TRUE))
+  ok(sprintf("%s: pressing it again asks for charts back", nm),
+     grepl('data-o="charts" data-v="true"', off, fixed = TRUE) &&
+       grepl('data-o="charts" data-v="false"', on, fixed = TRUE))
+}
+ok("the stylesheet drops the chart column below the numbers when stacked",
+   grepl("chartcol{order:2}", paste(readLines("www/styles.css", warn = FALSE),
+                                    collapse = ""), fixed = TRUE))
+
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)

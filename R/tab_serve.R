@@ -58,6 +58,9 @@ tab_serve <- function(F, o, coords_ok) {
          s = "m past net")
   )))
 
+  H <- c(H, charts_toggle(o))
+  show_chart <- charts_on(o)
+
   # Same rule as the attack chart: arrows while they are readable, the
   # landing grid when a whole team's serves would be a ball of wool.
   sView <- view_for(o$sView %||% "auto", sum(V$has_xy))
@@ -98,6 +101,7 @@ tab_serve <- function(F, o, coords_ok) {
     if (isTRUE(o$sPass)) tiny(esc(passer_start_text(ps))) else ""
   ))
   left <- c(left, small_multiples(xy, "serve", coords_ok, mono))
+  if (!show_chart) left <- character()
 
   R <- list()
 
@@ -179,5 +183,6 @@ tab_serve <- function(F, o, coords_ok) {
                               thin(sprintf("(%s m from left sideline)", m1(med(t0$x1))))) else "")
     }))))
 
-  paste0(c(H, cols2(left, R, 420)), collapse = "")
+  paste0(c(H, if (show_chart) cols2(left, R, 420, "chartcol")
+             else paste0(R, collapse = "")), collapse = "")
 }

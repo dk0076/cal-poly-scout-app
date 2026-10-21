@@ -142,7 +142,9 @@ main.panel{padding:16px 18px 60px;min-width:0}
 .hdr .cap{font:11px var(--mono);color:var(--ink-3)}
 .cols{display:grid;grid-template-columns:minmax(300px,var(--cw,420px)) minmax(0,1fr);
   gap:20px;align-items:start}
-@media (max-width:1080px){.cols{grid-template-columns:1fr}}
+@media (max-width:1080px){.cols{grid-template-columns:1fr}
+  /* stacked: the numbers first, the court under them */
+  .cols>.chartcol{order:2}}
 .card{background:var(--panel);border:1px solid var(--rule);padding:12px 13px 13px}
 .card+.card{margin-top:14px}
 .card>h3{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);
@@ -328,6 +330,7 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
    is the wrong thing to watch once the panel is half a window, so stack them
    whenever both teams are up. */
 .twoup .side .cols{grid-template-columns:minmax(0,1fr)}
+.twoup .side .cols>.chartcol{order:2}
 .twoup .side .card{overflow-x:auto}
 
 /* ---- roster: the position chips ---------------------------------------- */
