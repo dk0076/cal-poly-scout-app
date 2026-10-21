@@ -280,6 +280,66 @@ for (m in dv) {
                   sprintf("%.0f%% do", 100 * mean(a$y0 < COURT$NET & a$y1 > COURT$NET)))
 }
 
+# ---------------------------------------------------------------------------
+# What the serve did to their pass
+#
+# Pass #% and KO% are not VolleyStation report columns, so they cannot be read
+# straight off one of their reports. The grades behind them are: # is a
+# perfect reception and # or + is VolleyStation's own positive reception. So
+# the check is a recount with no parser in it, pairing each serve in the raw
+# file with the reception on the next line, and the two must agree server by
+# server.
+cat("\n== what the serve did to their pass\n")
+for (m in matches) {
+  P <- m$plays
+  Sv <- P[P$skill == "S", ]
+  Rc <- P[P$skill == "R", ]
+  nm <- substr(m$file_name, 1, 28)
+  if (!nrow(Sv)) next
+  linked <- sum(!is.na(Sv$srv_rec))
+  ok(sprintf("%s: every reception belongs to one serve", nm),
+     linked == nrow(Rc), sprintf("%d linked, %d receptions", linked, nrow(Rc)))
+  ok(sprintf("%s: a linked grade is a reception grade", nm),
+     all(is.na(Sv$srv_rec) | Sv$srv_rec %in% c("#", "+", "!", "-", "/", "=")))
+  ok(sprintf("%s: a serve error drew no pass", nm),
+     !any(is_err(Sv$effect) & !is.na(Sv$srv_rec)),
+     sprintf("%d errors", sum(is_err(Sv$effect))))
+  st <- serve_line(Sv)
+  ok(sprintf("%s: perfect is a subset of in-system", nm),
+     st$opp_perf <= st$opp_insys && st$opp_insys <= st$rec_n,
+     sprintf("%d / %d / %d", st$opp_perf, st$opp_insys, st$rec_n))
+  ok(sprintf("%s: KO%% is in-system inverted", nm),
+     is.na(st$kopct) || abs(st$kopct + st$opp_syspct - 1) < 1e-12)
+  ok(sprintf("%s: the denominator is passes, not serves", nm),
+     st$rec_n <= st$n && (!nrow(Rc) || st$rec_n < st$n),
+     sprintf("%d passes off %d serves", st$rec_n, st$n))
+
+  # The recount. Both formats carry the touches in order, so pairing a serve
+  # with the next reception by the other side needs nothing but the rows.
+  byn <- split(seq_len(nrow(Sv)), paste(Sv$side, Sv$num))
+  app <- vapply(byn, function(ix) {
+    q <- serve_line(Sv[ix, ])
+    sprintf("%d|%d|%d", q$rec_n, q$opp_perf, q$opp_insys)
+  }, "")
+  data.table::setorder(P, set_no, rally_no, seq)
+  hand <- list()
+  for (k in which(P$skill == "S")) {
+    j <- k + 1L
+    if (j > nrow(P)) next
+    if (P$set_no[j] != P$set_no[k] || P$rally_no[j] != P$rally_no[k]) next
+    if (P$skill[j] != "R" || identical(P$side[j], P$side[k])) next
+    key <- paste(P$side[k], P$num[k])
+    hand[[key]] <- c(hand[[key]], P$effect[j])
+  }
+  by_hand <- vapply(names(app), function(k) {
+    g <- hand[[k]]
+    sprintf("%d|%d|%d", length(g), sum(g == "#"), sum(g %in% c("#", "+")))
+  }, "")
+  ok(sprintf("%s: a hand recount agrees server by server", nm),
+     identical(unname(app), unname(by_hand)),
+     sprintf("%d servers", length(app)))
+}
+
 cat("\n== pooled\n")
 matches <- classify_systems(matches)
 matches <- add_season_codes(matches)

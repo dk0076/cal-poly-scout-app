@@ -38,7 +38,7 @@ Rscript tests/verify.R path/to/match.vsm path/to/another.dvw
 | Tab | What it answers |
 | --- | --- |
 | **Attacking** | Where each hitter puts the ball and what it returns. Trajectories, landing grid, lanes, line/cross, depth, middle routes, serve-receive vs transition. |
-| **Serve direction** | Contact to landing. By type, server, target zone, depth, and where to stand a passer against each server. |
+| **Serving** | Contact to landing. By type, server, target zone, depth, and where to stand a passer against each server. Each server also carries what her serves did to the other team's pass: Pass #% and KO%. |
 | **Setter** | Distribution and efficiency. Every player who set is listed and any can be switched off. |
 | **Serve receive** | Sorted worst first, because this page is for picking who to serve. Pass average, earned FBSO, 5-1 vs 6-2. No court: reception is read as grades, not geometry. |
 | **Defense** | What they manage against us, whether we touch it, and whether we win the rally after. Court drawn from our baseline. |

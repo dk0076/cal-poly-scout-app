@@ -17,7 +17,8 @@ PLAY_COLS <- c("uid", "match_id", "file_name", "date", "set_no", "rally_no", "se
                "opp_setter_at", "opp_rot",
                paste0("lu", 1:6), paste0("olu", 1:6),
                "court_pos", "front_row", "serving", "phase", "passer",
-               "rec_effect", "point_won", "score", "setter_num", "reportable")
+               "rec_effect", "srv_rec", "point_won", "score", "setter_num",
+               "reportable")
 
 empty_plays <- function() {
   z <- as.data.frame(setNames(rep(list(logical(0)), length(PLAY_COLS)), PLAY_COLS))
@@ -59,7 +60,8 @@ finalize_match <- function(m) {
 
   if (all(is.na(p$seq))) p[, seq := seq_len(.N), by = .(set_no, rally_no)]
 
-  blanks <- list(atk_uid = NA_integer_, atk_num = NA_integer_,
+  blanks <- list(srv_rec = NA_character_,
+                 atk_uid = NA_integer_, atk_num = NA_integer_,
                  atk_player = NA_character_, atk_effect = NA_character_,
                  atk_call = NA_character_, atk_call_name = NA_character_,
                  atk_zone = NA_integer_, atk_x = NA_real_, atk_y = NA_real_,
@@ -78,6 +80,7 @@ finalize_match <- function(m) {
             player_short = p$player_short, pos = p$pos, start_zone = p$start_zone,
             x0 = p$x0, y0 = p$y0, x1 = p$x1, y1 = p$y1,
             phase = p$phase, passer = p$passer, rec_effect = p$rec_effect,
+            srv_rec = p$srv_rec,
             atk_uid = p$atk_uid, atk_num = p$atk_num, atk_player = p$atk_player,
             atk_effect = p$atk_effect, atk_call = p$atk_call,
             atk_call_name = p$atk_call_name, atk_zone = p$atk_zone,
@@ -94,6 +97,22 @@ finalize_match <- function(m) {
     {
       sv <- which(sk == "S")
       serving_side <- if (length(sv)) sd[sv[1]] else NA_character_
+
+      # The grade the serve drew, carried on the serve itself. The reception
+      # is coded on the other side of the rally, so without this a serve row
+      # knows whether it was an ace and nothing about what it did to the
+      # pass. The first reception by the receiving team, because a second R
+      # in the same rally is a dig of something else.
+      for (k in sv) {
+        if (k >= length(ii)) next
+        for (j in (k + 1):length(ii)) {
+          if (sk[j] == "R" && !is.na(sd[j]) && !is.na(sd[k]) && sd[j] != sd[k]) {
+            v$srv_rec[ii[k]] <- v$effect[ii[j]]
+            break
+          }
+          if (sk[j] == "S") break
+        }
+      }
       did <- character()
       for (k in which(sk == "A")) {
         if (sd[k] %in% did) {
@@ -151,7 +170,8 @@ finalize_match <- function(m) {
       v$rec_effect[s] <- v$rec_effect[a]
     }
   }
-  for (nm in c("phase", "passer", "rec_effect", "atk_uid", "atk_num", "atk_player",
+  for (nm in c("phase", "passer", "rec_effect", "srv_rec",
+               "atk_uid", "atk_num", "atk_player",
                "atk_effect", "atk_call", "atk_call_name", "atk_zone",
                "atk_x", "atk_y", "atk_land_x", "atk_land_y"))
     data.table::set(p, j = nm, value = v[[nm]])
@@ -422,13 +442,32 @@ attack_line <- function(rows) {
 #' Serve line. `eff` and `op` reproduce VolleyStation's own report columns:
 #' Eff = (aces + no-attack + positive - errors) / total, Op = count of
 #' no-attack serves.
+#'
+#' The three pass columns read the serve from the other side of the net: of
+#' the serves this player put in play, what did the receiving team's pass
+#' come out as. Perfect is a # pass, the same symbol VolleyStation grades a
+#' perfect reception with. In-system is # or +, which is VolleyStation's own
+#' "positive reception", and Out of system is the rest, so the two sum to
+#' one by construction rather than by two separate counts.
+#'
+#' Receptions are the denominator, not serves. A serve into the net drew no
+#' pass at all and would otherwise be counted as having held them out of
+#' system, which flatters the server who misses most.
 serve_line <- function(rows) {
   n <- nrow(rows)
   ace <- sum(is_kill(rows$effect)); err <- sum(is_err(rows$effect))
   op <- sum(is_blk(rows$effect))        # receiver could not set up an attack
   plus <- sum(!is.na(rows$effect) & rows$effect == "+")
+  rc <- if ("srv_rec" %in% names(rows)) rows$srv_rec[!is.na(rows$srv_rec)]
+        else character(0)
+  rn <- length(rc)
+  perf <- sum(rc == "#"); insys <- perf + sum(rc == "+")
   d <- rows$y1[rows$has_xy]
   list(ta = n, n = n, ace = ace, err = err, op = op, plus = plus,
+       rec_n = rn, opp_perf = perf, opp_insys = insys,
+       opp_perfpct = if (rn) perf / rn else NA_real_,
+       opp_syspct  = if (rn) insys / rn else NA_real_,
+       kopct       = if (rn) 1 - insys / rn else NA_real_,
        k = ace, e = err, b = 0,
        acepct = if (n) ace / n else NA_real_,
        errpct = if (n) err / n else NA_real_,

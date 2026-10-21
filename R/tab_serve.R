@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# SERVE DIRECTION
+# SERVING
 #
 # Contact behind the endline -> landing point. Eff and Op reproduce
 # VolleyStation's own report columns exactly, so these two can be read against
@@ -23,7 +23,7 @@ tab_serve <- function(F, o, coords_ok) {
   in_court <- xy[!out_of_court(xy$x1, xy$y1), ]
   mono <- isTRUE(o$mono)
 
-  H <- hdr("Serve direction",
+  H <- hdr("Serving",
            sprintf("%s serves%s · contact behind the endline → landing point",
                    nrow(V),
                    if (sel_type == "all") "" else paste0(" · ", esc(srv_type_name(sel_type)))))
@@ -47,6 +47,12 @@ tab_serve <- function(F, o, coords_ok) {
     list(k = "Aces", v = st$ace, s = pct(st$acepct)),
     list(k = "Errors", v = st$err, s = pct(st$errpct)),
     list(k = "Op", v = st$op, s = "no attack"),
+    # What the serve did to their pass, which is the question a serving plan
+    # is actually about. Aces and no-attack say the serve won something; this
+    # says how often it took their first option away.
+    list(k = "Perfect against", v = pct(st$opp_perfpct),
+         s = sprintf("%d of %d passes", st$opp_perf, st$rec_n)),
+    list(k = "KO%", v = pct(st$kopct), s = "not # or +"),
     list(k = "Median depth",
          v = if (!is.na(st$med_depth)) m1(st$med_depth - COURT$NET) else "",
          s = "m past net")
@@ -109,6 +115,7 @@ tab_serve <- function(F, o, coords_ok) {
 
   R <- c(R, card("By server", c(tbl_generic(
     c("Server", "Type", "Eff", "Srv", "Ace", "%Ace", "Err", "%Err", "Op",
+      "Pass #%", "KO%",
       "→Opp R", "→Mid", "→Opp L", "Depth m"),
     lapply(by_size(crosstab(V, paste(V$num, V$player_short, sep = "|"), serve_line), "n"),
       function(g) {
@@ -123,10 +130,11 @@ tab_serve <- function(F, o, coords_ok) {
         c(sprintf("<b>%s</b> %s", parts[1], esc(parts[2])), thin(mix),
           eff_td(g$stat$eff), g$stat$n, g$stat$ace, pct(g$stat$acepct),
           g$stat$err, pct(g$stat$errpct), g$stat$op,
+          pct(g$stat$opp_perfpct), pct(g$stat$kopct),
           lane("R"), lane("M"), lane("L"),
           if (!is.na(g$stat$med_depth)) m1(g$stat$med_depth - COURT$NET) else "")
       })),
-    tiny("Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Lane columns are the receiving team's right / middle / left thirds, zones 1·9·2, 6·8·3 and 5·7·4."))))
+    tiny("Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Pass #% is how often the receiving team passed her serve perfect, and KO% how often they did not pass it # or +, which is VolleyStation's positive reception inverted. Both count the serves that drew a pass, so a serve into the net is in neither. Lane columns are the receiving team's right / middle / left thirds, zones 1·9·2, 6·8·3 and 5·7·4."))))
 
   R <- c(R, card("By target zone", c(tbl_generic(
     c("Zone", "", "Srv", "Sh%", "Ace", "Err", "Ace%"),

@@ -223,7 +223,7 @@ PAIRED_TABS <- c("attack", "serve", "setter", "passing", "last6")
 # video. Its one table that did not need coordinates, the setter calls, now
 # sits on the Setter tab. The code is kept, and the tab comes back the day
 # anyone codes set contacts.
-TABS <- list(c("attack", "Attacking"), c("serve", "Serve direction"),
+TABS <- list(c("attack", "Attacking"), c("serve", "Serving"),
              c("setter", "Setter"),
              c("passing", "Serve receive"), c("defense", "Defense"),
              c("rotation", "Rotations"), c("last6", "Last 6"),
