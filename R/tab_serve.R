@@ -113,6 +113,18 @@ tab_serve <- function(F, o, coords_ok) {
     })),
     tiny("Ignores the type chips above. Codes: top spin = Q or T, jump float = M, standing float = H. Not coded = no type on the serve."))))
 
+  # A rate off three passes is not a rate. Rather than hide the row or set a
+  # threshold that quietly drops a server, the two pass columns go grey below
+  # a handful of passes and say how few they came from. The number is still
+  # there for anyone who wants it, and nobody reads 100% off two serves by
+  # accident.
+  PASS_FLOOR <- 5L
+  pass_pct <- function(v, n)
+    if (is.na(v)) "" else if (n < PASS_FLOOR)
+      sprintf('<span class="thin" title="off %d pass%s">%s</span>',
+              n, if (n == 1L) "" else "es", pct(v))
+    else pct(v)
+
   R <- c(R, card("By server", c(tbl_generic(
     c("Server", "Type", "Eff", "Srv", "Ace", "%Ace", "Err", "%Err", "Op",
       "Pass #%", "KO%",
@@ -130,11 +142,12 @@ tab_serve <- function(F, o, coords_ok) {
         c(sprintf("<b>%s</b> %s", parts[1], esc(parts[2])), thin(mix),
           eff_td(g$stat$eff), g$stat$n, g$stat$ace, pct(g$stat$acepct),
           g$stat$err, pct(g$stat$errpct), g$stat$op,
-          pct(g$stat$opp_perfpct), pct(g$stat$kopct),
+          pass_pct(g$stat$opp_perfpct, g$stat$rec_n),
+          pass_pct(g$stat$kopct, g$stat$rec_n),
           lane("R"), lane("M"), lane("L"),
           if (!is.na(g$stat$med_depth)) m1(g$stat$med_depth - COURT$NET) else "")
       })),
-    tiny("Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Pass #% is how often the receiving team passed her serve perfect, and KO% how often they did not pass it # or +, which is VolleyStation's positive reception inverted. Both count the serves that drew a pass, so a serve into the net is in neither. Lane columns are the receiving team's right / middle / left thirds, zones 1·9·2, 6·8·3 and 5·7·4."))))
+    tiny("Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Pass #% is how often the receiving team passed her serve perfect, and KO% how often they did not pass it # or +, which is VolleyStation's positive reception inverted. Both count the serves that drew a pass, so a serve into the net is in neither, and both go grey under five passes, where a percentage is not yet a rate. Lane columns are the receiving team's right / middle / left thirds, zones 1·9·2, 6·8·3 and 5·7·4."))))
 
   R <- c(R, card("By target zone", c(tbl_generic(
     c("Zone", "", "Srv", "Sh%", "Ace", "Err", "Ace%"),
