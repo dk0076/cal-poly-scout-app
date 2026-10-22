@@ -34,3 +34,9 @@ __pycache__/
 
 # local editor/launch config, carries machine-specific paths
 .claude/
+
+# Built by build\make-exe.ps1 from build\scoutR.cs, and the icon it makes
+# from the mark the app already serves. The exe itself is committed, so a
+# laptop that clones this can double-click it without a build step.
+build/scoutR.ico
+scoutR.log

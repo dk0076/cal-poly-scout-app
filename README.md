@@ -10,16 +10,30 @@ assistance. How it got here: [STORY.md](STORY.md).
 
 R 4.5 with `shiny` and `data.table`. Nothing to install, no build step.
 
-Double-click **scout.bat**, or:
+Double-click **scoutR.exe**. It finds R, picks a port nothing is using, waits
+until the server answers, opens the browser, and shows the addresses to type
+into the iPads. Closing its window stops the server, so the port is free next
+time. Windows may warn about an unsigned program the first time: More info,
+then Run anyway, or build your own copy with the one-line command below.
 
-```bash
-Rscript run.R
+**scout.bat** does the same thing in a console window, and `Rscript run.R`
+does it from a prompt. Open `app.R` in RStudio and click Run App for just
+this machine.
+
+The exe is not a packaged copy of the app: R still does the work and has to
+be installed. Bundling R would mean shipping 200 MB and keeping a second copy
+of it up to date, and the laptop that codes a match has R on it already.
+
+Rebuild it after changing `build/scoutR.cs`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build\make-exe.ps1
 ```
 
-Either serves it to the whole room and prints the addresses. The batch file
-finds R itself, which matters because R's installer does not put `Rscript` on
-the PATH, so the command above fails on a machine where R is plainly
-installed. Open `app.R` in RStudio and click Run App for just this machine.
+That uses the C# compiler inside Windows itself, so there is no toolchain to
+install and it works in a gym with no internet. It takes about a second. The
+icon is made in the same script from the mark the app already serves, rather
+than kept as a separate file that can drift from it.
 
 ## Match files are not in this repository
 
@@ -319,7 +333,10 @@ the mark keeps the artwork it ships with.
 ## Layout
 
 ```
-scout.bat          double-click this at a match
+scoutR.exe         double-click this at a match
+scout.bat          the same, in a console window
+build/scoutR.cs    what scoutR.exe is, in 300 lines of C#
+build/make-exe.ps1 builds it with the compiler inside Windows
 run.R              serve it on any router, printing the address
 BENCH.md           the match-day sheet
 app.R              UI, server, shared file watch, filter rail, file intake
