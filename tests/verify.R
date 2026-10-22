@@ -1493,6 +1493,33 @@ if (nrow(R_all) && any(!is.na(R_all$won))) {
 # A run is the thing a timeout is called about, so the detector has to agree
 # with counting on your fingers: three or more, consecutive, inside one set
 # of one match.
+# A chip in Last 6 says what the call is called, not its code. The code is
+# still in the tooltip, because a coding question needs it and a coach
+# reading recent swings does not.
+cat("\n== calls by name\n")
+ok("a known call reads as its name", identical(call_chip("PG"), "Go"))
+ok("the long ones are shortened to fit a chip",
+   identical(call_chip("V4"), "HB out") && identical(call_chip("IP"), "Pipe"))
+ok("a code with no short form falls back to its full name",
+   identical(call_chip("XX", "Funny business"), "Funny business"))
+ok("and with nothing at all, to the code itself",
+   identical(call_chip("XX"), "XX"))
+ok("no call at all is a dash", identical(call_chip(NA_character_), "-"))
+
+A_l6 <- attacks_of(Fp, character())
+if (nrow(A_l6)) {
+  h6 <- paste(tab_last6(Fp, o), collapse = "")
+  seen <- unique(A_l6$season_call[!is.na(A_l6$season_call)])
+  named <- seen[!is.na(CALL_SHORT[seen])]
+  ok("every call in the file is drawn by name",
+     all(vapply(named, function(k)
+       grepl(sprintf(">%s<", unname(CALL_SHORT[k])), h6, fixed = TRUE), TRUE)),
+     sprintf("%d calls", length(named)))
+  ok("the code is still in the tooltip",
+     all(vapply(named, function(k)
+       grepl(sprintf("(%s)", k), h6, fixed = TRUE), TRUE)))
+}
+
 cat("\n== the run strip\n")
 ok("two in a row is not a run", !length(run_spans(c(TRUE, TRUE, FALSE))))
 ok("three is", length(run_spans(c(TRUE, TRUE, TRUE))) == 1L)

@@ -172,6 +172,33 @@ CALL_LABEL <- c(
   PD = "Setter dump",  PO = "Overpass"
 )
 
+# What a call is called out loud, short enough to sit on a chip beside its
+# grade. The full names in CALL_LABEL are what a table column wants; a row of
+# fifteen recent attempts wants the word a coach would say. "Highball
+# outside" becomes "HB out", and the code itself is kept in the tooltip, so
+# nothing is lost by shortening.
+#
+# A code with no short form falls back to its full name and then to the code,
+# which is what makes an unmapped code visible rather than silently blank.
+CALL_SHORT <- c(
+  PG = "Go",      V4 = "HB out",  P4 = "2 out",
+  PR = "Red",     V2 = "HB oppo", P2 = "2",
+  PH = "D ball",  PS = "Slide op",
+  LT = "1",       LG = "Gap",     LS = "Slide",
+  LP = "Push",    L2 = "Back 1",  LD = "Poly",
+  IP = "Pipe",    ID = "40",      VP = "OOS pipe",
+  PD = "Dump",    PO = "Over"
+)
+
+#' The word for a chip: short name, else full name, else the code itself.
+call_chip <- function(code, file_name = NULL) {
+  if (is.na(code) || !nzchar(code)) return("-")
+  if (!is.na(CALL_SHORT[code])) return(unname(CALL_SHORT[code]))
+  sc <- season_code(code)
+  if (!is.na(CALL_SHORT[sc])) return(unname(CALL_SHORT[sc]))
+  call_label(code, file_name)
+}
+
 # Known setter-call codes for middle routes (recorded on the SET play itself,
 # not the attack). A call and the attack it produces are DIFFERENT fields on
 # DIFFERENT plays -- KT becomes an LT-classified attack only ~53% of the time.

@@ -42,14 +42,21 @@ attack_group <- function(role, pos = NULL) {
 }
 
 #' One attempt, as a coloured chip.
+#'
+#' The chip says what the call is called, not its code. A coach reading a
+#' row of recent swings between rallies should not be translating PG into Go
+#' in their head, and the code is in the tooltip for anyone who wants it.
 attempt_cell <- function(p) {
   st <- land_status(p$effect)
   col <- unname(OUTCOME[st])
-  code <- if (!is.na(p$season_call)) p$season_call else
-          if (!is.na(p$call)) p$call else "–"
-  tip <- sprintf("set %s · %s · %s%s · %s",
+  code <- if (!is.na(p$season_call)) call_chip(p$season_call, p$call_name) else
+          if (!is.na(p$call)) call_chip(p$call, p$call_name) else "-"
+  raw <- if (!is.na(p$season_call)) p$season_call else
+         if (!is.na(p$call)) p$call else ""
+  tip <- sprintf("set %s · %s · %s%s%s · %s",
                  p$set_no, p$score,
                  if (is.na(p$season_call)) "no call" else call_label(p$season_call, p$call_name),
+                 if (nzchar(raw)) sprintf(" (%s)", raw) else "",
                  if (is.na(p$phase)) "" else paste0(" · ", PHASE[[p$phase]]),
                  st)
   sprintf('<span class="att %s" style="border-color:%s;color:%s" title="%s">%s<i>%s</i></span>',
