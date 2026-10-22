@@ -11,9 +11,19 @@ assistance. How it got here: [STORY.md](STORY.md).
 R 4.5 with `shiny` and `data.table`. Nothing to install, no build step.
 
 Double-click **scoutR.exe**. It finds R, picks a port nothing is using, waits
-until the server answers, opens the browser, and shows the addresses to type
-into the iPads. Closing its window stops the server, so the port is free next
-time. Windows may warn about an unsigned program the first time: More info,
+until the server answers, opens the app in a window of its own, and shows the
+addresses to type into the iPads. Closing its window stops the server and
+closes the app window with it, so nothing is left running and the port is
+free next time.
+
+That window is Chrome or Edge in app mode: no address bar, no tabs, its own
+taskbar button, in a profile of its own so it is never mixed in with your own
+browsing. Something has to render HTML, and the alternatives are worse.
+Embedding a browser engine (WebView2) needs SDK assemblies from NuGet, so the
+build would stop working on a laptop with no internet, which is the one place
+it has to work. The engine that ships inside .NET is IE11, which cannot draw
+this app at all: CSS grid and custom properties are what the layout is made
+of. Windows may warn about an unsigned program the first time: More info,
 then Run anyway, or build your own copy with the one-line command below.
 
 **scout.bat** does the same thing in a console window, and `Rscript run.R`

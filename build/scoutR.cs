@@ -39,6 +39,7 @@ static class Scout
 {
     const string AppName = "Cal Poly Scout";
     static Process R;
+    static Process AppWindow;      // the chromeless window, when we opened one
     static Form Win;
     static Label Status;
     static ListBox Addresses;
@@ -118,7 +119,7 @@ static class Scout
         Addresses.BorderStyle = BorderStyle.FixedSingle;
         Win.Controls.Add(Addresses);
 
-        OpenBtn = MakeButton("Open on this laptop", 18, 192, 150);
+        OpenBtn = MakeButton("Open the app window", 18, 192, 150);
         OpenBtn.Click += delegate { OpenBrowser(); };
         CopyBtn = MakeButton("Copy address", 174, 192, 110);
         CopyBtn.Click += delegate { CopyAddress(); };
@@ -237,9 +238,71 @@ static class Scout
 
     // ------------------------------------------------------------ the buttons
 
+    // A window with no address bar, no tabs, no bookmarks: its own taskbar
+    // button and the icon of this program. Chrome and Edge both take --app
+    // for exactly this.
+    //
+    // Why not embed a browser engine in the window itself and be done with
+    // it: WebView2 needs SDK assemblies that come from NuGet, and the build
+    // then stops working on a laptop with no internet, which is the one
+    // place this has to be rebuildable. The control that ships inside .NET
+    // is the IE11 engine, which cannot draw this app at all -- CSS grid and
+    // custom properties are what the whole layout is made of. So the page is
+    // rendered by a browser either way, and the only question is whether it
+    // looks like one. This is the answer that costs nothing.
+    //
+    // --user-data-dir keeps it out of the coach's own Chrome profile, so a
+    // match window is never mixed in with their tabs and closing one does
+    // not close the other.
     static void OpenBrowser()
     {
-        try { Process.Start("http://localhost:" + Port); } catch { }
+        string url = "http://localhost:" + Port;
+        string browser = FindBrowser();
+        if (browser != null)
+        {
+            try
+            {
+                string profile = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "scoutR", "window");
+                Directory.CreateDirectory(profile);
+                ProcessStartInfo si = new ProcessStartInfo(browser,
+                    "--app=" + url +
+                    " --user-data-dir=\"" + profile + "\"" +
+                    " --window-size=1400,900 --no-first-run --no-default-browser-check");
+                si.UseShellExecute = false;
+                // Held on to so Stop can close it. Safe to kill because it
+                // runs in its own profile: this is never the coach's own
+                // Chrome with their tabs in it.
+                AppWindow = Process.Start(si);
+                return;
+            }
+            catch { }
+        }
+        // No Chrome, no Edge, or it refused: a normal tab still works.
+        try { Process.Start(url); } catch { }
+    }
+
+    static string FindBrowser()
+    {
+        string[] exes = { "chrome.exe", "msedge.exe" };
+        RegistryKey[] roots = { Registry.CurrentUser, Registry.LocalMachine };
+        foreach (string exe in exes)
+            foreach (RegistryKey root in roots)
+            {
+                try
+                {
+                    using (RegistryKey k = root.OpenSubKey(
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\" + exe))
+                    {
+                        if (k == null) continue;
+                        string path = k.GetValue(null) as string;
+                        if (!string.IsNullOrEmpty(path) && File.Exists(path)) return path;
+                    }
+                }
+                catch { }
+            }
+        return null;
     }
 
     static void CopyAddress()
@@ -255,6 +318,7 @@ static class Scout
 
     static void StopR()
     {
+        CloseAppWindow();
         if (R == null || R.HasExited) return;
         // R starts its own child for the Shiny server on some installs, so
         // killing the one we started is not enough: taskkill /T takes the
@@ -270,6 +334,27 @@ static class Scout
         }
         catch { }
         try { if (!R.HasExited) R.Kill(); } catch { }
+    }
+
+    // Without this the match window sits there afterwards showing a page
+    // that no longer loads, which looks like the app broke rather than like
+    // it was closed.
+    static void CloseAppWindow()
+    {
+        if (AppWindow == null) return;
+        try
+        {
+            if (!AppWindow.HasExited)
+            {
+                ProcessStartInfo si = new ProcessStartInfo("taskkill",
+                    "/PID " + AppWindow.Id + " /T /F");
+                si.CreateNoWindow = true;
+                si.UseShellExecute = false;
+                Process k = Process.Start(si);
+                k.WaitForExit(4000);
+            }
+        }
+        catch { }
     }
 
     // --------------------------------------------------------------- find R
