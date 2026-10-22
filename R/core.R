@@ -157,9 +157,11 @@ SEASON_CODES <- c("PG", "V4", "P4", "PR", "P2", "PH", "V2", "PS",
 # not record which. Resolved by the hitter's role.
 Z2_QUICK <- c("X4", "X6")
 
-# Season codes that fold into another season code. PH (D ball), ID (40) and the
-# high version V8 are all the back-row right attack -- the staff treats them as
-# one call, so they are reported as one.
+# Season codes that fold into another season code. PH, ID and the high version
+# V8 are all the back-row right attack, and the staff treats them as one call,
+# so they are reported as one. The call is 40: the staff does not use PH, so
+# the merged label says 40 rather than carrying "D ball" alongside it, and a
+# raw PH that reaches a chip before the merge says 40 too.
 SEASON_MERGE <- c(PH = "ID", V8 = "ID")
 
 CALL_LABEL <- c(
@@ -168,7 +170,7 @@ CALL_LABEL <- c(
   PH = "D ball",       PS = "Slide (Op)",
   LT = "1",            LG = "Gap",              LS = "Slide",
   LP = "Push",         L2 = "MB back 1",        LD = "Poly",
-  IP = "Pipe / bic",   ID = "40 / D ball",      VP = "OOS pipe",
+  IP = "Pipe / bic",   ID = "40",                VP = "OOS pipe",
   PD = "Setter dump",  PO = "Overpass"
 )
 
@@ -183,7 +185,7 @@ CALL_LABEL <- c(
 CALL_SHORT <- c(
   PG = "Go",      V4 = "HB out",  P4 = "2 out",
   PR = "Red",     V2 = "HB oppo", P2 = "2",
-  PH = "D ball",  PS = "Slide op",
+  PH = "40",      PS = "Slide op",
   LT = "1",       LG = "Gap",     LS = "Slide",
   LP = "Push",    L2 = "Back 1",  LD = "Poly",
   IP = "Pipe",    ID = "40",      VP = "OOS pipe",

@@ -1505,6 +1505,12 @@ ok("a code with no short form falls back to its full name",
 ok("and with nothing at all, to the code itself",
    identical(call_chip("XX"), "XX"))
 ok("no call at all is a dash", identical(call_chip(NA_character_), "-"))
+# PH is the same attack as ID and the staff does not use it, so it folds into
+# 40 and reads the same wherever one turns up.
+ok("PH folds into 40", identical(season_code("PH"), "ID"))
+ok("and reads as 40 either way",
+   identical(call_chip("PH"), "40") && identical(call_chip("ID"), "40") &&
+     identical(call_label("ID"), "40"))
 
 A_l6 <- attacks_of(Fp, character())
 if (nrow(A_l6)) {
