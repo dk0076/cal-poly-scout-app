@@ -50,7 +50,8 @@ pm_cell <- function(v) {
   sprintf('<span class="%s">%+d</span>', if (v > 0) "pos" else "neg", v)
 }
 
-tab_rotation <- function(rally, F, opp_rally, Opp, o, live = FALSE) {
+tab_rotation <- function(rally, F, opp_rally, Opp, o, live = FALSE,
+                         file_label = "", n_files = 1L) {
   if (!nrow(rally)) return(empty("No rallies in the current filter."))
   t0 <- sideout_line(rally)
   known <- sum(!is.na(rally$won))
@@ -113,6 +114,10 @@ tab_rotation <- function(rally, F, opp_rally, Opp, o, live = FALSE) {
       sprintf('<div class="card %s"><h3>Analysis by set · %s</h3>%s</div>', cls, label,
               tbl_generic(c("Set", "Eff", "K%", "E+B%", "sQ%", "SO%", "FBSO%", "PS%"), setrows)))
   }
+
+  # Before the two side blocks, and full width: a run is one sequence with
+  # both teams in it, not a thing each side has its own version of.
+  H <- c(H, run_strip_card(rally, file_label, n_files))
 
   body <- cols2(
     side_block(rally, F, "us", "us"),

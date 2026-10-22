@@ -18,7 +18,7 @@ root <- dirname(dirname(normalizePath(sub("--file=", "", grep("--file=", command
 setwd(root)
 for (f in c("core.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R", "tables.R",
             "tab_attack.R", "tab_serve.R", "tab_set.R", "tab_setter.R",
-            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R",
+            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R", "plot_runs.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -1488,6 +1488,53 @@ if (nrow(R_all) && any(!is.na(R_all$won))) {
      identical(rot_ladder(R_all[0, ], NA_character_), ""))
   ok("the card carries the ladder and its note",
      grepl("Side-out by rotation", rot_ladder_card(R_all, "us", "us"), fixed = TRUE))
+}
+
+# A run is the thing a timeout is called about, so the detector has to agree
+# with counting on your fingers: three or more, consecutive, inside one set
+# of one match.
+cat("\n== the run strip\n")
+ok("two in a row is not a run", !length(run_spans(c(TRUE, TRUE, FALSE))))
+ok("three is", length(run_spans(c(TRUE, TRUE, TRUE))) == 1L)
+ok("a run is measured to its end",
+   local({ sp <- run_spans(c(FALSE, TRUE, TRUE, TRUE, TRUE, FALSE))[[1]]
+           sp$from == 2L && sp$to == 5L && sp$n == 4L && isTRUE(sp$ours) }))
+ok("both sides' runs are found",
+   length(run_spans(c(rep(TRUE, 3), rep(FALSE, 4)))) == 2L)
+ok("a run carries the rotation it started in",
+   identical(run_spans(c(TRUE, TRUE, TRUE), c("R4", "R5", "R6"))[[1]]$rot, "R4"))
+ok("nothing to read gives nothing", !length(run_spans(logical(0))))
+
+R_runs <- rally_outcomes(matches, sel, focus)
+if (nrow(R_runs) && any(!is.na(R_runs$won))) {
+  strip <- run_strip(R_runs)
+  rl <- R_runs[!is.na(R_runs$won), ]
+  last_id <- rl$match_id[nrow(rl)]
+  one <- rl[rl$match_id == last_id, ]
+  ok("one tick per rally of the most recent match",
+     length(gregexpr("<rect", strip, fixed = TRUE)[[1]]) == nrow(one),
+     sprintf("%d rallies", nrow(one)))
+  ok("and no ticks from the others",
+     length(unique(rl$match_id)) == 1L ||
+       length(gregexpr("<rect", strip, fixed = TRUE)[[1]]) < nrow(rl))
+
+  # Runs must not be found across a set boundary: the last rally of set 1 and
+  # the first of set 2 are not consecutive in any sense a coach means.
+  data.table::setorder(one, set_no, rally_no)
+  per_set <- sum(vapply(unique(one$set_no), function(sn)
+    length(run_spans(one$won[one$set_no == sn])), 0L))
+  pooled <- length(run_spans(one$won))
+  ok("runs stop at the end of a set",
+     length(gregexpr("&#215;", strip, fixed = TRUE)[[1]]) == per_set,
+     sprintf("%d per set, %d if pooled", per_set, pooled))
+
+  ok("the worst run against us is named with its set and rotation",
+     grepl("Longest run against us|No run of three against us",
+           run_worst(R_runs)))
+  ok("an empty slice draws nothing",
+     identical(run_strip(R_runs[0, ]), ""))
+  ok("the strip needs no coordinates",
+     nzchar(run_strip(R_runs)) && !grepl("has_xy", strip, fixed = TRUE))
 }
 
 cat("\n== where each card lives\n")

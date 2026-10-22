@@ -473,3 +473,10 @@ body.simplified .c-coord{display:none}
 .ladder .lv.thin{fill:var(--ink-3)}
 .ladder .behind{fill:var(--err)}
 .ladder .nowlab{fill:var(--gold)}
+
+/* ---- the run strip ------------------------------------------------------ */
+.runs{width:100%;max-width:760px;height:auto;display:block;margin:2px 0 4px}
+.runs .rl{font:12.5px var(--mono);fill:var(--ink);font-weight:600}
+.runs .rt{font:9.5px var(--mono);fill:var(--ink-3)}
+.runs .rt.ours{fill:var(--accent)}
+.runs .rt.theirs{fill:var(--them-ink)}
