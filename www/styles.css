@@ -459,3 +459,17 @@ body.detail-open .extra{display:block}
    somebody drew a line on a video come out, because on that file they are a
    column of blanks taking the width the numbers need. */
 body.simplified .c-coord{display:none}
+
+/* ---- the rotation ladder ------------------------------------------------ */
+/* Sized to be read from a bench, not from a desk: the labels are the same
+   size as a table's, and the whole thing is one svg so it scales with the
+   card rather than reflowing. */
+.ladder{width:100%;max-width:560px;height:auto;display:block;margin:2px 0 4px}
+.ladder .lb{font:12.5px var(--mono);fill:var(--ink);font-weight:600}
+.ladder .lt{font:10px var(--mono);fill:var(--ink-3)}
+.ladder .lv{font:12px var(--mono);fill:var(--ink)}
+.ladder .lv.pos{fill:var(--kill)}
+.ladder .lv.neg{fill:var(--err)}
+.ladder .lv.thin{fill:var(--ink-3)}
+.ladder .behind{fill:var(--err)}
+.ladder .nowlab{fill:var(--gold)}

@@ -18,7 +18,7 @@ root <- dirname(dirname(normalizePath(sub("--file=", "", grep("--file=", command
 setwd(root)
 for (f in c("core.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R", "tables.R",
             "tab_attack.R", "tab_serve.R", "tab_set.R", "tab_setter.R",
-            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R", "tab_nextserver.R",
+            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -1442,6 +1442,54 @@ ok("asking for them brings them back",
 # reading rotation by rotation. By hit type stays on Attacking but folds
 # away: the tempo field is set on every attack in every file loaded, by the
 # coder's habit rather than anyone's decision.
+# The rotation ladder is the one thing on this tab meant to be read between
+# rallies, so the rules it draws have to hold exactly: the comparison is the
+# team's own side-out, and a rotation is only called out when its whole
+# interval sits under that line.
+cat("\n== the rotation ladder\n")
+R_all <- rally_outcomes(matches, sel, focus)
+if (nrow(R_all) && any(!is.na(R_all$won))) {
+  lad <- rot_ladder(R_all, NA_character_)
+  ok("the ladder draws a row per rotation",
+     length(gregexpr('class="lb', lad, fixed = TRUE)[[1]]) == length(ROTS))
+  avg <- sideout_line(R_all)$so
+  ok("the dashed line is this team's own side-out",
+     grepl(sprintf("team %d%%", round(100 * avg)), lad, fixed = TRUE))
+
+  # Every rotation the chart calls behind must really be one, and every one
+  # it stays quiet about must really be undecided. Checked against the
+  # numbers rather than against the drawing.
+  rows <- ladder_rows(R_all)
+  want <- vapply(rows, function(r)
+    isTRUE(r$rec > 0) && !is.na(r$hi) && r$hi < avg, TRUE)
+  ok("behind is marked exactly where the whole interval is under that line",
+     length(gregexpr("behind<", lad, fixed = TRUE)[[1]]) ==
+       max(sum(want), 0) || (sum(want) == 0 && !grepl("behind<", lad, fixed = TRUE)),
+     sprintf("%d of %d rotations", sum(want), length(rows)))
+  ok("a low rate on few rallies is not called behind",
+     all(vapply(rows, function(r)
+       !isTRUE(r$rec > 0) || is.na(r$so) || r$so >= avg ||
+         (r$hi < avg) == (r$rec >= 1 && r$hi < avg), TRUE)))
+
+  # The marker says what is on the floor, so it is only drawn while a file is
+  # being coded. On a finished match that row is just where it ended.
+  k <- R_all$rot[nrow(R_all)]
+  ok("on court is marked when a file is being followed",
+     is.na(k) || grepl("on court", rot_ladder(R_all, k), fixed = TRUE))
+  ok("and never when it is not",
+     !grepl("on court", lad, fixed = TRUE))
+
+  # It has to survive the live case, which is the case it exists for: a file
+  # with rally winners, rotations, and no coordinate anywhere.
+  flat <- data.table::copy(R_all)
+  ok("the ladder needs no coordinates",
+     nzchar(rot_ladder(flat, NA_character_)))
+  ok("an empty slice draws nothing rather than an empty frame",
+     identical(rot_ladder(R_all[0, ], NA_character_), ""))
+  ok("the card carries the ladder and its note",
+     grepl("Side-out by rotation", rot_ladder_card(R_all, "us", "us"), fixed = TRUE))
+}
+
 cat("\n== where each card lives\n")
 h_att <- paste(tab_attack(Fp, o_auto, ck), collapse = "")
 h_rot <- local({

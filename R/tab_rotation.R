@@ -50,7 +50,7 @@ pm_cell <- function(v) {
   sprintf('<span class="%s">%+d</span>', if (v > 0) "pos" else "neg", v)
 }
 
-tab_rotation <- function(rally, F, opp_rally, Opp, o) {
+tab_rotation <- function(rally, F, opp_rally, Opp, o, live = FALSE) {
   if (!nrow(rally)) return(empty("No rallies in the current filter."))
   t0 <- sideout_line(rally)
   known <- sum(!is.na(rally$won))
@@ -75,6 +75,15 @@ tab_rotation <- function(rally, F, opp_rally, Opp, o) {
     list(k = "+/-", v = sprintf("%+d", t0$plus_minus), s = "rallies won − lost")
   )))
 
+  # The rotation on the floor, marked on the ladder. Only while a file is
+  # being coded: on a finished match the last rally's rotation is where the
+  # match happened to end, which is not worth a marker.
+  now_rot <- function(rl) {
+    if (!live || !nrow(rl)) return(NA_character_)
+    k <- rl$rot[nrow(rl)]
+    if (is.na(k)) NA_character_ else k
+  }
+
   side_block <- function(rl, pl, label, cls) {
     rows <- lapply(ROTS, function(k) {
       c0 <- rot_cols(rl[!is.na(rl$rot) & rl$rot == k, ],
@@ -95,6 +104,9 @@ tab_rotation <- function(rally, F, opp_rally, Opp, o) {
     setrows <- c(setrows, list(tot_row(c("Total", eff_td(st$eff), pct(st$k), pct(st$eb),
                                          pct(st$sq), pct(st$so), pct(st$fbso), pct(st$ps)))))
     paste0(
+      # First on the tab, because it is the one piece of this a coach reads
+      # between rallies rather than between sets.
+      rot_ladder_card(rl, label, cls, now_rot(rl)),
       phase_by_rot_card(pl, label, cls),
       sprintf('<div class="card %s"><h3>Rotational analysis · %s</h3>%s</div>', cls, label,
               tbl_generic(c("Rot", "SO%", "ESO%", "FBSO%", "PS%", "+/-", "Ace", "Err"), rows)),

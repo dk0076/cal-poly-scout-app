@@ -17,7 +17,7 @@ suppressMessages(library(data.table))
 for (f in c("core.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R",
             "tables.R", "tab_attack.R", "tab_serve.R", "tab_set.R",
             "tab_setter.R", "tab_passing.R", "tab_defense.R", "tab_rotation.R",
-            "tab_last6.R", "tab_roster.R", "tab_nextserver.R",
+            "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -775,7 +775,8 @@ server <- function(input, output, session) {
         tab_rotation(rally_outcomes(S$matches, sel_all, S$focus),
                      focus_plays(S$matches, sel_all, S$focus),
                      rally_outcomes(S$matches, sel_all, S$focus, opp = TRUE),
-                     Op, o)
+                     Op, o,
+                     live = nzchar(LIVE$path) && !length(S$sel$matches))
       }
       else tab_plays(F(), o)
     }, error = function(e)
