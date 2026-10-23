@@ -33,18 +33,32 @@ set_hit <- function(rows) {
   (sum(lk & rows$atk_effect == "#") - sum(lk & rows$atk_effect %in% c("=", "/"))) / n
 }
 
-#' One set as a chip: who it went to, and what they did with it
+#' One set as a chip: who it went to, what was run, and what came back
+#'
+#' Both, not one. "16" alone says the setter went to her and not what she
+#' was asked to hit; "Go" alone says what was run and not by whom, and a Go
+#' to one outside is a different decision from a Go to the other. A coach
+#' reading this strip is asking both halves of one question.
+#'
+#' The call comes off the attack the set produced, through the same season
+#' codes the rest of the app uses, so a chip here and a chip on Last 6 say
+#' the same word for the same swing.
 sr_set_chip <- function(p) {
   st <- if (is.na(p$atk_effect)) "in" else land_status(p$atk_effect)
   col <- unname(OUTCOME[st])
   who <- if (!is.na(p$atk_num)) p$atk_num else "?"
-  tip <- sprintf("set %s · %s · %s%s · %s",
+  call <- if (!is.na(p$atk_season_call %||% NA)) call_chip(p$atk_season_call, p$atk_call_name)
+          else if (!is.na(p$atk_call)) call_chip(p$atk_call, p$atk_call_name)
+          else ""
+  tip <- sprintf("set %s · %s · %s%s%s · %s",
                  p$set_no, p$score %||% "",
                  if (is.na(p$atk_player)) "no attack" else p$atk_player,
+                 if (nzchar(call)) paste0(" · ", call) else "",
                  if (is.na(p$rec_effect)) "" else paste0(" · pass ", p$rec_effect),
                  st)
-  sprintf('<span class="att %s" style="border-color:%s;color:%s" title="%s">%s<i>%s</i></span>',
+  sprintf('<span class="att %s" style="border-color:%s;color:%s" title="%s">%s%s<i>%s</i></span>',
           st, col, col, esc(tip), esc(as.character(who)),
+          if (nzchar(call)) sprintf(' <b class="cl">%s</b>', esc(call)) else "",
           if (is.na(p$atk_effect)) "-" else esc(p$atk_effect))
 }
 

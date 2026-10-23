@@ -480,3 +480,7 @@ body.simplified .c-coord{display:none}
 .runs .rt{font:9.5px var(--mono);fill:var(--ink-3)}
 .runs .rt.ours{fill:var(--accent)}
 .runs .rt.theirs{fill:var(--them-ink)}
+
+/* The call on a serve-receive set chip: present, but the jersey number and
+   the grade are what the eye should land on first. */
+.att .cl{font-weight:600;opacity:.75;font-size:11px}

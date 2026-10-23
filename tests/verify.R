@@ -1479,6 +1479,17 @@ if (nrow(SR_all)) {
      identical(set_hit(utils::tail(q, 10000L)), set_hit(q)))
   ok("a chip carries the attacker and the swing",
      grepl('class="att', h_sr, fixed = TRUE))
+  # Both halves of the question: who she went to, and what they were asked
+  # to hit. The call is the same word Last 6 uses for the same swing.
+  ok("and what was run, by name",
+     local({
+       calls <- unique(SR_all$atk_season_call[!is.na(SR_all$atk_season_call)])
+       named <- calls[!is.na(CALL_SHORT[calls])]
+       length(named) == 0 ||
+         all(vapply(named, function(k)
+           grepl(sprintf('<b class="cl">%s</b>', unname(CALL_SHORT[k])), h_sr,
+                 fixed = TRUE), TRUE))
+     }))
   ok("transition sets are not in it",
      local({
        tr <- E_all[is.na(E_all$phase) | E_all$phase != "SR", ]
