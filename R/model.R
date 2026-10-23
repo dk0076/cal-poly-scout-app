@@ -314,7 +314,17 @@ setter_zone_of <- function(p, own) {
 #' "Setter" = at least 3 sets and more sets than attacks, pooled per team over
 #' every loaded file regardless of the filters, so filtering can never change a
 #' rally's system.
-classify_systems <- function(matches) {
+#' `only` names the match to re-label. The counts behind "who is a setter"
+#' are still pooled over the whole library, because that is what makes a
+#' scouted opponent's setter identifiable at all; what `only` skips is the
+#' per-rally relabelling of files that did not change.
+#'
+#' Why it matters: this loop costs about 230 ms per match, and the live
+#' watcher used to run it over every loaded file on every coded rally. With
+#' the opponent's four films open, which is the match-day setup, each rally
+#' cost 1.2 s of recomputing labels that came out identical. A film's labels
+#' are refreshed when the library itself changes.
+classify_systems <- function(matches, only = NULL) {
   cnt <- list()
   for (m in matches) {
     p <- m$plays
@@ -334,7 +344,13 @@ classify_systems <- function(matches) {
     !is.null(c0) && c0[["e"]] >= 3 && c0[["e"]] > c0[["a"]]
   }
 
-  for (mi in seq_along(matches)) {
+  # A match that has never been labelled is always done, whatever `only`
+  # says: a missing sys column is not a stale label, it is a column the rest
+  # of the app reads.
+  todo <- if (is.null(only)) seq_along(matches) else which(
+    vapply(matches, function(m) m$match_id %in% only, TRUE) |
+    vapply(matches, function(m) !("sys" %in% names(m$plays)), TRUE))
+  for (mi in todo) {
     p <- matches[[mi]]$plays
     if (!nrow(p)) { matches[[mi]]$plays$sys <- character(); next }
     rkey <- paste(p$set_no, p$rally_no, sep = "|")
@@ -401,8 +417,13 @@ classify_systems <- function(matches) {
 #' Season call code per play, resolved once roles are known. Kept as a column
 #' rather than recomputed per tab: the zone 2 quick needs the hitter's role,
 #' and threading roles through every grouping call is how that gets dropped.
-add_season_codes <- function(matches) {
-  for (mi in seq_along(matches)) {
+#' `only` as in classify_systems: the roles behind a season code are read
+#' off the whole library, the rewriting is done for one match.
+add_season_codes <- function(matches, only = NULL) {
+  todo <- if (is.null(only)) seq_along(matches) else which(
+    vapply(matches, function(m) m$match_id %in% only, TRUE) |
+    vapply(matches, function(m) !("season_call" %in% names(m$plays)), TRUE))
+  for (mi in todo) {
     p <- matches[[mi]]$plays
     if (!nrow(p)) next
     roles <- list()

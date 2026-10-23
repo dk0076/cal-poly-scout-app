@@ -1449,6 +1449,30 @@ ok("asking for them brings them back",
 # Serve receive sets by rotation: what the setter has been doing out of a
 # pass, in this rotation, lately. The windows are the point, so they have to
 # be the last n of that rotation and nothing else.
+# The live watcher relabels only the file that changed. Same answers for
+# that file, nothing touched in the others: without this, a rally landing
+# with the opponent's films open cost a second of recomputing labels that
+# came out identical.
+cat("\n== only the file that changed\n")
+if (length(matches) >= 2) {
+  ids <- names(matches)
+  full <- add_season_codes(classify_systems(matches))
+  one  <- add_season_codes(classify_systems(matches, ids[1]), ids[1])
+  ok("the changed file gets the same system labels",
+     identical(full[[ids[1]]]$plays$sys, one[[ids[1]]]$plays$sys))
+  ok("and the same season codes",
+     identical(full[[ids[1]]]$plays$season_call, one[[ids[1]]]$plays$season_call))
+  ok("the others are left exactly as they were",
+     identical(matches[[ids[2]]]$plays$sys, one[[ids[2]]]$plays$sys))
+  ok("a file that has never been labelled is done anyway",
+     local({
+       raw <- matches
+       raw[[ids[2]]]$plays$sys <- NULL
+       out <- classify_systems(raw, ids[1])
+       "sys" %in% names(out[[ids[2]]]$plays)
+     }))
+}
+
 cat("\n== serve receive sets by rotation\n")
 E_all <- Fp[Fp$skill == "E", ]
 SR_all <- E_all[!is.na(E_all$phase) & E_all$phase == "SR", ]

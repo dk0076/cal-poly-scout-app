@@ -99,6 +99,12 @@ read_match_file <- function(path, name = basename(path)) {
 # the next change. The re-parse is the same work either way: at full match
 # length, 795 plays, 0.11s to read and parse, finalize included.
 #
+# The labelling pass after it used to cost more than the parse, and grew with
+# the library: 0.13s with tonight's file alone, 1.25s with four scouting
+# films open, which is the match-day setup. It relabelled every film to the
+# same answers on every coded rally. Now only the file that changed is
+# relabelled, measured at 0.27s with those same five files loaded.
+#
 # A change has to hold still for one tick before it is read. VolleyStation
 # writes in bursts, and at this rate a poll lands inside a burst often rather
 # than rarely, which would mean parsing half-written files all match. Waiting
@@ -144,7 +150,7 @@ LIB <- reactiveValues(matches = list(), focus_name = "", focus = list(),
 #' Was per session, which meant this ran once per connected tablet and each
 #' one kept its own answer. It is a property of the files, so it happens here
 #' and the result is broadcast.
-lib_settle <- function() {
+lib_settle <- function(only = NULL) {
   if (!length(LIB$matches)) {
     LIB$gen <- LIB$gen + 1L
     return(invisible(FALSE))
@@ -153,8 +159,11 @@ lib_settle <- function() {
   # which would otherwise undo every roster correction mid-match.
   ms <- apply_positions(LIB$matches, ROSTER$ov)
   ms <- ms[order(vapply(ms, function(m) paste0(m$date %||% "", "|", m$file_name), ""))]
-  ms <- classify_systems(ms)
-  ms <- add_season_codes(ms)
+  # `only` on the live path. A rally landing in tonight's file changes
+  # tonight's file and nothing else, and relabelling four scouting films to
+  # the same answers cost about a second of every rally.
+  ms <- classify_systems(ms, only)
+  ms <- add_season_codes(ms, only)
   LIB$matches <- ms
   idx <- team_index(ms)
   # The default is the team appearing in the most files, ties breaking
@@ -207,7 +216,7 @@ local({
     LIVE$match <- m
     LIVE$at <- format(Sys.time(), "%H:%M:%S")
     lib_add(m)
-    lib_settle()
+    lib_settle(only = m$match_id)
     LIVE$gen <- LIVE$gen + 1L
   }, domain = NULL)
 })
