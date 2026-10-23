@@ -83,6 +83,11 @@ tab_setter <- function(F, o, coords_ok) {
 
   L <- list(); R <- list()
 
+  # What the setter has been doing out of serve receive in each rotation,
+  # lately. The tables below answer it for the match; a coach between rallies
+  # is asking about this rotation and the last few times through it.
+  R <- c(R, sr_sets_card(E))
+
   by_t <- lapply(c(TKEYS, list(c(NA_character_, "Other / none"))), function(kl) {
     k <- kl[1]; lab <- kl[2]
     rs <- if (is.na(k))

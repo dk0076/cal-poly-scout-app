@@ -18,7 +18,7 @@ root <- dirname(dirname(normalizePath(sub("--file=", "", grep("--file=", command
 setwd(root)
 for (f in c("core.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R", "tables.R",
             "tab_attack.R", "tab_serve.R", "tab_set.R", "tab_setter.R",
-            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R", "plot_runs.R",
+            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R", "plot_runs.R", "plot_sr_sets.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -1446,6 +1446,47 @@ ok("asking for them brings them back",
 # rallies, so the rules it draws have to hold exactly: the comparison is the
 # team's own side-out, and a rotation is only called out when its whole
 # interval sits under that line.
+# Serve receive sets by rotation: what the setter has been doing out of a
+# pass, in this rotation, lately. The windows are the point, so they have to
+# be the last n of that rotation and nothing else.
+cat("\n== serve receive sets by rotation\n")
+E_all <- Fp[Fp$skill == "E", ]
+SR_all <- E_all[!is.na(E_all$phase) & E_all$phase == "SR", ]
+if (nrow(SR_all)) {
+  h_sr <- sr_sets_card(Fp)
+  ok("the card draws a row per rotation",
+     length(gregexpr("</tr>", h_sr, fixed = TRUE)[[1]]) == length(ROTS) + 1L)
+  # Only sets off a pass. A file of nothing but transition sets has no card
+  # at all, rather than a card of the same numbers under a wrong heading.
+  tr_only <- data.table::copy(E_all)
+  tr_only$phase <- "TR"
+  ok("only serve receive sets are counted", identical(sr_sets_card(tr_only), ""))
+
+  # The window is the last n of that rotation, computed here the long way.
+  k <- names(sort(table(SR_all$rot[!is.na(SR_all$rot)]), decreasing = TRUE))[1]
+  q <- SR_all[!is.na(SR_all$rot) & SR_all$rot == k, ]
+  data.table::setorder(q, date, match_id, set_no, rally_no, seq)
+  for (n in SR_WINDOWS) {
+    tail_n <- utils::tail(q, n)
+    lk <- !is.na(tail_n$atk_effect)
+    want <- if (!sum(lk)) NA_real_ else
+      (sum(lk & tail_n$atk_effect == "#") -
+         sum(lk & tail_n$atk_effect %in% c("=", "/"))) / sum(lk)
+    ok(sprintf("L%d is the last %d sets of that rotation", n, n),
+       isTRUE(all.equal(set_hit(tail_n), want)))
+  }
+  ok("the window never reaches past what is there",
+     identical(set_hit(utils::tail(q, 10000L)), set_hit(q)))
+  ok("a chip carries the attacker and the swing",
+     grepl('class="att', h_sr, fixed = TRUE))
+  ok("transition sets are not in it",
+     local({
+       tr <- E_all[is.na(E_all$phase) | E_all$phase != "SR", ]
+       nrow(tr) == 0 || !identical(sr_sets_card(Fp), sr_sets_card(E_all[0, ]))
+     }))
+  ok("no sets at all draws nothing", identical(sr_sets_card(Fp[0, ]), ""))
+}
+
 cat("\n== the rotation ladder\n")
 R_all <- rally_outcomes(matches, sel, focus)
 if (nrow(R_all) && any(!is.na(R_all$won))) {

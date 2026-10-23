@@ -108,6 +108,7 @@ tab_rotation <- function(rally, F, opp_rally, Opp, o, live = FALSE,
       # First on the tab, because it is the one piece of this a coach reads
       # between rallies rather than between sets.
       rot_ladder_card(rl, label, cls, now_rot(rl)),
+      sr_sets_card(pl, label, cls),
       phase_by_rot_card(pl, label, cls),
       sprintf('<div class="card %s"><h3>Rotational analysis · %s</h3>%s</div>', cls, label,
               tbl_generic(c("Rot", "SO%", "ESO%", "FBSO%", "PS%", "+/-", "Ace", "Err"), rows)),
