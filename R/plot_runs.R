@@ -30,17 +30,48 @@ STRIP <- list(w = 486, x0 = 52, x1 = 478, row = 48, top = 10, gap = 1.4)
 #' Runs of consecutive rallies won by the same side
 #'
 #' Returns one row per run of RUN_MIN or more: where it starts, how long, who
-#' won it, and the rotation we were in when it began.
-run_spans <- function(won, rot = NULL, min_len = RUN_MIN) {
+#' won it, and the rotation it was won from.
+#'
+#' That last one is not the rotation at the first rally, which is what this
+#' used to say and what made a real run read wrong. A run of ours begins with
+#' a side-out: we win it in the rotation we were already in, then rotate and
+#' serve the rest from the next one. Eleven straight in this file started
+#' with a side-out in R6 and were served from R1, and R1 is what a coach
+#' means by "the run in R1". So the label comes from the first rally of the
+#' run in which the winning side served.
+#'
+#' A run against us needs no such care, because our rotation cannot change
+#' while we are losing: we only rotate on a side-out we win. The same rule is
+#' applied to both anyway, since it gives the same answer there.
+run_spans <- function(won, rot = NULL, served = NULL, min_len = RUN_MIN) {
   if (!length(won)) return(list())
   r <- rle(won)
   ends <- cumsum(r$lengths)
   starts <- ends - r$lengths + 1L
   keep <- which(r$lengths >= min_len)
-  lapply(keep, function(i) list(
-    from = starts[i], to = ends[i], n = r$lengths[i], ours = isTRUE(r$values[i]),
-    rot = if (is.null(rot)) NA_character_ else rot[starts[i]]))
+  lapply(keep, function(i) {
+    idx <- starts[i]:ends[i]
+    ours <- isTRUE(r$values[i])
+    at <- idx[1]
+    if (!is.null(served)) {
+      # the first rally of the run that this side served
+      w <- which(if (ours) isTRUE_v(served[idx]) else !isTRUE_v(served[idx]))
+      if (length(w)) at <- idx[w[1]]
+    }
+    label <- if (is.null(rot)) NA_character_ else rot[at]
+    # a rally nobody on our side touched can carry no rotation; the rest of
+    # the run is the same rotation, so take the first one that is there
+    if (!is.null(rot) && is.na(label)) {
+      ok <- idx[!is.na(rot[idx])]
+      if (length(ok)) label <- rot[ok[1]]
+    }
+    list(from = starts[i], to = ends[i], n = r$lengths[i], ours = ours,
+         rot = label)
+  })
 }
+
+#' TRUE where TRUE, FALSE where NA, elementwise
+isTRUE_v <- function(v) !is.na(v) & v
 
 #' The strip for one set
 #'
@@ -65,7 +96,7 @@ run_set_row <- function(rl, y, label) {
                         if (isTRUE(rl$served[i])) "our serve" else "their serve")))
   }, ""), collapse = "")
 
-  brackets <- paste0(vapply(run_spans(rl$won, rl$rot), function(sp) {
+  brackets <- paste0(vapply(run_spans(rl$won, rl$rot, rl$served), function(sp) {
     x_from <- at(sp$from)
     x_to <- at(sp$to) + tw
     ytop <- if (sp$ours) mid - 15 else mid + 15
@@ -114,14 +145,14 @@ run_worst <- function(rally) {
   data.table::setorder(rl, set_no, rally_no)
   spans <- unlist(lapply(unique(rl$set_no), function(sn) {
     q <- rl[rl$set_no == sn, ]
-    lapply(run_spans(q$won, q$rot), function(sp) c(sp, list(set_no = sn)))
+    lapply(run_spans(q$won, q$rot, q$served), function(sp) c(sp, list(set_no = sn)))
   }), recursive = FALSE)
   against <- Filter(function(sp) !sp$ours, spans)
   if (!length(against)) return("No run of three against us in this match.")
   worst <- against[[which.max(vapply(against, function(sp) sp$n, 0L))]]
   sprintf("Longest run against us: %d straight in set %s%s.",
           worst$n, worst$set_no,
-          if (is.na(worst$rot)) "" else sprintf(", starting in %s", worst$rot))
+          if (is.na(worst$rot)) "" else sprintf(", in %s", worst$rot))
 }
 
 run_strip_card <- function(rally, file_label = "", n_files = 1L) {
@@ -131,7 +162,7 @@ run_strip_card <- function(rally, file_label = "", n_files = 1L) {
           if (nzchar(file_label)) sprintf(' <span class="thin">%s</span>', esc(file_label)) else "",
           svg,
           sprintf('<div class="tiny" style="margin-top:2px">%s</div>', esc(run_worst(rally))),
-          tiny(sprintf("One tick per rally, in order: above the line we won it, below they did. A run of %d or more carries its length and the rotation we were in when it started, ours in both cases, because the question behind a run against us is which six of ours it happened to. Hover a tick for the score.%s",
+          tiny(sprintf("One tick per rally, in order: above the line we won it, below they did. A run of %d or more carries its length and the rotation it was won from, ours in both cases, because the question behind a run against us is which six of ours it happened to. A run of ours opens with a side-out in the rotation before, then is served from the one named here. Hover a tick for the score.%s",
                        RUN_MIN,
                        if (n_files > 1L) " Only the most recent file is drawn: runs do not pool across matches." else "")))
 }

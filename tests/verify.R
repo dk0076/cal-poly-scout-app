@@ -1586,8 +1586,29 @@ ok("a run is measured to its end",
            sp$from == 2L && sp$to == 5L && sp$n == 4L && isTRUE(sp$ours) }))
 ok("both sides' runs are found",
    length(run_spans(c(rep(TRUE, 3), rep(FALSE, 4)))) == 2L)
-ok("a run carries the rotation it started in",
+ok("a run carries the rotation it started in, with nothing better to go on",
    identical(run_spans(c(TRUE, TRUE, TRUE), c("R4", "R5", "R6"))[[1]]$rot, "R4"))
+
+# The one that was wrong on a real file. A run of ours opens with a side-out,
+# which we win in the rotation we were already in; we then rotate and serve
+# the rest. Eleven straight in that match began with a side-out in R6 and
+# were served from R1, and the strip said R6. A coach means R1.
+ok("a run of ours is labelled with the rotation we served it from",
+   identical(run_spans(c(TRUE, TRUE, TRUE, TRUE),
+                       c("R6", "R1", "R1", "R1"),
+                       c(FALSE, TRUE, TRUE, TRUE))[[1]]$rot, "R1"))
+ok("not the one we sided out in",
+   !identical(run_spans(c(TRUE, TRUE, TRUE, TRUE),
+                        c("R6", "R1", "R1", "R1"),
+                        c(FALSE, TRUE, TRUE, TRUE))[[1]]$rot, "R6"))
+# Our rotation cannot change while we are losing, so a run against us is the
+# same rotation throughout and the rule has nothing to do.
+ok("a run against us is our rotation, unchanged through it",
+   identical(run_spans(c(FALSE, FALSE, FALSE), c("R2", "R2", "R2"),
+                       c(TRUE, FALSE, FALSE))[[1]]$rot, "R2"))
+ok("a rally nobody of ours touched does not blank the label",
+   identical(run_spans(c(TRUE, TRUE, TRUE), c(NA, "R3", "R3"),
+                       c(TRUE, TRUE, TRUE))[[1]]$rot, "R3"))
 ok("nothing to read gives nothing", !length(run_spans(logical(0))))
 
 R_runs <- rally_outcomes(matches, sel, focus)
@@ -1612,6 +1633,25 @@ if (nrow(R_runs) && any(!is.na(R_runs$won))) {
   ok("runs stop at the end of a set",
      length(gregexpr("&#215;", strip, fixed = TRUE)[[1]]) == per_set,
      sprintf("%d per set, %d if pooled", per_set, pooled))
+
+  # Every run the strip draws must name a rotation we were actually in while
+  # that side was serving, checked against the rallies themselves.
+  ok("every run names a rotation its own rallies were served in",
+     local({
+       bad <- 0L
+       for (sn in unique(one$set_no)) {
+         g <- one[one$set_no == sn, ]
+         for (sp in run_spans(g$won, g$rot, g$served)) {
+           idx <- sp$from:sp$to
+           srv <- if (sp$ours) which(!is.na(g$served[idx]) & g$served[idx])
+                  else which(!is.na(g$served[idx]) & !g$served[idx])
+           rots <- unique(g$rot[idx[srv]])
+           rots <- rots[!is.na(rots)]
+           if (length(rots) && !(sp$rot %in% rots)) bad <- bad + 1L
+         }
+       }
+       bad == 0L
+     }))
 
   ok("the worst run against us is named with its set and rotation",
      grepl("Longest run against us|No run of three against us",
