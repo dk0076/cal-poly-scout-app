@@ -14,7 +14,18 @@
 
   --ink:#14171c; --ink-2:#4a5260; --ink-3:#8b939f;
   --paper:#eef0f3; --panel:#fff; --rule:#d3d8de; --rule-2:#e6e9ed;
+  /* Surface tints: a row under the cursor, a total row, a cell that was an
+     error or stayed in play. Tokens rather than literals because these are
+     the surfaces that have to inverse in the dark palette below. */
+  --row-hover:#f7f8fa; --row-tot:#fafbfc;
+  --err-soft:#fbeeee; --inplay-soft:#f4f5f7;
+  --shadow:rgba(0,0,0,.09);
   --accent:var(--poly-green); --accent-soft:#e7efe9;
+  /* What text becomes when it sits on --accent: a selected chip, the live
+     badge, the rail heading. White, against Poly Green, is 11.6:1. It is a
+     token because the dark palette lifts --accent until white no longer
+     holds up on it, and the answer there is to go dark instead. */
+  --on-accent:#fff; --on-accent-2:#d9e4dd;
   --gold:var(--mustang-gold); --gold-soft:#fbf3de;
   --wood:#f7f0e1; --wood-line:#b7a385; --wood-line-2:#cdbb9d;
 
@@ -33,13 +44,106 @@
 
   /* The opponent. Red said "bad" where it only ever meant "not us", and it
      collided with the red that does mean an error. Heritage Orange says
-     "the other team" and nothing else. */
+     "the other team" and nothing else.
      Heritage Orange is 2.85:1 on white, so text and thin rules use it
      darkened to 75%, 4.81:1, and the full value is kept for fills. */
   --them:var(--heritage-orange); --them-ink:#BF4F2A;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+
+  /* ---- the dark palette, defined here and adopted below ----------------
+     A gym at a night match is dark and the bench reads off iPads at arm's
+     length. A white page at full brightness is the thing a coach squints
+     past, so the dark palette is not a preference here so much as the
+     condition the app is actually used in.
+
+     These are named rather than written inline at the two places that adopt
+     them, so a value is changed once. Nothing reads them until a rule below
+     maps them onto the real tokens.
+
+     The brand marks do not move. Poly Green at #154734 is 11.6:1 on white
+     and 1.5:1 on a dark panel, so it cannot carry text or a border in the
+     dark; what is kept is the hue, lifted until it is legible. The athletics
+     guide governs the mark, which is an image and is never recoloured, not
+     the chrome around it. */
+  /* --d-ink-3 is the quiet one: column heads, the "74 attempts" line, the
+     counts on a chip. The first pass set it at #77818e, which measured
+     4.33:1 on the panel and so missed AA by a hair on exactly the text a
+     coach reads at arm's length. Opened up until it clears 4.5. */
+  --d-ink:#e7eaef; --d-ink-2:#a9b3c0; --d-ink-3:#8b95a3;
+  --d-paper:#0f1318; --d-panel:#171c23; --d-rule:#2c343e; --d-rule-2:#222a33;
+  --d-row-hover:#1c222a; --d-row-tot:#1a2027;
+  --d-err-soft:#2b1619; --d-inplay-soft:#1b2128;
+  --d-shadow:rgba(0,0,0,.5);
+  /* Poly Green lifted to 5.9:1 on the dark panel, and its soft fill is the
+     same hue at panel weight rather than a grey. */
+  --d-accent:#4e9e78; --d-accent-soft:#17291f;
+  /* Lifting the green far enough to carry a border cost it the white text
+     it used to hold: white on #4e9e78 is 3.24:1. A selected chip inverts
+     instead, which keeps the fill unmistakably the accent and puts the
+     label back above 5:1. */
+  --d-on-accent:#0d1217; --d-on-accent-2:#1d3a2b;
+  /* Mustang Gold at #BD8B13 is 4.0:1 here; opened up to 6.8:1. */
+  --d-gold:#d9a227; --d-gold-soft:#2a2214;
+  /* The court. Cream becomes a dark boards colour, with its lines lifted
+     rather than darkened, so the court still reads as a court. */
+  --d-wood:#1e1a14; --d-wood-line:#6d5f49; --d-wood-line-2:#4b4234;
+  /* The four outcomes have to stay separable from each other first. Each is
+     the light value opened up until it clears 4.5:1 on the dark panel, which
+     keeps the four hues in the same relative order. */
+  --d-kill:#2fb67e; --d-inplay:#9aa3b0;
+  --d-blocked:#d9a227; --d-err:#e8626c;
+  /* Heritage Orange needed darkening on white. On dark it needs none, so
+     text and fills can both take the full brand value. */
+  --d-them-ink:var(--heritage-orange);
 }
+
+/* The mapping, written once per way of asking for it.
+
+   Two rules rather than one because a media query and an attribute selector
+   cannot share a block. The first follows the iPad's own Appearance setting,
+   which is what a bench that never opens a menu gets. The second is the
+   toggle in the header, and it wins over the system in both directions:
+   :not([data-theme="light"]) is what lets a coach force the light palette
+   on a device set to dark. */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:var(--d-ink); --ink-2:var(--d-ink-2); --ink-3:var(--d-ink-3);
+    --paper:var(--d-paper); --panel:var(--d-panel);
+    --rule:var(--d-rule); --rule-2:var(--d-rule-2);
+    --row-hover:var(--d-row-hover); --row-tot:var(--d-row-tot);
+    --err-soft:var(--d-err-soft); --inplay-soft:var(--d-inplay-soft);
+    --shadow:var(--d-shadow);
+    --accent:var(--d-accent); --accent-soft:var(--d-accent-soft);
+    --on-accent:var(--d-on-accent); --on-accent-2:var(--d-on-accent-2);
+    --gold:var(--d-gold); --gold-soft:var(--d-gold-soft);
+    --wood:var(--d-wood); --wood-line:var(--d-wood-line);
+    --wood-line-2:var(--d-wood-line-2);
+    --kill:var(--d-kill); --inplay:var(--d-inplay);
+    --blocked:var(--d-blocked); --err:var(--d-err);
+    --them-ink:var(--d-them-ink);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:var(--d-ink); --ink-2:var(--d-ink-2); --ink-3:var(--d-ink-3);
+  --paper:var(--d-paper); --panel:var(--d-panel);
+  --rule:var(--d-rule); --rule-2:var(--d-rule-2);
+  --row-hover:var(--d-row-hover); --row-tot:var(--d-row-tot);
+  --err-soft:var(--d-err-soft); --inplay-soft:var(--d-inplay-soft);
+  --shadow:var(--d-shadow);
+  --accent:var(--d-accent); --accent-soft:var(--d-accent-soft);
+  --on-accent:var(--d-on-accent); --on-accent-2:var(--d-on-accent-2);
+  --gold:var(--d-gold); --gold-soft:var(--d-gold-soft);
+  --wood:var(--d-wood); --wood-line:var(--d-wood-line);
+  --wood-line-2:var(--d-wood-line-2);
+  --kill:var(--d-kill); --inplay:var(--d-inplay);
+  --blocked:var(--d-blocked); --err:var(--d-err);
+  --them-ink:var(--d-them-ink);
+  color-scheme:dark;
+}
+/* Form controls and scrollbars follow the page rather than the OS. */
+:root[data-theme="light"]{color-scheme:light}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
@@ -98,7 +202,7 @@ header.appbar select{border:1px solid var(--rule);background:var(--panel);paddin
 .introfoot{margin-top:14px;text-align:center;font-size:12.5px}
 .introfoot a{color:var(--ink-3);text-decoration:none;border-bottom:1px solid var(--rule-2)}
 .introfoot a:hover{color:var(--accent);border-bottom-color:var(--accent)}
-#intro .err{border-left:3px solid var(--err);background:#fbeeee;padding:8px 12px;
+#intro .err{border-left:3px solid var(--err);background:var(--err-soft);padding:8px 12px;
   margin:10px 0;font-size:12.5px}
 
 /* ---------- layout ---------- */
@@ -106,7 +210,14 @@ header.appbar select{border:1px solid var(--rule);background:var(--panel);paddin
 @media (max-width:1180px){.wrap{grid-template-columns:1fr}}
 aside.rail{position:sticky;top:52px;max-height:calc(100vh - 52px);overflow:auto;
   background:var(--panel);border-right:1px solid var(--rule);padding:14px 13px 40px}
-main.panel{padding:16px 18px 60px;min-width:0}
+/* The background is stated because Bootstrap 3 ships a component called
+   .panel and this column has carried that class name since the port. Its
+   background-color:#fff has been winning here all along; on the light
+   palette it happened to be the colour this column wanted, so it was never
+   visible as a bug. On the dark palette it is a white sheet behind the
+   cards, showing through the padding. var(--panel) is what Bootstrap was
+   supplying by accident, so the light page is unchanged. */
+main.panel{background:var(--panel);padding:16px 18px 60px;min-width:0}
 
 .grp{margin-bottom:17px}
 .grp>.lbl{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
@@ -114,14 +225,27 @@ main.panel{padding:16px 18px 60px;min-width:0}
 .grp>.lbl button{background:none;border:0;padding:0;font:10px var(--sans);
   letter-spacing:.06em;color:var(--accent);cursor:pointer;text-transform:uppercase}
 .chips{display:flex;flex-wrap:wrap;gap:4px}
+/* The colour is stated rather than inherited. Shiny renders actionButton
+   through Bootstrap 3, whose .btn-default hardcodes #333, and a class beats
+   the bare `button{color:inherit}` rule above it. On the light palette #333
+   on white passed and nobody noticed; on the dark one the Watch button came
+   out at 1.35:1, which is a control you cannot see. Bootstrap is loaded
+   before this file, so matching its specificity is enough to win and none
+   of this needs !important. */
 .chip{border:1px solid var(--rule);background:var(--panel);padding:3px 7px;cursor:pointer;
-  font:11.5px/1.3 var(--mono);white-space:nowrap}
+  color:var(--ink);font:11.5px/1.3 var(--mono);white-space:nowrap}
+/* The fill goes with the colour. Bootstrap's .btn-default sets both, and
+   leaving the background behind left the file input's Browse button as
+   light ink on Bootstrap's white. These are the values .chip already uses,
+   so the two kinds of button match in both palettes. */
+.btn-default,.btn-default:hover,.btn-default:focus{
+  color:var(--ink);background:var(--panel);border-color:var(--rule)}
 .chip:hover{border-color:var(--accent)}
-.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .chip.wide{width:100%;text-align:left;font-family:var(--sans);font-size:12px}
 .chip .n{color:var(--ink-3);margin-left:5px;font-size:10.5px}
 .chip.on .n{color:var(--gold-soft)}
-.chip.on .thin{color:#d9e4dd}
+.chip.on .thin{color:var(--on-accent-2)}
 .matchrow{border:1px solid var(--rule);padding:7px;margin-bottom:5px}
 .matchrow .top{display:flex;gap:6px;align-items:center;justify-content:space-between}
 .matchrow .nm{font:11.5px/1.25 var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -154,11 +278,34 @@ main.panel{padding:16px 18px 60px;min-width:0}
   cursor:pointer;font-size:13px;color:var(--ink-2)}
 .tab:hover{color:var(--ink)}
 .tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+/* The tab bar's own control, pushed to the end of the bar it edits. Dashed,
+   and never on the accent, so it does not read as an eleventh tab: it is
+   the one thing in this row that opens something instead of going
+   somewhere. margin-left:auto only when the bar has not wrapped -- once the
+   tabs take two lines it follows the last of them rather than stranding
+   itself out to the right of a half-empty row. */
+.tabs .tabmore{margin-left:auto;align-self:center;border-style:dashed;
+  border-color:var(--rule);background:transparent;color:var(--ink-3);
+  margin-bottom:4px}
+.tabs .tabmore:hover,.tabs .tabmore:focus-visible{border-style:solid;
+  color:var(--ink);border-color:var(--accent)}
+@media print{.tabs .tabmore{display:none}}
 
 /* ---------- panels ---------- */
 .hdr{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .hdr h2{font-size:16px}
 .hdr .cap{font:11px var(--mono);color:var(--ink-3)}
+/* More / Less, pushed to the far end of the heading it belongs to. Quiet
+   until it is wanted: this sits above every panel on the page and a row of
+   outlined chips down the right-hand side would read as the loudest thing
+   on a screen whose job is numbers. It takes its border on hover and focus,
+   and keeps it while the panel is expanded. */
+.hdr .detailbtn{margin-left:auto;border-color:transparent;background:transparent;
+  color:var(--ink-3);align-self:center}
+.hdr .detailbtn:hover,.hdr .detailbtn:focus-visible{border-color:var(--rule);
+  color:var(--ink)}
+body.detail-open .hdr .detailbtn{border-color:var(--rule);color:var(--ink-2)}
+@media print{.hdr .detailbtn{display:none}}
 .cols{display:grid;grid-template-columns:minmax(300px,var(--cw,420px)) minmax(0,1fr);
   gap:20px;align-items:start}
 @media (max-width:1080px){.cols{grid-template-columns:1fr}
@@ -169,6 +316,24 @@ main.panel{padding:16px 18px 60px;min-width:0}
 .card>h3{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);
   margin-bottom:9px}
 .viewbar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:9px}
+
+/* The strip, in two tiers. .toolset was a bare div and its buttons laid
+   themselves out on inline whitespace; it is a flex row now so both tiers
+   space the same way whether the second one is open or shut.
+
+   .toolmore is display:none rather than visibility or a height, so a shut
+   menu is not in the tab order: on a tablet the next swipe after Simplify
+   should reach the table, not six controls nobody can see. */
+.toolset{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px}
+.toolmore{display:none;align-items:center;flex-wrap:wrap;gap:4px}
+:root.tools-open .toolmore{display:inline-flex}
+/* The caret is the only thing that says the menu is a menu. It turns rather
+   than swapping glyph, so the control does not change width as it opens. */
+.toolsbtn::after{content:"\25BE";margin-left:5px;font-size:9px;
+  display:inline-block;transition:transform 120ms ease}
+:root.tools-open .toolsbtn::after{transform:rotate(180deg)}
+:root.tools-open .toolsbtn{border-color:var(--accent)}
+@media print{.toolset,.toolmore{display:none}}
 /* us / them, so the two rotation blocks are told apart at a glance on an
    iPad without reading the headings */
 .card.us>h3{color:var(--accent);border-bottom:2px solid var(--accent);padding-bottom:5px}
@@ -196,8 +361,8 @@ th{font:10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var
   border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--panel)}
 td:first-child,th:first-child{text-align:left}
 td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
-tr:hover td{background:#f7f8fa}
-tr.tot td{border-top:1px solid var(--rule);border-bottom:0;font-weight:600;background:#fafbfc}
+tr:hover td{background:var(--row-hover)}
+tr.tot td{border-top:1px solid var(--rule);border-bottom:0;font-weight:600;background:var(--row-tot)}
 .thin{color:var(--ink-3)}
 .pos{color:var(--kill)}
 .neg{color:var(--err)}
@@ -209,9 +374,9 @@ tr.tot td{border-top:1px solid var(--rule);border-bottom:0;font-weight:600;backg
   border-radius:2px;padding:1px 5px;font:11.5px/1.35 var(--mono);white-space:nowrap}
 .att i{font-style:normal;font-weight:700;font-size:12.5px}
 .att.kill{background:var(--accent-soft)}
-.att.error{background:#fbeeee}
+.att.error{background:var(--err-soft)}
 .att.blocked{background:var(--gold-soft)}
-.att.in{background:#f4f5f7}
+.att.in{background:var(--inplay-soft)}
 td .atts{justify-content:flex-start}
 
 /* ---------- courts ---------- */
@@ -233,6 +398,30 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
    2. thead as a header group repeats headers on each page a long table spans.
    3. Nothing splits between a title and the thing it titles. */
 @media print{
+  /* Paper is paper. The dark palette is for a gym at night, and printing
+     under it would otherwise put pale ink on a white sheet and, because the
+     fills below ask for print-color-adjust:exact, spend toner on a dark
+     court to do it. The light values are restated rather than unset: a
+     custom property has no cascade origin to fall back to.
+
+     The selector list is what it is because it has to outrank both ways the
+     dark palette is adopted, and both of those carry an attribute or a
+     :not(), so a bare :root would lose to them. */
+  :root,:root[data-theme],:root:not([data-theme="light"]){
+    --ink:#14171c; --ink-2:#4a5260; --ink-3:#8b939f;
+    --paper:#eef0f3; --panel:#fff; --rule:#d3d8de; --rule-2:#e6e9ed;
+    --row-hover:#f7f8fa; --row-tot:#fafbfc;
+    --err-soft:#fbeeee; --inplay-soft:#f4f5f7;
+    --shadow:rgba(0,0,0,.09);
+    --accent:var(--poly-green); --accent-soft:#e7efe9;
+    --on-accent:#fff; --on-accent-2:#d9e4dd;
+    --gold:var(--mustang-gold); --gold-soft:#fbf3de;
+    --wood:#f7f0e1; --wood-line:#b7a385; --wood-line-2:#cdbb9d;
+    --kill:#0f7b4f; --inplay:#79828f;
+    --blocked:#8D680E; --err:#b4232a;
+    --them-ink:#BF4F2A;
+    color-scheme:light;
+  }
   header.appbar,aside.rail,.tabs,.viewbar{display:none!important}
   body{background:#fff}
   .wrap{grid-template-columns:1fr}
@@ -296,10 +485,26 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
   .card table{min-width:100%}
   .card{overflow-x:auto}
 }
-/* Shown only where the rail can be folded away. */
-.railbtn{display:none}
-@media (max-width:1180px){.railbtn{display:inline-block}}
+/* Filters folds the rail away at every width now, not just where it stops
+   fitting. A laptop at the scorer's table is running this beside the coding
+   software on a screen that is mostly taken up by it, and the rail is six
+   groups of chips that stay set for a whole match. What it does differs by
+   width, though, and deliberately: below the breakpoint the rail opens over
+   the page like a sheet and shuts on the next press, which is the right
+   behaviour for a thing you consult and dismiss. Above it, the rail is a
+   column in the grid and the press takes the column away, so the preference
+   is worth keeping -- see .rail-off below. */
+.railbtn{display:inline-block}
 @media print{.railbtn{display:none}}
+
+/* Wide only. Below the breakpoint the rail is already a sheet that starts
+   shut, and the same class would hide the sheet as well.
+   .rail-off sits on <html>, not <body>, so it is set while the head is
+   still parsing and the column is never drawn and then removed. */
+@media (min-width:1181px){
+  :root.rail-off .wrap{grid-template-columns:minmax(0,1fr)}
+  :root.rail-off aside.rail{display:none}
+}
 
 .railtop{display:none}
 @media (max-width:1180px){.railtop{display:block}}
@@ -364,15 +569,26 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
    appeared. They collapse behind one button, and what stays visible is the
    live indicator, because a stale clock is the thing worth seeing without
    asking for it. */
-.hidechrome{display:none}
+/* The light/dark button. Square, so it does not stretch as the glyph
+   changes width, and sized for a thumb on a tablet rather than a mouse. The
+   glyph names what pressing it gives you, not the state you are in: a moon
+   on the light page, a sun on the dark one, which is the reading the bench
+   gets right without being told. */
+.themetog{width:34px;height:28px;padding:0;display:inline-flex;
+  align-items:center;justify-content:center;flex:none;line-height:1}
+.themeicon{font-size:14px}
+.themeicon::before{content:"\263D"}            /* a moon: press for dark  */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .themeicon::before{content:"\2600"}
+}
+:root[data-theme="dark"] .themeicon::before{content:"\2600"}  /* a sun */
+@media print{.themetog{display:none}}
 @media (max-width:1180px){
-  .hidechrome{display:inline-block}
   /* A tablet never loads a file, picks the team or types a path: that is
      done on the laptop and shared from there. So the header keeps only what
      a bench uses, and it scrolls away rather than sticking, leaving the tab
      bar alone at the top of the screen. */
-  .appbar .uploadwrap, .appbar #focus_pick, .appbar .watchrow,
-  body:not(.chrome-open) .appbar .toolset{display:none}
+  .appbar .uploadwrap, .appbar #focus_pick, .appbar .watchrow{display:none}
   header.appbar{position:static}
   .topbar{top:0}
   .tablive{display:inline-flex;align-items:center;gap:6px;flex:none;
@@ -381,9 +597,8 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
     box-shadow:0 0 0 2px var(--poly-green)}
   .appbar{padding-top:6px;padding-bottom:6px;row-gap:4px}
   .appbar .brand h1{font-size:15px}
-  body.chrome-open .appbar .toolset{display:flex;flex-wrap:wrap;gap:4px}
 }
-@media print{.hidechrome{display:none}.topbar{position:static}}
+@media print{.topbar{position:static}}
 
 /* One breakpoint for the whole tablet treatment: the rail folds, the header
    folds, and the two teams stack, all at the width where they stop fitting.
@@ -391,7 +606,7 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 
 /* ---- which tabs this device shows -------------------------------------- */
 #tabpick{position:absolute;z-index:70;width:214px;background:var(--panel);
-  border:1px solid var(--rule);box-shadow:0 2px 0 var(--gold),0 6px 18px rgba(0,0,0,.09);
+  border:1px solid var(--rule);box-shadow:0 2px 0 var(--gold),0 6px 18px var(--shadow);
   padding:9px;display:flex;flex-direction:column;gap:3px}
 .tabpick-h{font:10.5px var(--mono);letter-spacing:.07em;text-transform:uppercase;
   color:var(--ink-3);padding-bottom:5px;border-bottom:1px solid var(--rule-2);
@@ -415,7 +630,7 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
   border:1px solid var(--rule);background:var(--panel);padding:14px;
   margin-top:12px}
 .slotn{flex:none;width:22px;height:22px;border-radius:50%;
-  background:var(--accent);color:#fff;font:12px/22px var(--mono);
+  background:var(--accent);color:var(--on-accent);font:12px/22px var(--mono);
   text-align:center}
 .slotbody{flex:1;min-width:0}
 .slott{font-size:14.5px;font-weight:600}
@@ -442,6 +657,10 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
    both on-brand and easier to see than the pale version it replaces. */
 .livebox{background:var(--poly-green);border-color:var(--poly-green)}
 .livebox .dot{background:var(--avocado)}
+/* These stay literal where the rest of the file moved to tokens. The fill
+   above is Poly Green in both palettes by choice, so the text on it does not
+   follow the theme either: --on-accent goes dark where the accent is lifted,
+   and that is the wrong answer against a green that never lifts. */
 .livebox .lbl{color:#fff}
 .livebox .who{color:#cfe0d6}
 .livebox .chip.ghost{color:#cfe0d6}

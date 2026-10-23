@@ -64,8 +64,24 @@ kpis <- function(items) {
   paste0('<div class="kpis">', paste(body, collapse = ""), "</div>")
 }
 
+#' Every panel's heading, and the one control that acts on that panel.
+#'
+#' The More button expands the secondary breakdowns -- what the strip used
+#' to call Detail, from a row where it sat between a printer setting and a
+#' tab picker and explained itself to nobody. Here it is beside the title it
+#' expands, so its subject is the thing above it rather than a word.
+#'
+#' It is written into every panel, which means two of it in the side-by-side
+#' view. That is deliberate: the toggle is page-wide and the browser keeps
+#' every copy's label in step, so whichever panel a coach is reading has the
+#' control at hand instead of one of the two having it. The label is left
+#' empty here and written by the browser, because the state lives in that
+#' device and the server never learns it.
 hdr <- function(title, cap = NULL)
-  sprintf('<div class="hdr"><h2>%s</h2>%s</div>', title,
+  sprintf(paste0('<div class="hdr"><h2>%s</h2>%s',
+                 '<button type="button" class="chip detailbtn" ',
+                 'data-detail="1" aria-expanded="false"></button></div>'),
+          title,
           if (!is.null(cap)) sprintf('<span class="cap">%s</span>', cap) else "")
 
 #' Two-column panel layout. `left` is the chart column, `right` the tables.

@@ -10,6 +10,90 @@
    two events.
    ------------------------------------------------------------------------- */
 (function () {
+  /* ---- light or dark ----------------------------------------------------
+     Which palette this device shows. Like the tab picker and the chart
+     switch, it is the device's and not the session's: one laptop serves
+     every iPad on the bench, and a coach on the dark side of the gym
+     turning the lights down must not turn them down for everybody.
+
+     Nothing is stored until somebody presses the button. An unset value
+     means "follow the iPad's own Appearance setting", which the stylesheet
+     handles on its own through prefers-color-scheme, so the common case
+     needs no storage and no choice.
+
+     This runs while the head is still parsing, before the body exists.
+     That is deliberate and is why the script is not deferred: setting the
+     attribute after first paint is what produces the white flash that makes
+     a dark page feel broken. */
+  var THEME_KEY = "scoutr.theme";
+  function readTheme() {
+    try { return window.localStorage.getItem(THEME_KEY); }
+    catch (e) { return null; }
+  }
+  function applyTheme(v) {
+    // The attribute is removed rather than set to anything neutral, because
+    // the stylesheet keys "follow the system" off its absence.
+    if (v === "dark" || v === "light")
+      document.documentElement.setAttribute("data-theme", v);
+    else document.documentElement.removeAttribute("data-theme");
+  }
+  applyTheme(readTheme());
+
+  // What a press turns it into. Read off the element rather than off a
+  // remembered value, so the button is right even on the first press, when
+  // nothing is stored and the page is following the system.
+  function nextTheme() {
+    var set = document.documentElement.getAttribute("data-theme");
+    if (set) return set === "dark" ? "light" : "dark";
+    var dark = window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return dark ? "light" : "dark";
+  }
+
+  /* ---- what this device keeps folded away ------------------------------
+     The filter rail and the second tier of the tool strip. Both are this
+     device's business and not the session's, for the same reason the tab
+     picker is: one laptop serves every iPad on the bench, and a coach who
+     folds the rail away on a tablet must not fold it away on the laptop
+     that is coding the match.
+
+     Both classes go on <html> rather than <body>, because <body> does not
+     exist yet while the head is parsing. That is the point: the rail is a
+     column in a grid, and adding the class after first paint would draw the
+     column and then take it away, which reads as a flicker on every load.
+
+     The rail is stored only for the wide layout. Below the breakpoint it is
+     a sheet that opens over the page and shuts on the next press, and a
+     sheet that remembered it was open would greet the bench with a
+     screenful of filters instead of the numbers. */
+  var RAIL_KEY = "scoutr.rail";
+  var TOOLS_KEY = "scoutr.tools";
+  var NARROW = "(max-width:1180px)";
+  function pref(k) {
+    try { return window.localStorage.getItem(k); } catch (e) { return null; }
+  }
+  function setPref(k, v) {
+    try { window.localStorage.setItem(k, v); }
+    catch (e) { /* the choice lasts this page only */ }
+  }
+  function narrow() {
+    return window.matchMedia && window.matchMedia(NARROW).matches;
+  }
+  if (pref(RAIL_KEY) === "off")
+    document.documentElement.classList.add("rail-off");
+  if (pref(TOOLS_KEY) === "open")
+    document.documentElement.classList.add("tools-open");
+
+  // The strip is server-rendered and comes back on every panel redraw with
+  // aria-expanded="false" on it, so the state is put back afterwards rather
+  // than only on the press.
+  function syncTools() {
+    var open = document.documentElement.classList.contains("tools-open");
+    var b = document.querySelectorAll("[data-tools]");
+    for (var i = 0; i < b.length; i++)
+      b[i].setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
   var n = 0;
   function send(name, payload) {
     payload.nonce = ++n;
@@ -17,8 +101,18 @@
   }
 
   document.addEventListener("click", function (ev) {
-    var el = ev.target.closest("[data-detail],[data-simplify],[data-tabpick],[data-chrome],[data-pos],[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab]");
+    var el = ev.target.closest("[data-detail],[data-simplify],[data-tabpick],[data-tools],[data-pos],[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab],[data-theme-toggle]");
     if (!el) return;
+
+    // Light or dark. Local to this device and never sent: the server has no
+    // opinion about it and a round trip would make the gym flicker.
+    if (el.hasAttribute("data-theme-toggle")) {
+      var want = nextTheme();
+      applyTheme(want);
+      try { window.localStorage.setItem(THEME_KEY, want); }
+      catch (e) { /* the choice lasts this page only */ }
+      return;
+    }
 
     // Folds the filter rail away on a tablet. Purely local: nothing the
     // server needs to know, and a round trip would make it feel slow.
@@ -30,8 +124,25 @@
         send("js_home", {});
       return;
     }
+    // Filters. Two behaviours behind one button, because the rail is two
+    // different things: a sheet over the page on a tablet, a column in the
+    // grid on a laptop. The sheet is forgotten on purpose; the column is
+    // remembered.
     if (el.hasAttribute("data-rail")) {
-      document.body.classList.toggle("rail-open");
+      if (narrow()) {
+        document.body.classList.toggle("rail-open");
+      } else {
+        var off = document.documentElement.classList.toggle("rail-off");
+        setPref(RAIL_KEY, off ? "off" : "on");
+      }
+      return;
+    }
+    // The second tier of the strip: setup and export, opened once and
+    // usually left as it was found.
+    if (el.hasAttribute("data-tools")) {
+      var open = document.documentElement.classList.toggle("tools-open");
+      setPref(TOOLS_KEY, open ? "open" : "shut");
+      syncTools();
       return;
     }
     if (el.hasAttribute("data-detail")) {
@@ -49,10 +160,6 @@
       return;
     }
     // Folds the header controls away on a tablet. Local only, like the rail.
-    if (el.hasAttribute("data-chrome")) {
-      document.body.classList.toggle("chrome-open");
-      return;
-    }
     if (el.hasAttribute("data-pos")) return send("js_pos", { val: el.getAttribute("data-pos") });
     if (el.hasAttribute("data-tab")) return send("js_tab", { tab: el.getAttribute("data-tab") });
     // a panel view option: key plus the value to store
@@ -196,11 +303,16 @@
     catch (e) { return false; }
   }
 
+  // Every copy, not the first: the control lives in each panel's heading
+  // now, so the side-by-side view has two and they have to agree.
   function applyDetail() {
     var on = detailOn();
     document.body.classList.toggle("detail-open", on);
-    var b = document.querySelector("[data-detail]");
-    if (b) b.textContent = on ? "Less detail" : "Detail";
+    var b = document.querySelectorAll("[data-detail]");
+    for (var i = 0; i < b.length; i++) {
+      b[i].textContent = on ? "Less" : "More";
+      b[i].setAttribute("aria-expanded", on ? "true" : "false");
+    }
   }
 
   function toggleDetail() {
@@ -267,6 +379,34 @@
     } catch (e) { /* nothing to do; the choice lasts this page only */ }
   }
 
+  /* The tab bar asks its own question.
+     "How many tabs" used to be two chips on the top strip -- Tabs, which
+     opened the picker, and Simplify, which was a preset inside that same
+     picker sitting four controls away from it. Both are gone from there.
+     What is left is one button at the end of the bar it edits, saying how
+     many tabs are not being shown, which is the only part a coach cannot
+     see for themselves.
+
+     The browser writes it rather than the server, because the tab bar is
+     server-rendered but which tabs are hidden is this device's business and
+     never reaches R. Appending it here also means it survives every redraw,
+     since applyTabs already runs on each one. */
+  function tabBarPick(hiddenCount) {
+    var bar = document.querySelector(".tabs");
+    if (!bar) return;
+    var b = bar.querySelector(".tabmore");
+    if (!b) {
+      b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip tabmore";
+      b.setAttribute("data-tabpick", "1");
+      bar.appendChild(b);
+    }
+    // Last, whatever order the tabs were drawn in.
+    if (bar.lastElementChild !== b) bar.appendChild(b);
+    b.textContent = hiddenCount > 0 ? "+" + hiddenCount + " more" : "Tabs";
+  }
+
   function applyTabs() {
     var hidden = hiddenTabs();
     var all = [].slice.call(document.querySelectorAll(".tabs .tab"));
@@ -288,6 +428,7 @@
     // that is no longer in the bar, so move to the first one still there.
     var active = document.querySelector(".tabs .tab.on");
     if (active && active.style.display === "none") shown[0].click();
+    tabBarPick(all.length - shown.length);
     labelSimplify();
     applyDetail();
     // Simplify is a state of the page, not just a shorter tab bar: the
@@ -376,7 +517,10 @@
   function scheduleApply() {
     if (pending) return;
     pending = true;
-    setTimeout(function () { pending = false; applyTabs(); }, 0);
+    // syncTools rides along here rather than on a listener of its own: the
+    // Tools button is redrawn by the same server renders this already
+    // watches for, and it comes back with the server's aria-expanded on it.
+    setTimeout(function () { pending = false; applyTabs(); syncTools(); }, 0);
   }
   new MutationObserver(scheduleApply).observe(document.documentElement,
     { childList: true, subtree: true });

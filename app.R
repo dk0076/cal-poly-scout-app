@@ -296,9 +296,15 @@ ui <- fluidPage(
     div(class = "spacer"),
     uiOutput("focus_pick", inline = TRUE),
     uiOutput("header_tools", inline = TRUE),
-    # Only on a narrow screen. Everything above folds behind it, so a tablet
-    # opens on numbers rather than on controls.
-    tags$button(class = "chip hidechrome", `data-chrome` = "1", "Tools")
+    # The light/dark button used to sit here and wrapped onto a line of its
+    # own under the brand, because this row is already full of the file
+    # controls. It is on the view strip below with the other page-wide
+    # switches, where there is room for it.
+    # The tablet-only Tools button that used to live here is gone. It folded
+    # the whole strip away, which on a tablet took Detail and Simplify with
+    # it -- the two a bench actually presses -- and it shared its name with
+    # the Tools menu on the strip itself. One control, one name: the menu
+    # below now does this job at every width.
   ),
   uiOutput("body")
 )
@@ -663,30 +669,43 @@ server <- function(input, output, session) {
             textInput("watch_path", NULL, width = "260px",
                       placeholder = "path of the file being coded"),
             actionButton("watch_go", "Watch", class = "chip")) else NULL,
+      # What is left on the top strip: the things that act on the whole page.
+      #
+      # The two that confused a bench have moved to where they act. How many
+      # tabs is a question about the tab bar, so it is asked on the tab bar,
+      # by a button the browser writes there -- it was already the browser's
+      # question, since the choice never reaches the server. How much inside
+      # a tab is a question about the panel, so it is asked in the panel's
+      # own heading, beside the title it expands. Neither needed a name on
+      # this strip once it sat next to the thing it changes.
+      #
+      # Mono is gone. It set a print colour profile from a row a coach reads
+      # between rallies, and Print itself is two controls away in Share.
       tags$button(class = "chip railbtn", `data-rail` = "1", "Filters"),
-      # Everything a coach does not need mid-rally folds behind Tools.
+      # Only where there are two sides to show. On Rotations and Defense
+      # both teams are already on the screen.
+      if (S$tab %in% PAIRED_TABS)
+        tags$button(class = "chip", `data-o` = "pair",
+                    `data-v` = if (isTRUE(S$o$pair)) "false" else "true",
+                    if (isTRUE(S$o$pair)) "One team" else "Both teams") else NULL,
+      tags$button(class = "chip themetog", `data-theme-toggle` = "1",
+                  type = "button", title = "Light or dark",
+                  `aria-label` = "Switch between light and dark",
+                  span(class = "themeicon", `aria-hidden` = "true", "")),
+      # Getting the numbers off this screen and onto something else: a
+      # tablet, a printer, a spreadsheet. Opened after the match, or before
+      # it, and left alone during. The class names still say "tools" because
+      # that is the mechanism underneath; the label is what a coach reads.
       div(class = "toolset",
-        tags$button(class = "chip", `data-o` = "showshare",
-                    `data-v` = if (isTRUE(S$o$showshare)) "false" else "true",
-                    if (isTRUE(S$o$showshare)) "Hide code" else "Connect"),
-        tags$button(class = "chip", `data-o` = "mono",
-                    `data-v` = if (isTRUE(S$o$mono)) "false" else "true",
-                    if (isTRUE(S$o$mono)) "Colour" else "Mono (print)"),
-        # Only where there are two sides to show. On Rotations and Defense
-        # both teams are already on the screen.
-        if (S$tab %in% PAIRED_TABS)
-          tags$button(class = "chip", `data-o` = "pair",
-                      `data-v` = if (isTRUE(S$o$pair)) "false" else "true",
-                      if (isTRUE(S$o$pair)) "One team" else "Both teams") else NULL,
-        # Cuts the tab bar to the four a coach decides from mid-match. The
-        # label is rewritten by the browser, since the choice lives there.
-        # Folds the secondary breakdowns away. Local to this browser, like
-        # Simplify and the tab picker; the label is rewritten there.
-        tags$button(class = "chip", `data-detail` = "1", "Detail"),
-        tags$button(class = "chip", `data-simplify` = "1", "Simplify"),
-        tags$button(class = "chip", `data-tabpick` = "1", "Tabs"),
-        tags$button(class = "chip", onclick = "window.print()", "Print"),
-        downloadButton("csv", "CSV", class = "chip")
+        tags$button(class = "chip toolsbtn", `data-tools` = "1",
+                    type = "button", `aria-expanded` = "false", "Share"),
+        div(class = "toolmore",
+          tags$button(class = "chip", `data-o` = "showshare",
+                      `data-v` = if (isTRUE(S$o$showshare)) "false" else "true",
+                      if (isTRUE(S$o$showshare)) "Hide code" else "Connect"),
+          tags$button(class = "chip", onclick = "window.print()", "Print"),
+          downloadButton("csv", "CSV", class = "chip")
+        )
       )
     )
   })
