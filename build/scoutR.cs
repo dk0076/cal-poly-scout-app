@@ -30,6 +30,7 @@ using System.Drawing;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
@@ -45,11 +46,49 @@ static class Scout
     static ListBox Addresses;
     static Button OpenBtn, CopyBtn, StopBtn;
     static int Port;
-    static string AppDir, LogPath;
+    static int Retries;
+    static string AppDir, LogPath, RscriptPath;
     static readonly List<string> Urls = new List<string>();
+
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
 
     [STAThread]
     static void Main(string[] args)
+    {
+        // One copy. Double-clicking a second time used to start a second
+        // server, and the two then raced for the same port: the log on this
+        // laptop had two startups in it and the second one's failure. Now
+        // the second copy hands the screen back to the first and leaves.
+        bool first;
+        using (Mutex mine = new Mutex(true, "Local\\scoutR-launcher", out first))
+        {
+            if (!first)
+            {
+                Raise();
+                return;
+            }
+            Run(args);
+        }
+    }
+
+    static void Raise()
+    {
+        try
+        {
+            Process me = Process.GetCurrentProcess();
+            foreach (Process p in Process.GetProcessesByName(me.ProcessName))
+            {
+                if (p.Id == me.Id || p.MainWindowHandle == IntPtr.Zero) continue;
+                ShowWindow(p.MainWindowHandle, 9);     // SW_RESTORE
+                SetForegroundWindow(p.MainWindowHandle);
+                return;
+            }
+        }
+        catch { }
+    }
+
+    static void Run(string[] args)
     {
         Application.EnableVisualStyles();
         AppDir = AppFolder();
@@ -73,6 +112,7 @@ static class Scout
             return;
         }
 
+        RscriptPath = rscript;
         Port = args.Length > 0 ? ParsePort(args[0]) : FreePort(7815);
         BuildWindow();
         Start(rscript);
@@ -194,9 +234,10 @@ static class Scout
     static void WaitForServer()
     {
         DateTime until = DateTime.UtcNow.AddSeconds(90);
+        int mine = Port;
         while (DateTime.UtcNow < until)
         {
-            if (R.HasExited) return;
+            if (R.HasExited || Port != mine) return;   // a retry owns it now
             if (Answering(Port))
             {
                 OnUi(delegate
@@ -227,13 +268,56 @@ static class Scout
         catch { return false; }
     }
 
+    // Two launchers started within the same second can both find the same
+    // port free, because neither has bound it yet. Rather than make that
+    // impossible, which it is not, this notices R's own complaint and moves
+    // up a port. Twice, because a third failure is not a busy port any more,
+    // it is something else and a coach should be told rather than watched
+    // through another retry.
     static void OnExit()
     {
+        bool busy = false;
+        try { busy = File.ReadAllText(LogPath).Contains("address already in use"); }
+        catch { }
+
+        if (busy && Retries < 2)
+        {
+            Retries++;
+            int next = FreePort(Port + 1);
+            OnUi(delegate
+            {
+                Status.Text = "Port " + Port + " was taken. Trying " + next + "...";
+                Port = next;
+                Addresses.Items.Clear();
+                lock (Urls) Urls.Clear();
+                Start(RscriptPath);
+            });
+            return;
+        }
+
         OnUi(delegate
         {
-            Status.Text = "R stopped. See scoutR.log for what it said.";
+            Status.Text = LastError() ?? "R stopped. See scoutR.log for what it said.";
             Status.ForeColor = ColorTranslator.FromHtml("#b4232a");
         });
+    }
+
+    // R's own last word, which is more use on screen than the name of a file
+    // to go and open.
+    static string LastError()
+    {
+        try
+        {
+            string[] lines = File.ReadAllLines(LogPath);
+            for (int i = lines.Length - 1; i >= 0; i--)
+            {
+                string t = lines[i].Trim();
+                if (t.StartsWith("Error") || t.Contains("address already in use"))
+                    return "R stopped: " + t;
+            }
+        }
+        catch { }
+        return null;
     }
 
     // ------------------------------------------------------------ the buttons
@@ -436,13 +520,37 @@ static class Scout
         return int.TryParse(s, out p) && p > 0 && p < 65536 ? p : FreePort(7815);
     }
 
-    // The first port nothing is listening on. A previous run that did not exit
-    // cleanly holds 7815, and an R stack trace about createTcpServer is not an
-    // answer anybody wants at 6pm on a match day.
+    // The first port this machine will actually let a server bind.
+    //
+    // This used to ask whether anything answered on the port, which is a
+    // different question and sometimes the opposite one. A socket left in
+    // TIME_WAIT by a previous run refuses connections and still cannot be
+    // bound; so does a port held by a process listening on another
+    // interface. The old check called those free, R disagreed, and the
+    // window said "R stopped. See scoutR.log" with
+    // createTcpServer: address already in use inside it.
+    //
+    // Binding it for a moment and letting go is the only test that asks what
+    // R is about to ask. ExclusiveAddressUse so Windows does not quietly
+    // allow a second bind that R will then be refused.
+    static bool CanBind(int port)
+    {
+        TcpListener l = null;
+        try
+        {
+            l = new TcpListener(IPAddress.Any, port);
+            l.ExclusiveAddressUse = true;
+            l.Start();
+            return true;
+        }
+        catch { return false; }
+        finally { try { if (l != null) l.Stop(); } catch { } }
+    }
+
     static int FreePort(int from)
     {
         for (int p = from; p < from + 40; p++)
-            if (!Answering(p)) return p;
+            if (CanBind(p)) return p;
         return from;
     }
 
