@@ -305,11 +305,27 @@
 
   // Every copy, not the first: the control lives in each panel's heading
   // now, so the side-by-side view has two and they have to agree.
+  //
+  // And only where it does something. The server writes the button into
+  // every heading, but most panels have nothing folded away: audited tab by
+  // tab, a live match has something to show on Attacking and on Next server
+  // and nowhere else, and Serve receive has never had a single foldable card
+  // on any file. A button that visibly does nothing teaches a coach to stop
+  // pressing the one that does.
+  //
+  // The test is the panel's own content, not a list kept here, so a card
+  // added or dropped later cannot leave this out of step. In the
+  // side-by-side view each side is asked about itself: the opponent's half
+  // can have a card ours has not.
   function applyDetail() {
     var on = detailOn();
     document.body.classList.toggle("detail-open", on);
     var b = document.querySelectorAll("[data-detail]");
     for (var i = 0; i < b.length; i++) {
+      var scope = b[i].closest(".side") || b[i].closest("main") || document;
+      // .extra is display:none while closed, which querySelector still sees.
+      var has = !!scope.querySelector(".extra");
+      b[i].hidden = !has;
       b[i].textContent = on ? "Less" : "More";
       b[i].setAttribute("aria-expanded", on ? "true" : "false");
     }

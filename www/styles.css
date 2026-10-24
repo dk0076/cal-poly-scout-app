@@ -305,6 +305,10 @@ main.panel{background:var(--panel);padding:16px 18px 60px;min-width:0}
 .hdr .detailbtn:hover,.hdr .detailbtn:focus-visible{border-color:var(--rule);
   color:var(--ink)}
 body.detail-open .hdr .detailbtn{border-color:var(--rule);color:var(--ink-2)}
+/* Drawn into every heading by the server, shown by the browser only where
+   that panel actually has something folded away. [hidden] alone would lose
+   to .chip's own display, so it is said here. */
+.hdr .detailbtn[hidden]{display:none}
 @media print{.hdr .detailbtn{display:none}}
 .cols{display:grid;grid-template-columns:minmax(300px,var(--cw,420px)) minmax(0,1fr);
   gap:20px;align-items:start}
