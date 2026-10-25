@@ -16,6 +16,14 @@ addresses to type into the iPads. Closing its window stops the server and
 closes the app window with it, so nothing is left running and the port is
 free next time.
 
+While that window is open the laptop will not sleep. This is the whole
+reason the screen used to go grey mid-match: Windows puts this machine into
+Modern Standby after three idle minutes, on mains as well as battery, and
+tears the network down with it, which takes the app away from every tablet
+at once. The launcher asks Windows to keep the system up for as long as it
+runs and gives that back when it closes, so no power setting has to be
+changed and nothing has to be put back. The screen is still free to go dark.
+
 That window is Chrome or Edge in app mode: no address bar, no tabs, its own
 taskbar button, in a profile of its own so it is never mixed in with your own
 browsing. Something has to render HTML, and the alternatives are worse.

@@ -52,6 +52,45 @@ static class Scout
 
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
+    [DllImport("kernel32.dll")] static extern uint SetThreadExecutionState(uint flags);
+
+    const uint ES_CONTINUOUS = 0x80000000;
+    const uint ES_SYSTEM_REQUIRED = 0x00000001;
+
+    // The laptop serving the bench must not go to sleep.
+    //
+    // This is what the grey screen was. The event log on the laptop it was
+    // reported from: Modern Standby entered at 16:48:03, "Connectivity state
+    // in standby: Disconnected" fifteen seconds later, standby exited at
+    // 17:00:16, and the screenshot came at 17:01. Sleep after is set to
+    // three minutes there, on mains as well as battery, so three idle
+    // minutes between sets takes the app away from every tablet at once,
+    // not just from the window on the laptop.
+    //
+    // ES_SYSTEM_REQUIRED for as long as this window is open, and no more:
+    // the setting itself is not touched, so nothing has to be put back
+    // afterwards and the laptop sleeps as it always did once scoutR is
+    // closed. The display is deliberately left out. A screen that goes dark
+    // is fine, and asking for it to stay on would burn a battery through a
+    // five-set match for nothing.
+    static void StayAwake(bool on)
+    {
+        try
+        {
+            uint prev = SetThreadExecutionState(on ? (ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+                                                   : ES_CONTINUOUS);
+            // Zero means Windows refused, which is worth knowing in the log
+            // rather than discovering when the bench goes dark between sets.
+            Log(on ? (prev != 0 ? "keep-awake: on" : "keep-awake: REFUSED by Windows")
+                   : "keep-awake: off");
+        }
+        catch (Exception e) { Log("keep-awake: failed, " + e.Message); }
+    }
+
+    static void Log(string line)
+    {
+        try { File.AppendAllText(LogPath, line + Environment.NewLine); } catch { }
+    }
 
     [STAThread]
     static void Main(string[] args)
@@ -113,6 +152,8 @@ static class Scout
         }
 
         RscriptPath = rscript;
+        try { File.WriteAllText(LogPath, ""); } catch { }
+        StayAwake(true);
         Port = args.Length > 0 ? ParsePort(args[0]) : FreePort(7815);
         BuildWindow();
         Start(rscript);
@@ -146,16 +187,23 @@ static class Scout
         Status.SetBounds(18, 44, 400, 18);
         Win.Controls.Add(Status);
 
+        Label awake = new Label();
+        awake.Text = "This laptop will not sleep while this window is open.";
+        awake.Font = new Font("Segoe UI", 8F);
+        awake.ForeColor = ColorTranslator.FromHtml("#8b939f");
+        awake.SetBounds(18, 62, 400, 16);
+        Win.Controls.Add(awake);
+
         Label addrHdr = new Label();
         addrHdr.Text = "Point an iPad at one of these";
         addrHdr.Font = new Font("Segoe UI", 8F);
         addrHdr.ForeColor = ColorTranslator.FromHtml("#8b939f");
-        addrHdr.SetBounds(18, 70, 400, 16);
+        addrHdr.SetBounds(18, 82, 400, 16);
         Win.Controls.Add(addrHdr);
 
         Addresses = new ListBox();
         Addresses.Font = new Font("Consolas", 10F);
-        Addresses.SetBounds(18, 88, 394, 90);
+        Addresses.SetBounds(18, 100, 394, 84);
         Addresses.BorderStyle = BorderStyle.FixedSingle;
         Win.Controls.Add(Addresses);
 
@@ -166,10 +214,11 @@ static class Scout
         StopBtn = MakeButton("Stop", 290, 192, 122);
         StopBtn.Click += delegate { Win.Close(); };
 
-        // Closing the window stops the server. Anything else and a coach who
-        // pressed the X at the end of a match leaves R holding the port, which
-        // is exactly how 7815 ends up occupied next time.
-        Win.FormClosing += delegate { StopR(); };
+        // Closing the window stops the server, and hands the laptop back its
+        // own sleep settings. Anything else and a coach who pressed the X at
+        // the end of a match leaves R holding the port, which is exactly how
+        // 7815 ends up occupied next time.
+        Win.FormClosing += delegate { StopR(); StayAwake(false); };
     }
 
     static Button MakeButton(string text, int x, int y, int w)
@@ -201,7 +250,11 @@ static class Scout
         R.ErrorDataReceived += OnOutput;
         R.Exited += delegate { OnExit(); };
 
-        try { File.WriteAllText(LogPath, ""); } catch { }
+        // Appended, not truncated: the first thing in this file is whether
+        // Windows agreed to keep the laptop awake, written before R starts,
+        // and a retry used to wipe it. LastError() reads from the end, so a
+        // longer log costs it nothing.
+        Log("--- starting R on port " + Port + " ---");
         R.Start();
         R.BeginOutputReadLine();
         R.BeginErrorReadLine();
