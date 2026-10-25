@@ -1770,6 +1770,23 @@ ok("and the file controls are not on a tablet at all",
 ok("the live clock rides with the tabs there, and only there",
    grepl(".tablive{display:none}", css, fixed = TRUE) &&
      grepl(".tablive{display:inline-flex", css, fixed = TRUE))
+# Footnotes and the paragraph under a tab fold with More. A third to a half
+# of the text on a tab is explanation, and a coach between rallies is reading
+# numbers.
+ok("a footnote folds away with More",
+   grepl('class="tiny extra"', tiny("x"), fixed = TRUE))
+ok("so does the paragraph under a tab",
+   grepl('class="note extra"', note("x"), fixed = TRUE))
+# A caveat qualifies the number beside it and is not an explanation, so it is
+# read whether or not anyone pressed More.
+ok("a caveat does not", !grepl("extra", caveat("x"), fixed = TRUE))
+ok("the chart's own apology is a caveat, not a footnote",
+   local({
+     h <- paste(tab_serve(Fp, o_auto, ck), collapse = "")
+     !grepl("too many arrows", h, fixed = TRUE) ||
+       grepl('class="tiny caveat"', h, fixed = TRUE)
+   }))
+
 ok("the stylesheet drops the chart column below the numbers when stacked",
    grepl("chartcol{order:2}", paste(readLines("www/styles.css", warn = FALSE),
                                     collapse = ""), fixed = TRUE))

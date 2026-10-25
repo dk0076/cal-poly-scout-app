@@ -92,7 +92,7 @@ tab_serve <- function(F, o, coords_ok) {
             if (identical(sView, "arrows")) vtoggle("tend", "Tendency lines", o$tend) else character(),
             vtoggle("sPass", "Passer start", o$sPass)),
     if (auto_grid)
-      tiny(sprintf("%d serves is too many arrows to read at once, so this is where they landed. Pick a server in the rail, or press Trajectories to draw them anyway.",
+      caveat(sprintf("%d serves is too many arrows to read at once, so this is where they landed. Pick a server in the rail, or press Trajectories to draw them anyway.",
                    sum(V$has_xy))) else "",
     court,
     legend(c("var(--kill)", "ace"), c("var(--inplay)", "returned"),

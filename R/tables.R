@@ -49,9 +49,32 @@ card <- function(title, body)
 #' A card with no heading -- for a chart that titles itself.
 plain_card <- function(body) sprintf('<div class="card">%s</div>', paste0(body, collapse = ""))
 
-tiny <- function(...) sprintf('<div class="tiny" style="margin-top:6px">%s</div>', paste0(..., collapse = ""))
+# The footnotes under a table and the paragraph under a tab. Both say true
+# and useful things, and both are in the way: a coach between rallies is
+# reading numbers, and five lines of prose under each card is five lines
+# they scroll past to reach the next one.
+#
+# So they fold. Not deleted, because the first time someone asks what KO%
+# counts, or why a lane is blank, the answer has to be on the page rather
+# than in somebody's memory of a conversation. One press of More in the tab
+# heading and every explanation on that screen is back.
+#
+# This is also what gives More something to do on the tabs where no card was
+# folded: the button appears wherever a panel has anything behind it, and
+# now that includes anywhere with a footnote.
+tiny <- function(...)
+  sprintf('<div class="tiny extra" style="margin-top:6px">%s</div>',
+          paste0(..., collapse = ""))
 
-note <- function(...) sprintf('<div class="note">%s</div>', paste0(..., collapse = ""))
+note <- function(...)
+  sprintf('<div class="note extra">%s</div>', paste0(..., collapse = ""))
+
+#' A line that is not an explanation: a caveat attached to the number beside
+#' it, which has to be read whether or not anyone pressed More. Used where
+#' leaving it out would let someone read a figure as something it is not.
+caveat <- function(...)
+  sprintf('<div class="tiny caveat" style="margin-top:6px">%s</div>',
+          paste0(..., collapse = ""))
 
 thin <- function(x) sprintf('<span class="thin">%s</span>', x)
 

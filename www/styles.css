@@ -721,3 +721,7 @@ body.simplified .c-coord{display:none}
 /* The grey wash itself, in case Shiny draws it before our handler runs. */
 #shiny-disconnected-overlay{display:none!important}
 @media print{#linkstate{display:none}}
+
+/* A caveat qualifies the number next to it, so it is not an explanation and
+   does not fold with them. */
+.tiny.caveat{display:block}

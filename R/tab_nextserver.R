@@ -164,7 +164,7 @@ server_block <- function(S_all, jersey, name, o, coords_ok, live_id = "") {
            tiny(sprintf("Each chip is one serve: the zone it landed in, then the grade. Oldest on the left. The arrow compares the window with %s.",
                         if (live) "the rest of tonight" else "her whole match")))),
     if (drawn < nrow(q))
-      tiny(sprintf("The chart shows %d of her %d serves. The other %d were coded without a line, so they count in the numbers and cannot be drawn. A staff sheet built from the chart will show %d.",
+      caveat(sprintf("The chart shows %d of her %d serves. The other %d were coded without a line, so they count in the numbers and cannot be drawn. A staff sheet built from the chart will show %d.",
                    drawn, nrow(q), nrow(q) - drawn, drawn)) else "",
     fold(live, card("Her last serve",
          tbl_generic(c("Set", "Score", "Target", "Type", "Outcome"),

@@ -76,7 +76,7 @@ tab_attack <- function(F, o, coords_ok) {
             vbtn("aView", "heat", "Landing grid", aView),
             vbtn("aView", "contact", "Contact points", aView)),
     if (auto_grid)
-      tiny(sprintf("%d attacks is too many arrows to read at once, so this is where they landed. Pick a hitter in the rail, or press Trajectories to draw them anyway.",
+      caveat(sprintf("%d attacks is too many arrows to read at once, so this is where they landed. Pick a hitter in the rail, or press Trajectories to draw them anyway.",
                    sum(shown$has_xy))) else "",
     viewbar(if (heat) c(vbtn("aBins", "3", "3×3 zones", as.character(o$aBins)),
                         vbtn("aBins", "6", "6×6", as.character(o$aBins)),
