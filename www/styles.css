@@ -725,3 +725,9 @@ body.simplified .c-coord{display:none}
 /* A caveat qualifies the number next to it, so it is not an explanation and
    does not fold with them. */
 .tiny.caveat{display:block}
+
+/* A court is a diagram, not a poster. Side by side it sits in a rail of its
+   own width anyway; stacked, which is what the two-team view always does,
+   it would otherwise run the full width of the panel and push the numbers
+   off the screen. */
+.chartcol svg.court{max-width:460px}

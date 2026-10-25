@@ -84,7 +84,14 @@ tab_serve <- function(F, o, coords_ok) {
                      marks = marks, alt = "serve trajectories",
                      mono = mono, coords_ok = coords_ok)
 
-  left <- plain_card(c(
+  # One server's chart is a picture; a team's is seventy-odd arrows on one
+  # court, and since each side's columns stack in the two-team view it was
+  # drawing that at full panel width. The full court is for a single server,
+  # picked in the rail; a team gets the per-server strip below, where each
+  # little court is about somebody. Same rule as the Attacking tab.
+  one_server <- length(unique(V$num[!is.na(V$num)])) == 1L
+
+  left <- if (!one_server) character() else plain_card(c(
     viewbar(vbtn("sView", "arrows", "Trajectories", sView),
             vbtn("sView", "heat", "Landing grid", sView),
             if (heat) c(vbtn("sBins", "3", "3×3 zones", as.character(o$sBins)),
@@ -100,6 +107,11 @@ tab_serve <- function(F, o, coords_ok) {
            trailing = if (isTRUE(o$sPass)) "P = recommended passer start, box = middle half of landings" else NULL),
     if (isTRUE(o$sPass)) tiny(esc(passer_start_text(ps))) else ""
   ))
+  if (!one_server)
+    left <- c(left,
+      plain_card(c(viewbar(vtoggle("sPass", "Passer start", o$sPass),
+                           vtoggle("tend", "Tendency lines", o$tend)),
+                   tiny("One court per server below. Pick a server in the rail for the full chart: a whole team on one court is seventy arrows crossing each other."))))
   left <- c(left, small_multiples(xy, "serve", coords_ok, mono))
   if (!show_chart) left <- character()
 
@@ -183,6 +195,7 @@ tab_serve <- function(F, o, coords_ok) {
                               thin(sprintf("(%s m from left sideline)", m1(med(t0$x1))))) else "")
     }))))
 
+  if (!show_chart) left <- character()
   paste0(c(H, if (show_chart) cols2(left, R, 420, "chartcol")
              else paste0(R, collapse = "")), collapse = "")
 }

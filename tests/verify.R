@@ -1405,6 +1405,23 @@ ok(sprintf("a whole team of %d charted attacks draws no full court",
    !grepl('<div class="card"><div class="viewbar"><button class="chip " data-o="aView"',
           h_team, fixed = TRUE) &&
      !grepl("too many arrows", h_team, fixed = TRUE))
+# Serving follows the same rule as Attacking. It did not, and since each
+# side's columns stack in the two-team view, a whole team's serves were
+# drawn on one court at full panel width.
+ok("a whole team's serves draw no full court either",
+   local({
+     h <- paste(tab_serve(Fp, o_auto, ck), collapse = "")
+     n_sm <- length(gregexpr('class="sm"', h, fixed = TRUE)[[1]])
+     if (!grepl('class="sm"', h, fixed = TRUE)) n_sm <- 0L
+     n_svg <- length(gregexpr("<svg", h, fixed = TRUE)[[1]])
+     if (!grepl("<svg", h, fixed = TRUE)) n_svg <- 0L
+     n_svg == n_sm
+   }))
+ok("a court never spans the panel, whatever the layout does",
+   grepl(".chartcol svg.court{max-width", css0 <- paste(
+     readLines("www/styles.css", warn = FALSE), collapse = "
+"), fixed = TRUE))
+
 ok("and says where the full chart is",
    grepl("Pick a hitter in the rail", h_team, fixed = TRUE))
 ok("the per-hitter strip is still drawn",
