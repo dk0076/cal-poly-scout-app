@@ -230,6 +230,11 @@ small_multiples <- function(rows, kind, coords_ok, mono = FALSE) {
   # when nobody has three yet: a tab with the chart switched on and nothing
   # on it. One arrow is a small card and still an answer; a coach can see
   # how many attempts it rests on, since the count is written on it.
+  #
+  # One charted play is the bar, not one attempt: a player whose attempts
+  # were all coded without a line has nothing to draw, and her card would be
+  # an empty court that reads as a miss rather than as an absence.
+  groups <- groups[vapply(groups, function(o) any(o$rows$has_xy), logical(1))]
   if (!length(groups) || !coords_ok) return("")
   body <- vapply(seq_along(groups), function(i) {
     o <- groups[[i]]

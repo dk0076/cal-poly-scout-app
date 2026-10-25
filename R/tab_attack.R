@@ -69,17 +69,19 @@ tab_attack <- function(F, o, coords_ok) {
   # week. So a team gets the per-hitter strip, where each little court is
   # about somebody.
   #
-  # But not when there is barely anything to draw. Three attacks on one court
-  # is three arrows, and the strip cannot show them at all, because it only
-  # draws hitters with three or more of their own: early in a match that is
-  # nobody, and the screen came up empty with the chart switched on. The same
-  # limit the view switch already uses decides it, so a chart appears as soon
-  # as there is something to see and gives way to the strip once a court
-  # would be a ball of wool.
+  # By player, never the team on one court, at any size. Three arrows on a
+  # shared court is readable and still the wrong picture: a coach reading it
+  # has to work out whose each arrow was. The strip answers that by being
+  # one card per player, so it is the answer at three attacks as well as at
+  # a hundred.
+  #
+  # The full court is still drawn for a single player picked in the rail,
+  # where every arrow is hers by construction, and as a fallback if the
+  # strip somehow has nothing in it while there is something charted.
   charted <- sum(shown$has_xy)
   one_hitter <- length(unique(A$num[!is.na(A$num)])) == 1L
   strip <- if (charted) small_multiples(shown, "attack", coords_ok, mono) else ""
-  full_court <- one_hitter || charted <= ARROWS_READABLE || !nzchar(strip)
+  full_court <- one_hitter || (charted > 0L && !nzchar(strip))
 
   left <- if (!full_court) character() else plain_card(c(
     viewbar(vbtn("aView", "arrows", "Trajectories", aView),

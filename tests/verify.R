@@ -1411,13 +1411,15 @@ ok(sprintf("a whole team of %d charted attacks draws no full court",
 # From a real screenshot: a match three attacks old, the chart switched on,
 # and nothing on the screen. The strip drew nobody because it wanted three
 # attempts a hitter, and the team court had been taken away.
-ok("a handful of charted attacks still draws a court",
+ok("a handful of charted attacks draws one card per hitter, not one court",
    local({
-     A <- Fp[Fp$skill == "A", ]
+     A <- Fp[Fp$skill == "A" & Fp$has_xy, ]
      data.table::setorder(A, set_no, rally_no, seq)
      few <- Fp[Fp$uid %in% utils::head(A$uid, 3L) | Fp$skill != "A", ]
      h <- paste(tab_attack(few, o_auto, ck), collapse = "")
-     grepl("<svg", h, fixed = TRUE)
+     n <- function(pat) if (grepl(pat, h, fixed = TRUE))
+       length(gregexpr(pat, h, fixed = TRUE)[[1]]) else 0L
+     n("<svg") > 0 && n("<svg") == n('class="sm"')
    }))
 ok("and every hitter is on the strip, down to one attempt",
    local({

@@ -84,16 +84,13 @@ tab_serve <- function(F, o, coords_ok) {
                      marks = marks, alt = "serve trajectories",
                      mono = mono, coords_ok = coords_ok)
 
-  # Same rule as the Attacking tab: a team's serves at full length are
-  # seventy arrows crossing each other, so a team gets the per-server strip,
-  # and a court is drawn while there is little enough on it to read, or for
-  # one server picked in the rail. The strip only draws servers with three
-  # or more of their own, so early in a match it is empty and the court is
-  # the only thing that can show anything at all.
+  # Same rule as the Attacking tab: by server, never the team on one court.
+  # The full court is for one server picked in the rail, and for the case
+  # where something is charted but the strip has nothing to show.
   charted <- nrow(xy)
   one_server <- length(unique(V$num[!is.na(V$num)])) == 1L
   strip <- if (charted) small_multiples(xy, "serve", coords_ok, mono) else ""
-  full_court <- one_server || charted <= ARROWS_READABLE || !nzchar(strip)
+  full_court <- one_server || (charted > 0L && !nzchar(strip))
 
   left <- if (!full_court) character() else plain_card(c(
     viewbar(vbtn("sView", "arrows", "Trajectories", sView),
