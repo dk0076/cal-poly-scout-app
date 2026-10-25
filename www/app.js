@@ -161,7 +161,11 @@
     }
     // Folds the header controls away on a tablet. Local only, like the rail.
     if (el.hasAttribute("data-pos")) return send("js_pos", { val: el.getAttribute("data-pos") });
-    if (el.hasAttribute("data-tab")) return send("js_tab", { tab: el.getAttribute("data-tab") });
+    if (el.hasAttribute("data-tab")) {
+      try { window.localStorage.setItem(TAB_KEY, el.getAttribute("data-tab")); }
+      catch (e) { /* the tab is remembered for this page only */ }
+      return send("js_tab", { tab: el.getAttribute("data-tab") });
+    }
     // a panel view option: key plus the value to store
     if (el.hasAttribute("data-o")) {
       var key = el.getAttribute("data-o"), val = el.getAttribute("data-v");
@@ -296,6 +300,132 @@
   // has been and gone.
   if (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.isConnected &&
       Shiny.shinyapp.isConnected()) restoreCharts();
+  /* ---- staying up ------------------------------------------------------
+     Shiny greys the whole page when the socket drops and waits for a human.
+     During a match nobody is going to read a grey page and press refresh,
+     and on the laptop it happened on, R was alive and listening the whole
+     time. So: say what is happening in a line at the top, give the server a
+     few seconds to take the session back, and reload if it does not.
+
+     The reload is capped. If R really is gone, a page reloading itself
+     every few seconds forever is worse than one that says so and waits. */
+  var TAB_KEY = "scoutr.tab";
+  var TRIES_KEY = "scoutr.reconnects";
+  var RELOAD_AFTER = 4000;     // let allowReconnect do its job first
+  var MAX_RELOADS = 3;
+  var downAt = 0, downTimer = null;
+
+  function tries() {
+    try { return parseInt(window.sessionStorage.getItem(TRIES_KEY) || "0", 10) || 0; }
+    catch (e) { return 0; }
+  }
+  function setTries(n) {
+    try { window.sessionStorage.setItem(TRIES_KEY, String(n)); } catch (e) { }
+  }
+
+  function banner(text, cls) {
+    var b = document.getElementById("linkstate");
+    if (!b) {
+      b = document.createElement("div");
+      b.id = "linkstate";
+      document.body.appendChild(b);
+    }
+    b.className = cls || "";
+    b.textContent = text;
+    b.hidden = !text;
+  }
+
+  // Reloading blind is how a tablet ends up on Chrome's own error page with
+  // none of this code running, unable to come back even once R returns. So
+  // the page asks the server whether it is there, and only reloads when
+  // something answered.
+  function serverAnswers() {
+    return fetch(window.location.pathname + "?ping=" + Date.now(),
+                 { cache: "no-store" })
+      .then(function (r) { return r.ok; })
+      .catch(function () { return false; });
+  }
+
+  function onDown() {
+    // Shiny's own overlay is a grey wash with no words in it; ours says
+    // what is happening and is the only one on screen.
+    var o = document.getElementById("shiny-disconnected-overlay");
+    if (o) o.remove();
+    if (downTimer) return;
+    downAt = Date.now();
+    banner("Lost the connection to the laptop. Reconnecting\u2026", "warn");
+    downTimer = window.setTimeout(waitForServer, RELOAD_AFTER);
+  }
+
+  function waitForServer() {
+    downTimer = null;
+    if (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.isConnected()) return;
+    serverAnswers().then(function (ok) {
+      if (ok) {
+        var n = tries();
+        if (n >= MAX_RELOADS) {
+          banner("Reconnecting is not sticking. Reload the page by hand.", "bad");
+          return;
+        }
+        setTries(n + 1);
+        window.location.reload();
+        return;
+      }
+      // Nothing there yet. Keep saying so, and keep asking: a laptop that
+      // went to sleep or an app that was restarted comes back on its own
+      // this way, with nobody touching the tablet.
+      banner("Cannot reach the laptop. Still trying\u2026", "bad");
+      downTimer = window.setTimeout(waitForServer, 3000);
+    });
+  }
+
+  function onUp() {
+    if (downTimer) { window.clearTimeout(downTimer); downTimer = null; }
+    setTries(0);
+    // Only say so if it was away long enough for anyone to notice.
+    if (downAt && Date.now() - downAt > 1500) {
+      banner("Back.", "ok");
+      window.setTimeout(function () { banner(""); }, 2500);
+    } else {
+      banner("");
+    }
+    downAt = 0;
+    restoreTab();
+  }
+
+  // The tab a coach was on is this device's business, so it survives a
+  // reload the same way the hidden tabs and the theme do. Only pressed when
+  // the server came back on a different tab, which is the reload case:
+  // a resumed session is already where it was.
+  function restoreTab() {
+    var want = null;
+    try { want = window.localStorage.getItem(TAB_KEY); } catch (e) { }
+    if (!want) return;
+    var btn = document.querySelector('[data-tab="' + want + '"]');
+    if (btn && btn.className.indexOf("on") === -1) btn.click();
+  }
+
+  if (window.jQuery) {
+    window.jQuery(document).on("shiny:disconnected", onDown);
+    window.jQuery(document).on("shiny:connected", onUp);
+  }
+
+  // Which R we are talking to. Reconnecting to a restarted one leaves the
+  // page showing the old one's numbers, which during a match is worse than
+  // showing nothing: it was a live clock from a server that had never seen a
+  // file. Same id, carry on; a different one, start clean.
+  var boot = null;
+  if (window.Shiny && Shiny.addCustomMessageHandler) {
+    Shiny.addCustomMessageHandler("scoutr-boot", function (id) {
+      if (boot && boot !== id) {
+        banner("The laptop restarted. Reloading\u2026", "warn");
+        window.setTimeout(function () { window.location.reload(); }, 300);
+        return;
+      }
+      boot = id;
+    });
+  }
+
   var DETAIL_KEY = "scoutr.showDetail";
 
   function detailOn() {

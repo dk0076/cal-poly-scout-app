@@ -707,3 +707,17 @@ body.simplified .c-coord{display:none}
 /* The call on a serve-receive set chip: present, but the jersey number and
    the grade are what the eye should land on first. */
 .att .cl{font-weight:600;opacity:.75;font-size:11px}
+
+/* ---- the connection, in words ------------------------------------------
+   Shiny's answer to a dropped socket is to grey the page out, which on a
+   bench reads as "the app is dead" and tells nobody what to do. This sits
+   at the top, says which it is, and goes away by itself. */
+#linkstate{position:fixed;left:0;right:0;top:0;z-index:200;padding:7px 14px;
+  font:12px/1.3 var(--mono);text-align:center;color:#fff}
+#linkstate.warn{background:var(--blocked)}
+#linkstate.bad{background:var(--err)}
+#linkstate.ok{background:var(--accent)}
+#linkstate[hidden]{display:none}
+/* The grey wash itself, in case Shiny draws it before our handler runs. */
+#shiny-disconnected-overlay{display:none!important}
+@media print{#linkstate{display:none}}

@@ -117,6 +117,13 @@ WATCH_QUIET <- 100L                  # ticks of no change before backing off
 # because a data.table that compares equal to the last one would not wake them.
 LIVE <- reactiveValues(path = "", name = "", at = "", match = NULL, gen = 0L)
 
+# Who this R is. A page that reconnects to a different process has a screen
+# full of the old one's numbers and no way to know: on a restart the tab sat
+# there showing a live clock from a server that had never seen a file. The
+# page compares this with what it was given when it loaded, and reloads if it
+# has changed, which is the only way back to numbers that are true.
+BOOT_ID <- paste0(Sys.getpid(), "-", as.integer(Sys.time()))
+
 # ---------------------------------------------------------------------------
 # What belongs to everyone, and what belongs to a device
 # ---------------------------------------------------------------------------
@@ -314,6 +321,24 @@ ui <- fluidPage(
 # ---------------------------------------------------------------------------
 
 server <- function(input, output, session) {
+
+  # A dropped websocket must not end the match. Shiny's own answer to one is
+  # to grey the page out and stop, which on a bench is indistinguishable from
+  # the app having died, and it happened on a laptop whose R process was
+  # alive and listening the whole time: 46 seconds of CPU, no error in the
+  # log, a page that had simply stopped talking to it.
+  #
+  # "force" rather than TRUE: TRUE only takes effect behind Shiny Server Pro
+  # or Connect, which this is not. The session is held open for a short
+  # window so the browser can pick the same one up again, filters, tab and
+  # all. If it cannot, app.js reloads the page, and because the files, the
+  # watch and the roster all live at app scope, a reload costs a coach their
+  # scroll position and nothing else.
+  session$allowReconnect("force")
+
+  # Sent on every connect, including a reconnect. Same R, same id, nothing
+  # happens; a new R and the page reloads itself.
+  session$sendCustomMessage("scoutr-boot", BOOT_ID)
 
   S <- reactiveValues(
     matches = list(), focus_name = "", focus = list(),
