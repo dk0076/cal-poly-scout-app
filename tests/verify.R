@@ -1408,6 +1408,33 @@ ok(sprintf("a whole team of %d charted attacks draws no full court",
 # Serving follows the same rule as Attacking. It did not, and since each
 # side's columns stack in the two-team view, a whole team's serves were
 # drawn on one court at full panel width.
+# From a real screenshot: a match three attacks old, the chart switched on,
+# and nothing on the screen. The strip drew nobody because it wanted three
+# attempts a hitter, and the team court had been taken away.
+ok("a handful of charted attacks still draws a court",
+   local({
+     A <- Fp[Fp$skill == "A", ]
+     data.table::setorder(A, set_no, rally_no, seq)
+     few <- Fp[Fp$uid %in% utils::head(A$uid, 3L) | Fp$skill != "A", ]
+     h <- paste(tab_attack(few, o_auto, ck), collapse = "")
+     grepl("<svg", h, fixed = TRUE)
+   }))
+ok("and every hitter is on the strip, down to one attempt",
+   local({
+     A <- Fp[Fp$skill == "A" & Fp$has_xy, ]
+     who <- length(unique(A$num[!is.na(A$num)]))
+     h <- paste(small_multiples(A, "attack", TRUE), collapse = "")
+     n <- if (grepl('class="sm"', h, fixed = TRUE))
+       length(gregexpr('class="sm"', h, fixed = TRUE)[[1]]) else 0L
+     n == who
+   }))
+ok("nothing charted says so rather than leaving a gap",
+   local({
+     flat <- data.table::copy(Fp); flat$has_xy <- FALSE
+     grepl("nothing to chart", paste(tab_attack(flat, o_auto, FALSE), collapse = ""),
+           fixed = TRUE)
+   }))
+
 ok("a whole team's serves draw no full court either",
    local({
      h <- paste(tab_serve(Fp, o_auto, ck), collapse = "")

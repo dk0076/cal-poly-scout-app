@@ -224,8 +224,13 @@ small_multiples <- function(rows, kind, coords_ok, mono = FALSE) {
   groups <- by_size(crosstab(rows, paste(rows$num, rows$player_short, sep = "|"),
                              if (kind == "serve") serve_line else attack_line),
                     if (kind == "serve") "n" else "ta")
-  groups <- groups[vapply(groups, function(o) (o$stat$ta %||% o$stat$n) >= 3, logical(1))]
-  if (length(groups) < 2 || !coords_ok) return("")
+  # Everyone who has charted anything, down to a single attempt. The old
+  # floor of three was there to keep the strip from filling with one-swing
+  # cards, and what it actually did was empty the strip early in a match,
+  # when nobody has three yet: a tab with the chart switched on and nothing
+  # on it. One arrow is a small card and still an answer; a coach can see
+  # how many attempts it rests on, since the count is written on it.
+  if (!length(groups) || !coords_ok) return("")
   body <- vapply(seq_along(groups), function(i) {
     o <- groups[[i]]
     parts <- strsplit(o$key, "|", fixed = TRUE)[[1]]
@@ -242,7 +247,7 @@ small_multiples <- function(rows, kind, coords_ok, mono = FALSE) {
     sprintf('<div class="sm"><div class="nm"><span>%s</span><b>#%s</b></div><div class="ln">%s</div>%s</div>',
             esc(parts[2]), parts[1], line, svg)
   }, "")
-  sprintf('<div class="card"><h3>By %s · %s shown (min 3 attempts)</h3><div class="smgrid">%s</div></div>',
+  sprintf('<div class="card"><h3>By %s · %s shown</h3><div class="smgrid">%s</div></div>',
           if (kind == "serve") "server" else "hitter", length(groups),
           paste(body, collapse = ""))
 }

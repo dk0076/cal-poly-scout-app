@@ -64,14 +64,24 @@ tab_attack <- function(F, o, coords_ok) {
                      marks = marks, alt = "attack trajectories",
                      mono = mono, coords_ok = coords_ok)
 
-  # One hitter's chart is a picture; a team's is 124 arrows or a grid of
-  # counts that says where a volleyball team hits, which is the same answer
-  # every time. So the full court is drawn for a single hitter, picked in
-  # the rail, and a team view gets the per-hitter strip instead, where each
-  # little court is about somebody.
+  # One hitter's chart is a picture; a team's at full length is 124 arrows
+  # that say where a volleyball team hits, which is the same answer every
+  # week. So a team gets the per-hitter strip, where each little court is
+  # about somebody.
+  #
+  # But not when there is barely anything to draw. Three attacks on one court
+  # is three arrows, and the strip cannot show them at all, because it only
+  # draws hitters with three or more of their own: early in a match that is
+  # nobody, and the screen came up empty with the chart switched on. The same
+  # limit the view switch already uses decides it, so a chart appears as soon
+  # as there is something to see and gives way to the strip once a court
+  # would be a ball of wool.
+  charted <- sum(shown$has_xy)
   one_hitter <- length(unique(A$num[!is.na(A$num)])) == 1L
+  strip <- if (charted) small_multiples(shown, "attack", coords_ok, mono) else ""
+  full_court <- one_hitter || charted <= ARROWS_READABLE || !nzchar(strip)
 
-  left <- if (!one_hitter) character() else plain_card(c(
+  left <- if (!full_court) character() else plain_card(c(
     viewbar(vbtn("aView", "arrows", "Trajectories", aView),
             vbtn("aView", "heat", "Landing grid", aView),
             vbtn("aView", "contact", "Contact points", aView)),
@@ -89,12 +99,16 @@ tab_attack <- function(F, o, coords_ok) {
            c("var(--blocked)", "blocked"), c("var(--err)", "error"),
            trailing = "net at bottom · dot = contact")
   ))
-  if (!one_hitter)
-    left <- c(left,
-      plain_card(c(viewbar(vtoggle("aIncErr", "Include errors &amp; blocks", o$aIncErr),
-                           vtoggle("tend", "Tendency lines", o$tend)),
-                   tiny("One court per hitter below. Pick a hitter in the rail for the full chart: a whole team on one court is every attack a volleyball team hits, which is the same picture every week."))))
-  left <- c(left, small_multiples(shown, "attack", coords_ok, mono))
+  if (!charted)
+    left <- plain_card(caveat("No attack in view carries a drawn line, so there is nothing to chart. A file coded live during a match usually has none; the scouting films do, so picking one in the rail brings the charts back."))
+  else {
+    if (!full_court)
+      left <- c(left,
+        plain_card(c(viewbar(vtoggle("aIncErr", "Include errors &amp; blocks", o$aIncErr),
+                             vtoggle("tend", "Tendency lines", o$tend)),
+                     tiny("One court per hitter below. Pick a hitter in the rail for the full chart: a whole team on one court is every attack a volleyball team hits, which is the same picture every week."))))
+    left <- c(left, strip)
+  }
 
   R <- list()
 

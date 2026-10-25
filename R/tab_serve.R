@@ -84,14 +84,18 @@ tab_serve <- function(F, o, coords_ok) {
                      marks = marks, alt = "serve trajectories",
                      mono = mono, coords_ok = coords_ok)
 
-  # One server's chart is a picture; a team's is seventy-odd arrows on one
-  # court, and since each side's columns stack in the two-team view it was
-  # drawing that at full panel width. The full court is for a single server,
-  # picked in the rail; a team gets the per-server strip below, where each
-  # little court is about somebody. Same rule as the Attacking tab.
+  # Same rule as the Attacking tab: a team's serves at full length are
+  # seventy arrows crossing each other, so a team gets the per-server strip,
+  # and a court is drawn while there is little enough on it to read, or for
+  # one server picked in the rail. The strip only draws servers with three
+  # or more of their own, so early in a match it is empty and the court is
+  # the only thing that can show anything at all.
+  charted <- nrow(xy)
   one_server <- length(unique(V$num[!is.na(V$num)])) == 1L
+  strip <- if (charted) small_multiples(xy, "serve", coords_ok, mono) else ""
+  full_court <- one_server || charted <= ARROWS_READABLE || !nzchar(strip)
 
-  left <- if (!one_server) character() else plain_card(c(
+  left <- if (!full_court) character() else plain_card(c(
     viewbar(vbtn("sView", "arrows", "Trajectories", sView),
             vbtn("sView", "heat", "Landing grid", sView),
             if (heat) c(vbtn("sBins", "3", "3×3 zones", as.character(o$sBins)),
@@ -107,12 +111,16 @@ tab_serve <- function(F, o, coords_ok) {
            trailing = if (isTRUE(o$sPass)) "P = recommended passer start, box = middle half of landings" else NULL),
     if (isTRUE(o$sPass)) tiny(esc(passer_start_text(ps))) else ""
   ))
-  if (!one_server)
-    left <- c(left,
-      plain_card(c(viewbar(vtoggle("sPass", "Passer start", o$sPass),
-                           vtoggle("tend", "Tendency lines", o$tend)),
-                   tiny("One court per server below. Pick a server in the rail for the full chart: a whole team on one court is seventy arrows crossing each other."))))
-  left <- c(left, small_multiples(xy, "serve", coords_ok, mono))
+  if (!charted)
+    left <- plain_card(caveat("No serve in view carries a drawn line, so there is nothing to chart. A file coded live during a match usually has none; the scouting films do, so picking one in the rail brings the charts back."))
+  else {
+    if (!full_court)
+      left <- c(left,
+        plain_card(c(viewbar(vtoggle("sPass", "Passer start", o$sPass),
+                             vtoggle("tend", "Tendency lines", o$tend)),
+                     tiny("One court per server below. Pick a server in the rail for the full chart: a whole team on one court is seventy arrows crossing each other."))))
+    left <- c(left, strip)
+  }
   if (!show_chart) left <- character()
 
   R <- list()
