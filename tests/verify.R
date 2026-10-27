@@ -18,7 +18,7 @@ root <- dirname(dirname(normalizePath(sub("--file=", "", grep("--file=", command
 setwd(root)
 for (f in c("core.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R", "tables.R",
             "tab_attack.R", "tab_serve.R", "tab_set.R", "tab_setter.R",
-            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R", "plot_runs.R", "plot_sr_sets.R",
+            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R", "plot_runs.R", "plot_sr_sets.R", "matchup.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -1573,6 +1573,76 @@ if (nrow(SR_all)) {
 # Checked against a real match it agreed on 695 of 695 plays, both for our
 # own rotation and the opponent's view of it. This locks the mapping so a
 # tidy-up cannot quietly renumber it.
+# The matchup coming up. Their in-match app keeps this as a 71 row lookup
+# keyed on both setters' positions and who serves; this generates the same
+# thing from the two rules that produce it, and the generated order was
+# checked against their file: 72 of 72 states agree, across all six matchup
+# letters. These lock the rules themselves.
+cat("\n== the matchup coming up\n")
+ok("the serving side winning changes nothing",
+   local({
+     nx <- matchup_next("R3", "R5", TRUE)
+     identical(nx$we_win, list(ours = "R3", theirs = "R5", we_serve = TRUE))
+   }))
+ok("the receiving side winning rotates it and hands it the serve",
+   local({
+     nx <- matchup_next("R3", "R5", TRUE)
+     identical(nx$they_win, list(ours = "R3", theirs = "R6", we_serve = FALSE))
+   }))
+ok("and the same from the other side of the net",
+   local({
+     nx <- matchup_next("R3", "R5", FALSE)
+     identical(nx$we_win, list(ours = "R4", theirs = "R5", we_serve = TRUE))
+   }))
+ok("a set walks through pairings, one rotation per side-out",
+   local({
+     o <- matchup_order("R1", "R1", TRUE, n = 8L)
+     all(vapply(2:length(o), function(i) {
+       a <- o[[i - 1]]; b <- o[[i]]
+       flipped <- !identical(isTRUE(a$we_serve), isTRUE(b$we_serve))
+       moved <- if (isTRUE(a$we_serve))
+         identical(b$theirs, rot_advance(a$theirs)) && identical(b$ours, a$ours)
+       else
+         identical(b$ours, rot_advance(a$ours)) && identical(b$theirs, a$theirs)
+       flipped && moved
+     }, TRUE))
+   }))
+ok("twelve states bring both sides back round",
+   local({
+     o <- matchup_order("R1", "R1", TRUE, n = 13L)
+     identical(o[[13]]$ours, o[[1]]$ours) && identical(o[[13]]$theirs, o[[1]]$theirs)
+   }))
+ok("a lineup rotated six times is where it started",
+   identical(rotate_lineup(1:6, 6L), 1:6))
+ok("rotating moves zone 2 into zone 1",
+   identical(rotate_lineup(c(11L, 22L, 33L, 44L, 55L, 66L), 1L)[1], 22L))
+ok("the front row is zones 4, 3 and 2",
+   identical(front_row(c(11L, 22L, 33L, 44L, 55L, 66L)), c(44L, 33L, 22L)))
+
+local({
+  ru <- rally_outcomes(matches, sel, focus)
+  rt <- rally_outcomes(matches, sel, focus, opp = TRUE)
+  h <- matchup_history(ru, rt)
+  if (!is.null(h)) {
+    ok("every pairing counted is a real pair of rotations",
+       all(h$ours %in% ROTS) && all(h$theirs %in% ROTS))
+    ok("a pairing cannot win more than it played",
+       all(h$so <= h$rec) && all(h$ps <= h$srv))
+    both <- sum(!is.na(ru$rot) & !is.na(ru$won))
+    ok("and the rallies add up",
+       sum(h$rec + h$srv) <= both,
+       sprintf("%d counted of %d with a rotation and a winner",
+               sum(h$rec + h$srv), both))
+    ok("the card names both rotations and what is coming",
+       local({
+         card <- matchup_card("R3", "R5", TRUE, h)
+         grepl("Ro. 3", card, fixed = TRUE) && grepl("Ro. 5", card, fixed = TRUE) &&
+           grepl("On court", card, fixed = TRUE) && grepl("Next", card, fixed = TRUE)
+       }))
+  }
+})
+ok("an unknown rotation draws no card", identical(matchup_card(NA, "R1", TRUE, NULL), ""))
+
 cat("\n== rotations, said their way\n")
 their_stdrot <- c("1" = 1L, "6" = 2L, "5" = 3L, "4" = 4L, "3" = 5L, "2" = 6L)
 ok("a setter position maps to their rotation number",

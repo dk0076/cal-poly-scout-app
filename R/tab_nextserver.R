@@ -338,7 +338,7 @@ prematch_block <- function(Opp, o, labels, n_files, opponent, why, coords_ok = T
 
 tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
                            n_files = 1L, live_only = FALSE, opponent = "",
-                           live_id = "") {
+                           live_id = "", matchup = "") {
   # Before the first serve there is nothing to predict from, which is also
   # exactly when a staff opens this: the films are loaded and the match has
   # not started. So the same page falls back to the whole scouting picture,
@@ -371,7 +371,7 @@ tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
                       esc(ns$basis)))
 
   S_all <- Opp[Opp$skill == "S", ]
-  chips <- server_chips(Opp, pinned)
+  chips <- c(matchup, server_chips(Opp, pinned))
 
   body <- if (nzchar(pinned)) {
     # A pin overrides the prediction and the side: the coach has said who

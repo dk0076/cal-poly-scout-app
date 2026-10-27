@@ -17,7 +17,7 @@ suppressMessages(library(data.table))
 for (f in c("core.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R",
             "tables.R", "tab_attack.R", "tab_serve.R", "tab_set.R",
             "tab_setter.R", "tab_passing.R", "tab_defense.R", "tab_rotation.R",
-            "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R", "plot_runs.R", "plot_sr_sets.R",
+            "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R", "plot_runs.R", "plot_sr_sets.R", "matchup.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -812,7 +812,37 @@ server <- function(input, output, session) {
                        n_files = if (length(sel_hist$matches)) length(sel_hist$matches)
                                  else length(S$matches),
                        live_only = nzchar(LIVE$path) && !length(S$sel$matches),
-                       opponent = opp_name, live_id = S$live_id %||% "")
+                       opponent = opp_name, live_id = S$live_id %||% "",
+                       matchup = local({
+                         # Where the two rotations stand for the rally about
+                         # to be played, and what that pairing has done. The
+                         # last rally's state stepped by how it went: the
+                         # receiving side rotates when it wins.
+                         ru <- rally_outcomes(S$matches, sel_live(), S$focus)
+                         rt <- rally_outcomes(S$matches, sel_live(), S$focus,
+                                              opp = TRUE)
+                         if (!nrow(ru)) "" else {
+                           data.table::setorder(ru, match_id, set_no, rally_no)
+                           data.table::setorder(rt, match_id, set_no, rally_no)
+                           i <- nrow(ru)
+                           nx <- matchup_next(ru$rot[i], rt$rot[i],
+                                              isTRUE(ru$served[i]))
+                           st <- if (is.null(nx)) NULL
+                                 else if (isTRUE(ru$won[i])) nx$we_win else nx$they_win
+                           if (is.null(st)) "" else {
+                             Fp <- focus_plays(S$matches, sel_live(), S$focus)
+                             Op <- opponent_plays(S$matches, sel_live(), S$focus)
+                             lu <- function(d, cols) {
+                               if (!nrow(d)) return(NULL)
+                               as.integer(unlist(d[nrow(d), cols, with = FALSE]))
+                             }
+                             matchup_card(st$ours, st$theirs, st$we_serve,
+                                          matchup_history(ru, rt),
+                                          lu(Fp, paste0("lu", 1:6)),
+                                          lu(Op, paste0("lu", 1:6)))
+                           }
+                         }
+                       }))
       }
       else if (S$tab == "roster")
         tab_roster(position_table(S$matches, ROSTER$ov), S$focus_name)
