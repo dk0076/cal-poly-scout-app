@@ -442,6 +442,11 @@ rot_pos <- function(k) {
   if (is.na(i) || i < 1 || i > length(ROT_ORDER)) "" else paste0("P", ROT_ORDER[i])
 }
 
+# The recent windows a coach asks for: now, this rotation, this match. The
+# same three everywhere they appear, so Serve receive and Next server are
+# answering the same question when they say L6.
+PASS_WINDOWS <- c(3L, 6L, 15L)
+
 wilson <- function(k, n) {
   if (!length(n) || is.na(n) || n == 0) return(c(NA_real_, NA_real_))
   z <- 1.96; p <- k / n; d <- 1 + z^2 / n

@@ -285,7 +285,9 @@ middle_routes <- function(A, coords_ok, mono = FALSE) {
 
   smg <- if (coords_ok) paste0(vapply(seq_along(groups), function(i) {
     g <- groups[[i]]
-    if (g$stat$ta < 2) return("")
+    # Drawn from one attempt up: a route run once is still a route run, and
+    # the attempt count is on the card.
+    if (!any(g$rows$has_xy)) return("")
     rs <- g$rows[g$rows$has_xy, ]
     svg <- court_svg(paste0("mr", i), x_min = -170, x_max = 1070,
                      y_min = 855, y_max = 1990, halves = "opp", scale = 2.1,

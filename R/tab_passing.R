@@ -32,8 +32,11 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
     list(k = "Earned FBSO", v = pct(fbso_line(F)$pct), s = "first-attack kills / receptions")
   )))
 
+  # Everyone who has passed a ball. The floor of three was there to keep a
+  # one-reception line out of a sorted list, and what it did was hide the
+  # player a coach is asking about: the one who has just been served twice.
+  # The count is the first column, so a coach can see what a rate rests on.
   by_player <- crosstab(R0, paste(R0$num, R0$player_short, sep = "|"), receive_line)
-  by_player <- by_player[vapply(by_player, function(g) g$stat$n >= 3, logical(1))]
   by_player <- by_player[order(vapply(by_player, function(g) g$stat$pospct %||% 1, 1))]
 
   # No court here. Reception is read as grades, not as geometry: a pass is
@@ -45,8 +48,38 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
 
   Rc <- list()
 
-  Rc <- c(Rc, card("By passer, weakest first (3+ receptions)", c(tbl_generic(
-    c("Passer", "Rec", "Avg", "Perfect", "Good", "Poor", "Neg", "Err", "Pos%", "Err%", "Off-net m"),
+  # The last 3, 6 and 15 receptions, beside the whole figure, and the chips
+  # for the last 15 themselves. A passer who has been got at in this rotation
+  # shows up here before she shows up in a match average.
+  rec_window <- function(rows) {
+    data.table::setorder(rows, date, match_id, set_no, rally_no, seq)
+    all_eff <- vs_efficiency(rows$effect, "R")
+    vapply(PASS_WINDOWS, function(n) {
+      q <- utils::tail(rows, n)
+      if (!nrow(q)) return("")
+      e <- vs_efficiency(q$effect, "R")
+      arrow <- if (is.na(e) || is.na(all_eff) || nrow(rows) <= n) ""
+               else if (e > all_eff + .001) '<span class="pos">&#9650;</span>'
+               else if (e < all_eff - .001) '<span class="neg">&#9660;</span>'
+               else '<span class="thin">&ndash;</span>'
+      sprintf("%s %s", eff_td(e), arrow)
+    }, "")
+  }
+  rec_chips <- function(rows) {
+    q <- utils::tail(rows, 15)
+    paste0(vapply(seq_len(nrow(q)), function(i) {
+      p <- q[i, ]
+      st <- land_status(p$effect)
+      col <- unname(OUTCOME[st])
+      sprintf('<span class="att %s" style="border-color:%s;color:%s" title="set %s · %s · %s">%s</span>',
+              st, col, col, p$set_no, esc(p$score %||% ""), st,
+              if (is.na(p$effect)) "?" else esc(p$effect))
+    }, ""), collapse = "")
+  }
+
+  Rc <- c(Rc, card("By passer, weakest first", c(tbl_generic(
+    c("Passer", "Rec", "Avg", "Perfect", "Good", "Poor", "Neg", "Err", "Pos%", "Err%",
+      paste(sprintf("L%d", PASS_WINDOWS), collapse = " / "), "Last 15", "Off-net m"),
     lapply(by_player, function(g) {
       parts <- strsplit(g$key, "|", fixed = TRUE)[[1]]
       s <- g$stat
@@ -56,9 +89,11 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
         sprintf('<span class="%s">%s</span>',
                 if (!is.na(s$pospct) && s$pospct < 0.5) "neg" else "", pct(s$pospct)),
         pct(s$errpct),
+        paste(rec_window(g$rows), collapse = ""),
+        sprintf('<div class="atts">%s</div>', rec_chips(g$rows)),
         if (!is.na(s$med_off_net)) m1(s$med_off_net) else "")
     })),
-    tiny("Avg is this staff's own 0–4 scale, taken from the WEIGHTS block of their VolleyStation worksheet: # 4, + 3, ! 2, - 1, overpass 0.5, error 0. Positive = perfect (#) or good (+), VolleyStation's own \"positive reception\" grouping. Sorted so the passer most worth targeting sits at the top. Off-net m is the median result of the pass itself (distance from net), not where they stood to receive."))))
+    tiny("L3, L6 and L15 are reception efficiency over that player's last 3, 6 and 15 receptions, with the arrow comparing the window with her whole figure; the chips are those receptions themselves, oldest on the left. Avg is this staff's own 0–4 scale, taken from the WEIGHTS block of their VolleyStation worksheet: # 4, + 3, ! 2, - 1, overpass 0.5, error 0. Positive = perfect (#) or good (+), VolleyStation's own \"positive reception\" grouping. Sorted so the passer most worth targeting sits at the top. Off-net m is the median result of the pass itself (distance from net), not where they stood to receive."))))
 
   if (!is.null(sys_rows)) Rc <- c(Rc, sys_rows)
 
@@ -66,7 +101,8 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
     c("Rotation", "Rec", "Pos%", "Err%", "FB kills", "FBSO%"),
     lapply(by_key(crosstab(R0, R0$rot, receive_line)), function(g) {
       f <- fbso_line(F[!is.na(F$rot) & F$rot == g$key, ])
-      c(g$key, g$stat$n, pct(g$stat$pospct), pct(g$stat$errpct), f$kills, pct(f$pct))
+      c(sprintf("<b>%s</b> %s", rot_said(g$key), thin(rot_pos(g$key))),
+        g$stat$n, pct(g$stat$pospct), pct(g$stat$errpct), f$kills, pct(f$pct))
     })),
     tiny("Earned FBSO = first-attack kills ÷ receptions. Aces count as receptions; opponent serve errors are excluded, since no pass happened.",
          if ("6-2" %in% (o$sys %||% character()))

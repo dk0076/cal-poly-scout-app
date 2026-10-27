@@ -1578,6 +1578,32 @@ if (nrow(SR_all)) {
 # thing from the two rules that produce it, and the generated order was
 # checked against their file: 72 of 72 states agree, across all six matchup
 # letters. These lock the rules themselves.
+# If a player passed a ball, her line is on the page. The floor of three
+# receptions hid exactly the player a coach asks about mid-match: the one
+# who has just been served twice.
+cat("\n== no floor on a passer\n")
+local({
+  R0 <- Fp[Fp$skill == "R" & !is.na(Fp$num), ]
+  if (nrow(R0)) {
+    h <- paste(tab_passing(Fp, o_auto, ck), collapse = "")
+    who <- unique(R0$num)
+    ok("every passer with a reception is on the page",
+       all(vapply(who, function(n)
+         grepl(sprintf("<b>%d</b>", n), h, fixed = TRUE), TRUE)),
+       sprintf("%d passers, %d of them under three receptions",
+               length(who), sum(table(R0$num) < 3)))
+    ok("the recent windows are there", grepl("L3 / L6 / L15", h, fixed = TRUE))
+    ok("and the receptions themselves", grepl('class="atts"', h, fixed = TRUE))
+    ok("a window is that passer's own last n",
+       local({
+         g <- R0[R0$num == who[1], ]
+         data.table::setorder(g, date, match_id, set_no, rally_no, seq)
+         want <- vs_efficiency(utils::tail(g, 6L)$effect, "R")
+         grepl(eff(want), h, fixed = TRUE)
+       }))
+  }
+})
+
 cat("\n== the matchup coming up\n")
 ok("the serving side winning changes nothing",
    local({

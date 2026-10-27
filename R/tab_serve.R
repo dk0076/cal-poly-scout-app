@@ -134,11 +134,9 @@ tab_serve <- function(F, o, coords_ok) {
     })),
     tiny("Ignores the type chips above. Codes: top spin = Q or T, jump float = M, standing float = H. Not coded = no type on the serve."))))
 
-  # A rate off three passes is not a rate. Rather than hide the row or set a
-  # threshold that quietly drops a server, the two pass columns go grey below
-  # a handful of passes and say how few they came from. The number is still
-  # there for anyone who wants it, and nobody reads 100% off two serves by
-  # accident.
+  # Nothing is hidden and no row is dropped: the two pass columns simply go
+  # quiet below a handful of passes and say how few they came from on hover,
+  # so a coach reads 100% off two serves as what it is.
   PASS_FLOOR <- 5L
   pass_pct <- function(v, n)
     if (is.na(v)) "" else if (n < PASS_FLOOR)
