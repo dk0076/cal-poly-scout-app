@@ -187,15 +187,19 @@ passer_block <- function(Opp, o, live_id = "") {
   if (!nrow(R)) return(empty("No receptions from them in what is loaded."))
   data.table::setorder(R, date, match_id, set_no, rally_no, seq)
   live <- nzchar(live_id) && any(R$match_id == live_id)
+  # Between rallies a coach reads a handful of chips, not a row of fifteen.
+  # Tonight's last six are the ones the serve about to be hit is aimed at;
+  # before a match, with time to read, the whole row of fifteen is there.
+  n_chips <- if (live) 6L else 15L
   keys <- unique(paste(R$num, R$player_short, sep = "|"))
   rows <- lapply(keys, function(k) {
     q <- R[paste(R$num, R$player_short, sep = "|") == k, ]
     rl <- receive_line(q)
     qr <- if (live) q[q$match_id == live_id, ] else q
     parts <- strsplit(k, "|", fixed = TRUE)[[1]]
-    chips <- paste0(vapply(seq_len(nrow(utils::tail(qr, 15))),
+    chips <- paste0(vapply(seq_len(nrow(utils::tail(qr, n_chips))),
                            function(i) {
-                             p <- utils::tail(qr, 15)[i, ]
+                             p <- utils::tail(qr, n_chips)[i, ]
                              st <- land_status(p$effect)
                              col <- unname(OUTCOME[st])
                              sprintf('<span class="att %s" style="border-color:%s;color:%s" title="set %s · %s">%s</span>',
@@ -219,10 +223,11 @@ passer_block <- function(Opp, o, live_id = "") {
        c(tbl_generic(c("Passer", "Rec", "Avg", "Pos%", "Err%",
                        paste0(paste(sprintf("L%d", SERVE_WINDOWS), collapse = " / "),
                               if (live) ' <span class="thin">tonight</span>' else ""),
-                       paste0("Last 15",
-                              if (live) ' <span class="thin">tonight</span>' else "")),
+                       sprintf('Last %d%s', n_chips,
+                               if (live) ' <span class="thin">tonight</span>' else "")),
                      lapply(rows, function(x) x$cells)),
-         tiny(sprintf("Avg is the staff 0 to 4 pass scale, so lower is worse and the top row is the one to serve. Pos%% is receptions graded # or +, VolleyStation's own positive reception. The three windows are her last 6, 10 and 15 receptions, as reception efficiency%s.",
+         tiny(sprintf("Avg is the staff 0 to 4 pass scale, so lower is worse and the top row is the one to serve. Pos%% is receptions graded # or +, VolleyStation's own positive reception. The three windows are her last 6, 10 and 15 receptions, as reception efficiency, and the chips are her last %d receptions themselves, oldest on the left%s.",
+                      n_chips,
                       if (live) ", counted in tonight's match only, while Rec, Avg, Pos% and Err% are every file loaded" else ""))))
 }
 
@@ -382,7 +387,11 @@ tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
               esc(pinned), esc(nm %||% "")),
       server_block(S_all, as.integer(pinned), nm %||% "", o, coords_ok, live_id))
   } else if (isTRUE(ours)) {
-    c(chips, passer_block(Opp, o, live_id))
+    # The passers first, before the matchup and the row of their servers.
+    # When we are the ones about to serve, the only question is who to serve
+    # at, and the answer was two scrolls down behind things that are about
+    # them serving.
+    c(passer_block(Opp, o, live_id), chips)
   } else {
     c(chips,
       sprintf('<h3 class="nsname">#%s %s</h3>', ns$num, esc(ns$name %||% "")),

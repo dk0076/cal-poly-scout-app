@@ -1265,7 +1265,7 @@ if (nrow(S_ns)) {
     p_pre  <- paste(passer_block(mixed, o), collapse = "")
     p_live <- paste(passer_block(mixed, o, live_rid), collapse = "")
     ok("the passer windows say they are tonight's",
-       grepl("Last 15 <span class=\"thin\">tonight</span>", p_live, fixed = TRUE) &&
+       grepl("Last 6 <span class=\"thin\">tonight</span>", p_live, fixed = TRUE) &&
          !grepl("tonight", p_pre, fixed = TRUE))
     chips_all <- length(gregexpr('<span class="att ', p_pre, fixed = TRUE)[[1]])
     chips_liv <- length(gregexpr('<span class="att ', p_live, fixed = TRUE)[[1]])
@@ -1601,6 +1601,35 @@ local({
          want <- vs_efficiency(utils::tail(g, 6L)$effect, "R")
          grepl(eff(want), h, fixed = TRUE)
        }))
+  }
+})
+
+# When the serve is ours the page is about who to serve at, so the passers
+# come before the matchup card and before the row of their servers. Their
+# receptions are the last six while a file is being coded, and all fifteen
+# before a match, when there is time to read them.
+cat("\n== us serving: the passers first\n")
+local({
+  if (!is.null(ns1) && nrow(Opp_ns) && any(Opp_ns$skill == "R")) {
+    mk <- function(lid)
+      tab_nextserver(Fp, Opp_ns, ns1, o_auto, ck, list(us = "Us", them = "Them"),
+                     TRUE, n_files = 1L, live_id = lid,
+                     matchup = '<div class="card">THE MATCHUP</div>')
+    chips_max <- function(h)
+      max(vapply(regmatches(h, gregexpr('<div class="atts">.*?</div>', h, perl = TRUE))[[1]],
+                 function(r) lengths(regmatches(r, gregexpr('class="att ', r))), 0L))
+    # Tonight is a file that actually holds receptions of theirs, which with
+    # a library loaded is not simply the first one.
+    h <- mk(Opp_ns$match_id[Opp_ns$skill == "R"][1])
+    i_p <- regexpr("Their passers, weakest first", h, fixed = TRUE)
+    ok("the passers card is the first thing under the header",
+       i_p > 0 && i_p < regexpr("THE MATCHUP", h, fixed = TRUE) &&
+         i_p < regexpr("Follow the match", h, fixed = TRUE))
+    ok("tonight, the chips are her last six",
+       grepl("Last 6 <span", h, fixed = TRUE) && chips_max(h) <= 6L,
+       sprintf("longest row %d chips", chips_max(h)))
+    hp <- mk("")
+    ok("before a match, all fifteen", grepl("Last 15<", hp, fixed = TRUE))
   }
 })
 
