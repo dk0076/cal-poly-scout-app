@@ -89,7 +89,7 @@ tab_rotation <- function(rally, F, opp_rally, Opp, o, live = FALSE,
     rows <- lapply(ROTS, function(k) {
       c0 <- rot_cols(rl[!is.na(rl$rot) & rl$rot == k, ],
                      pl[!is.na(pl$rot) & pl$rot == k, ])
-      c(sprintf("<b>%s</b> %s", k, thin(sprintf("z%d", ROT_ZONE[[k]]))),
+      c(sprintf("<b>%s</b> %s", rot_said(k), thin(rot_pos(k))),
         pct(c0$so), pct(c0$eso), pct(c0$fbso), pct(c0$ps),
         pm_cell(c0$pm), c0$ace, c0$err)
     })

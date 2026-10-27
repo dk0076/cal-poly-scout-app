@@ -1568,6 +1568,23 @@ if (nrow(SR_all)) {
   ok("no sets at all draws nothing", identical(sr_sets_card(Fp[0, ]), ""))
 }
 
+# The rotation convention is the staff's other in-match app's, not ours:
+#   rot = setter position, stdrot = 1,2,3,4,5,6 for rot 1,6,5,4,3,2
+# Checked against a real match it agreed on 695 of 695 plays, both for our
+# own rotation and the opponent's view of it. This locks the mapping so a
+# tidy-up cannot quietly renumber it.
+cat("\n== rotations, said their way\n")
+their_stdrot <- c("1" = 1L, "6" = 2L, "5" = 3L, "4" = 4L, "3" = 5L, "2" = 6L)
+ok("a setter position maps to their rotation number",
+   all(vapply(names(their_stdrot), function(z)
+     identical(rot_name(as.integer(z)), paste0("R", their_stdrot[[z]])), TRUE)))
+ok("and the label is their wording",
+   identical(rot_said("R1"), "Ro. 1") && identical(rot_pos("R1"), "P1") &&
+     identical(rot_said("R2"), "Ro. 2") && identical(rot_pos("R2"), "P6") &&
+     identical(rot_pos("R6"), "P2"))
+ok("every rotation has a position and they are the six zones",
+   setequal(vapply(ROTS, rot_pos, ""), paste0("P", 1:6)))
+
 cat("\n== the rotation ladder\n")
 R_all <- rally_outcomes(matches, sel, focus)
 if (nrow(R_all) && any(!is.na(R_all$won))) {

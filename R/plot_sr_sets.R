@@ -93,7 +93,7 @@ sr_sets_card <- function(E, label = "", cls = "") {
     chips <- paste0(vapply(seq_len(nrow(utils::tail(q, 15))),
                            function(i) sr_set_chip(utils::tail(q, 15)[i, ]), ""),
                     collapse = "")
-    c(sprintf("<b>%s</b> %s", k, thin(sprintf("z%d", ROT_ZONE[[k]]))),
+    c(sprintf("<b>%s</b> %s", rot_said(k), thin(rot_pos(k))),
       nrow(q), eff_td(set_hit(q)), sr_window_cells(q),
       sprintf('<div class="atts">%s</div>', chips))
   })

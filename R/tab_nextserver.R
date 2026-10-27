@@ -353,7 +353,7 @@ tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
   H <- hdr("Next server", sprintf(
     "%s serving · %s%s",
     esc(who),
-    if (is.na(ns$rot)) "rotation unknown" else sprintf("rotation %s", ns$rot),
+    if (is.na(ns$rot)) "rotation unknown" else rot_said(ns$rot),
     sprintf(" · %s", ns$basis)))
 
   # Said out loud, because the whole tab rests on it: the player is read off

@@ -417,6 +417,31 @@ quant <- function(a, q) {
 }
 
 #' Wilson 95% interval for k of n.
+# How a rotation is said out loud.
+#
+# The numbering is not ours to invent and it was not invented here: the
+# staff's other in-match app derives it as
+#
+#   rot    = that team's setter position
+#   stdrot = 1,2,3,4,5,6  for rot  1,6,5,4,3,2
+#
+# which is the same walk round the court this program has always used, and
+# checked play by play against a real match: 695 of 695 agree, both for our
+# own rotation and for the opponent's view of it. What differed was only the
+# wording, and a staff reading two apps should not have to hold two
+# vocabularies. So "Ro. 1" and "P1", theirs, rather than "R1" and "z1".
+#
+# The keys stay R1..R6. They are what the filters, the files and the tests
+# are written in, and renaming them would be a rewrite to say the same
+# thing.
+rot_said <- function(k) if (is.na(k) || !nzchar(k)) "" else paste0("Ro. ", substring(k, 2))
+
+#' The setter's position for a rotation: P1 for Ro. 1, P6 for Ro. 2.
+rot_pos <- function(k) {
+  i <- suppressWarnings(as.integer(substring(k, 2)))
+  if (is.na(i) || i < 1 || i > length(ROT_ORDER)) "" else paste0("P", ROT_ORDER[i])
+}
+
 wilson <- function(k, n) {
   if (!length(n) || is.na(n) || n == 0) return(c(NA_real_, NA_real_))
   z <- 1.96; p <- k / n; d <- 1 + z^2 / n

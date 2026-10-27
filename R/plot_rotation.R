@@ -30,7 +30,7 @@
 # w leaves a lane to the right of the bars for the status word, then the
 # percentage, then +/-. Drawn tighter, "on court" sat on top of the number it
 # was meant to qualify.
-LADDER <- list(w = 486, row = 25, top = 26, bot = 30, x0 = 58, x1 = 322,
+LADDER <- list(w = 486, row = 25, top = 26, bot = 30, x0 = 76, x1 = 322,
                vx = 430, px = 480, sx = 328)
 
 #' One rotation's row, as plain numbers
@@ -80,8 +80,8 @@ rot_ladder <- function(rally, now = NA_character_, them = FALSE, alt = "") {
     # The whole interval under the team's own line: not a bad run, a rotation
     # that is actually behind the other five.
     behind <- !is.na(r$hi) && !is.na(avg) && r$hi < avg
-    lab <- sprintf('<text x="4" y="%.1f" class="lb %s">%s</text><text x="34" y="%.1f" class="lt">%s</text>',
-                   mid + 4, if (on_court) "nowlab" else "", r$k,
+    lab <- sprintf('<text x="4" y="%.1f" class="lb %s">%s</text><text x="46" y="%.1f" class="lt">%s</text>',
+                   mid + 4, if (on_court) "nowlab" else "", rot_said(r$k),
                    mid + 4, if (r$rec) sprintf("n%d", r$rec) else "")
     if (!isTRUE(r$rec > 0))
       return(paste0(lab, sprintf('<text x="%.1f" y="%.1f" class="lt">not received yet</text>',

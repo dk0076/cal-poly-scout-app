@@ -105,7 +105,7 @@ run_set_row <- function(rl, y, label) {
             x_from, ytop, x_to, ytop,
             if (sp$ours) "var(--accent)" else "var(--them-ink)",
             (x_from + x_to) / 2, ylab, if (sp$ours) "ours" else "theirs",
-            if (is.na(sp$rot)) "" else paste0(sp$rot, " "), sp$n)
+            if (is.na(sp$rot)) "" else paste0(rot_said(sp$rot), " "), sp$n)
   }, ""), collapse = "")
 
   sprintf('<text x="2" y="%.1f" class="rl">%s</text><text x="2" y="%.1f" class="rt">%d-%d</text><line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="var(--rule)" stroke-width="1"/>%s%s',
@@ -152,7 +152,7 @@ run_worst <- function(rally) {
   worst <- against[[which.max(vapply(against, function(sp) sp$n, 0L))]]
   sprintf("Longest run against us: %d straight in set %s%s.",
           worst$n, worst$set_no,
-          if (is.na(worst$rot)) "" else sprintf(", in %s", worst$rot))
+          if (is.na(worst$rot)) "" else sprintf(", in %s", rot_said(worst$rot)))
 }
 
 run_strip_card <- function(rally, file_label = "", n_files = 1L) {
