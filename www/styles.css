@@ -731,3 +731,128 @@ body.simplified .c-coord{display:none}
    it would otherwise run the full width of the panel and push the numbers
    off the screen. */
 .chartcol svg.court{max-width:460px}
+
+
+/* ---- the scout sheet ----------------------------------------------------
+   A printed page that happens to be rendered in a browser. Everything here
+   is in millimetres against Letter paper, and the colours are fixed rather
+   than themed: this is ink on white whatever the app is wearing, so a coach
+   who prints from a dark screen does not get a black page.
+
+   199 x 261 mm is Letter (216 x 279) inside an 8mm margin box, with a
+   millimetre of slack for a printer's non-printable edge. */
+.sheetwrap{overflow-x:auto;padding-bottom:6px}
+.sheet{width:199mm;height:261mm;background:#fff;color:#000;padding:4mm;
+  display:flex;flex-direction:column;font-family:Arial,Helvetica,sans-serif;
+  box-shadow:0 1px 10px var(--shadow);margin:6px 0 2px;
+  --wood:#f7f0e1; --wood-line:#b7a385; --wood-line-2:#cdbb9d;
+  --ink:#111; --ink-2:#333; --ink-3:#6b7280; --accent:#154734;
+  --kill:#0f7b4f; --inplay:#79828f; --blocked:#8D680E; --err:#b4232a;
+  /* A court paints its own backing with --panel, which on a dark screen is
+     dark: without this the sheet prints white with a black box behind every
+     little court. */
+  --panel:#fff; --rule:#bbb; --rule-2:#ddd; --shadow:rgba(0,0,0,.09)}
+.sheet *{box-sizing:border-box}
+
+.sheet .rowHeader{height:16mm;display:flex;gap:4mm;flex:none}
+.sheet .title-box{flex:0 0 55%;border:1.5px solid #000;display:flex;
+  align-items:center;justify-content:center;gap:4mm}
+.sheet .title-box img.cp{height:11mm;width:auto;display:block}
+.sheet .title-box span{font-size:17pt;font-weight:700;letter-spacing:.02em;color:#0d3b2a}
+.sheet .fill-box{flex:1 1 auto;border:1.5px solid #000;display:flex;
+  flex-direction:column;justify-content:center;gap:2.5mm;padding:0 4mm}
+.sheet .fill-row{display:flex;align-items:baseline;gap:2mm;font-size:12pt}
+.sheet .fill-row input.f{flex:1 1 auto;min-width:0;border:0;border-bottom:1px solid #000;
+  background:transparent;font:inherit;font-size:12pt;color:#000;padding:0 1mm 1px}
+.sheet .fill-row input.f:focus{outline:0;border-bottom-color:#BD8B13;background:#fffdf3}
+
+.sheet .rowCourts{flex:1 1 auto;min-height:0;margin-top:3mm}
+
+/* one strip per hitter, her calls left to right */
+.sheet .atk-flex{display:flex;flex-direction:column;gap:1.6mm;height:100%}
+.sheet .atk-row{display:flex;gap:1.6mm;flex:1 1 0;min-height:0;border:1px solid #000}
+.sheet .atk-name{flex:0 0 44mm;border-right:1px solid #000;background:#c9daf8;
+  display:flex;align-items:center;gap:1.6mm;padding:1mm 1.6mm;min-width:0}
+.sheet .atk-box{flex:0 0 13mm;align-self:stretch;max-height:17mm;border:1px solid #000;
+  background:#fff}
+.sheet .atk-txt{display:flex;flex-direction:column;justify-content:center;
+  min-width:0;flex:1 1 auto}
+.sheet .atk-txt b{font-size:9pt;line-height:1.2;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.sheet .atk-txt span{font-size:7pt;color:#2c3f36;line-height:1.25}
+.sheet .atk-charts{flex:1 1 auto;display:flex;gap:2mm;padding:1mm;min-width:0}
+.sheet .atk-cell{display:flex;flex-direction:column;min-width:0}
+.sheet .atk-cell .ct{font-size:7pt;font-weight:700;text-align:center;line-height:1.15;
+  height:3.4mm;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet .atk-cell .cs{font-size:6.5pt;color:#4a5260;text-align:center;line-height:1.15;
+  height:3.1mm;flex:none;white-space:nowrap;overflow:hidden}
+/* The chart sits in a ruled box, as it does on the sheet this was taken
+   from. A court is narrower than the cell it is given, so without the box
+   the little courts read as floating at random rather than as a column. */
+.sheet .atk-cell .cv{flex:1 1 auto;min-height:0;display:flex;justify-content:center;
+  align-items:stretch;border:1px solid #000;padding:.6mm}
+/* Width first, height from the court's own shape, and never taller than the
+   box it is in. A court stretched to fill a strip is not a court any more. */
+.sheet .atk-cell .cv svg.court{width:100%;height:auto;max-height:100%;margin:auto}
+.sheet .atk-more{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  font-size:7pt;color:#666;font-style:italic;padding:0 2mm;white-space:nowrap}
+.sheet .atk-empty{display:flex;align-items:center;justify-content:center;height:100%;
+  font-size:10pt;color:#4a5260;text-align:center;padding:0 10mm}
+
+/* nine servers to a page */
+.sheet .srv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-rows:repeat(3,minmax(0,1fr));gap:2.4mm;height:100%}
+.sheet .srv-tile{display:flex;flex-direction:column;gap:1mm;padding:1.4mm;
+  min-height:0;min-width:0;border:1px solid #000}
+.sheet .srv-head{display:flex;align-items:flex-start;gap:1.4mm;flex:0 0 auto;min-width:0}
+.sheet .srv-head .atk-box{flex:0 0 11mm;height:13mm;align-self:flex-start}
+.sheet .srv-head .atk-txt{justify-content:flex-start}
+.sheet .srv-court{flex:1 1 0;min-height:0;display:flex;justify-content:center;overflow:hidden}
+.sheet .srv-court svg.court{width:100%;height:auto;max-height:100%;margin:auto}
+.sheet .srv-pass{flex:0 0 auto;font-size:6.5pt;line-height:1.3;color:#2a3140;
+  display:flex;flex-wrap:wrap;column-gap:2mm}
+.sheet .srv-pass b{color:#000;font-size:6.8pt}
+.sheet .srv-pass .main{font-weight:700;color:#5b2a8a}
+.sheet .srv-pass i{font-style:normal;color:#6b7280}
+.sheet .srv-pass .mut{color:#6b7280}
+
+/* The one chip that does something to the browser rather than to the page. */
+.viewbar .chip.print{margin-left:auto}
+/* The picker is a long row of jerseys, so it wraps and the count sits at the
+   end of it rather than in the heading, where it would be read before the
+   thing it counts. */
+.viewbar.pickbar{flex-wrap:wrap}
+.viewbar.pickbar .pickn{align-self:center;margin-left:auto;white-space:nowrap}
+
+@media print{
+  /* Letter, portrait, with the sheet sized to sit inside this margin. The
+     tables on the other tabs print better with it too. */
+  @page{size:Letter portrait;margin:8mm}
+
+  /* Printing the sheet prints the sheet: the heading above it, the controls,
+     the footnotes and the filters are all screen furniture, and any of them
+     left in pushes a 261mm page onto a second sheet of paper. */
+  body.sheet-print-mode .sharebar,
+  body.sheet-print-mode .topbar,
+  body.sheet-print-mode #panel>*:not(.sheetwrap){display:none!important}
+  body.sheet-print-mode .wrap{grid-template-columns:1fr;margin:0;padding:0;gap:0}
+  body.sheet-print-mode main.panel,
+  body.sheet-print-mode #panel,
+  body.sheet-print-mode .sheetwrap{padding:0;margin:0;overflow:visible}
+  /* Paper is the size this was drawn for, so the screen's scaling comes off. */
+  body.sheet-print-mode .sheet{box-shadow:none;margin:0 auto;overflow:hidden;
+    break-inside:avoid;zoom:1!important}
+  body.sheet-print-mode *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sheet{box-shadow:none}
+}
+
+/* ---- the two ways in, on the opening screen ---------------------------- */
+.modes{display:flex;gap:10px;flex-wrap:wrap}
+.modes .mode{flex:1 1 180px;text-align:left;background:var(--panel);
+  border:1px solid var(--rule);border-radius:8px;padding:10px 12px;cursor:pointer;
+  color:var(--ink);font:inherit;display:flex;flex-direction:column;gap:3px}
+.modes .mode:hover{border-color:var(--gold)}
+.modes .mode b{font-size:14px}
+.modes .mode span{font-size:12px;color:var(--ink-3);line-height:1.35}
+.modes .mode.on{border-color:var(--accent);background:var(--accent-soft)}
+.modes .mode.on span{color:var(--ink-2)}

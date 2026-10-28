@@ -11,9 +11,25 @@
 # SVG y grows downward.
 # ---------------------------------------------------------------------------
 
-SY <- function(y, flip = FALSE) if (flip) y else (COURT$L - y)
-SX <- function(x, flip = FALSE) if (flip) (COURT$W - x) else x
-SYtop <- function(a, b, flip = FALSE) pmin(SY(a, flip), SY(b, flip))
+# The screen's orientation is the app's: the far side of the net at the top,
+# the ball travelling up the page. The printed scout sheet reads the other way
+# round, net at the top of each little court and the ball coming down, which
+# is how that sheet has always been drawn by hand. Rather than thread a flip
+# argument through every layer, the flip is one flag read by the two functions
+# that place a point, and with_flip() turns it on for one expression and puts
+# it back afterwards even if that expression fails.
+.SVG <- new.env(parent = emptyenv())
+.SVG$flip <- FALSE
+with_flip <- function(expr) {
+  old <- .SVG$flip
+  .SVG$flip <- TRUE
+  on.exit(.SVG$flip <- old, add = TRUE)
+  force(expr)
+}
+
+SY <- function(y, flip = .SVG$flip) if (flip) y else (COURT$L - y)
+SX <- function(x, flip = .SVG$flip) if (flip) (COURT$W - x) else x
+SYtop <- function(a, b, flip = .SVG$flip) pmin(SY(a, flip), SY(b, flip))
 
 out_color <- function(st, mono = FALSE) if (mono) MONO[[st]]$col else unname(OUTCOME[st])
 

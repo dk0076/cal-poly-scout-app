@@ -77,6 +77,7 @@ Rscript tests/verify.R path/to/match.vsm path/to/another.dvw
 | **Rotations** | SO%, ESO%, FBSO%, PS%, +/-, aces and errors per rotation, both teams, then the same by set. |
 | **Last 6** | Who is swinging well now. Recent attempts as chips, split into pins and middles. |
 | **Next server** | Follows the match. Our serve shows their passers, weakest first; their serve shows the player about to serve, chart first. |
+| **Scout sheet** | One Letter page to print and write on. Every attacker, a strip each with her calls laid left to right, or every server, nine to a page with where the ball lands and where her passers start. |
 | **Plays & export** | The raw touches, and a CSV of every filtered play. |
 | **Roster** | Who plays where. Set before coding, since every mention of pins and middles reads it. |
 
@@ -113,6 +114,21 @@ anyone codes set contacts.
 attacking numbers, the passing numbers and the rotational analysis, which is
 what a staff asked to be left with. Pressing it again brings everything
 back, and the per-tab picker overrides it either way.
+
+**Scouting, or in game.** The opening screen asks what the device is for.
+Scouting leaves the tendencies, the setter and the printed sheet; In game
+leaves the match being played: next server, serve receive, attacking,
+serving, rotations and last 6. It is the tab picker underneath, so it is
+remembered on that device and nowhere else, the bench iPad and the laptop
+running the match can be set differently, and any tab can be turned back on
+from **Tabs** afterwards.
+
+**The sheet prints as a sheet.** The Print button takes the app off the page:
+no tab bar, no filters, no footnotes, just the 199 x 261mm page inside
+Letter's margins, black on white whatever the screen is wearing. Its little
+courts are drawn the way the staff's own sheet has always read, net at the
+top and the ball coming down, which is the one place the app flips its
+charts over.
 
 **Each device picks its own tabs.** The **Tabs** button hides the ones a
 coach does not want, and the choice is remembered on that device. One laptop

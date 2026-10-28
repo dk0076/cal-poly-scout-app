@@ -16,9 +16,9 @@
 suppressMessages(library(data.table))
 root <- dirname(dirname(normalizePath(sub("--file=", "", grep("--file=", commandArgs(FALSE), value = TRUE)[1]))))
 setwd(root)
-for (f in c("core.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R", "tables.R",
+for (f in c("core.R", "tabs.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R", "tables.R",
             "tab_attack.R", "tab_serve.R", "tab_set.R", "tab_setter.R",
-            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R", "plot_runs.R", "plot_sr_sets.R", "matchup.R",
+            "tab_passing.R", "tab_defense.R", "tab_rotation.R", "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "tab_sheet.R", "plot_rotation.R", "plot_runs.R", "plot_sr_sets.R", "matchup.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -1978,6 +1978,160 @@ ok("the chart's own apology is a caveat, not a footnote",
 ok("the stylesheet drops the chart column below the numbers when stacked",
    grepl("chartcol{order:2}", paste(readLines("www/styles.css", warn = FALSE),
                                     collapse = ""), fixed = TRUE))
+
+# ---------------------------------------------------------------------------
+# The scout sheet
+#
+# A printed page rather than a tab to read, so what these check is that it is
+# one page: every player who charted something is on it, down to a single
+# attempt, nobody past the ninth is squeezed in, and every strip carries a
+# court rather than an empty box.
+cat("\n== the scout sheet\n")
+local({
+  P <- all_plays(matches, sel)
+  team <- names(sort(table(P$team_name[nzchar(P$team_name)]), decreasing = TRUE))[1]
+  o_sh <- o_auto; o_sh$sheetTeam <- team
+  mine <- function(kind) {
+    g <- sheet_people(P, kind)
+    g[vapply(g, function(x)
+      identical(strsplit(x$key, "|", fixed = TRUE)[[1]][1], team), TRUE)]
+  }
+
+  o_sh$sheet <- "attackers"
+  h <- tab_sheet(P, o_sh, ck)
+  strips <- lengths(regmatches(h, gregexpr('class="atk-row"', h)))
+  people <- mine("attackers")
+  ok("one strip per attacker, up to the nine a page holds",
+     strips == min(SHEET_MAX, length(people)),
+     sprintf("%d strips, %d attackers on %s", strips, length(people), team))
+  ok("and the page says so when somebody is left off",
+     length(people) <= SHEET_MAX ||
+       grepl(sprintf("%d of %d on the sheet", SHEET_MAX, length(people)), h, fixed = TRUE))
+  ok("every strip carries at least one court",
+     strips > 0 && lengths(regmatches(h, gregexpr("<svg", h))) >= strips)
+  ok("a hitter with one charted attempt is still on it",
+     local({
+       thin <- people[vapply(people, function(g) g$stat$ta == 1L, TRUE)]
+       thin <- thin[seq_len(min(length(thin), SHEET_MAX))]
+       !length(thin) || length(people) > SHEET_MAX ||
+         all(vapply(thin, function(g) {
+           parts <- strsplit(g$key, "|", fixed = TRUE)[[1]]
+           grepl(sprintf("#%s %s", parts[2], parts[3]), h, fixed = TRUE)
+         }, TRUE))
+     }))
+  ok("the calls run biggest first", local({
+     g <- people[[1]]
+     calls <- by_size(crosstab(g$rows, g$rows$season_call))
+     if (length(calls) < 2) TRUE else {
+       one <- regexpr(call_label(calls[[1]]$key, calls[[1]]$rows$call_name[1]), h, fixed = TRUE)
+       two <- regexpr(call_label(calls[[2]]$key, calls[[2]]$rows$call_name[1]), h, fixed = TRUE)
+       one > 0 && two > one
+     }
+  }))
+
+  # Picked by hand: those players, in the order they were picked, and nobody
+  # else. The default is a starting point, not the answer.
+  if (length(people) > 2) {
+    two <- c(people[[3]]$key, people[[1]]$key)
+    o_pick <- o_sh; o_pick$sheetPick <- two
+    hp <- tab_sheet(P, o_pick, ck)
+    # The name block, not every arrow's tooltip, which names her too.
+    named <- regmatches(hp, gregexpr("<b>#[0-9]+ [^<]*</b>", hp))[[1]]
+    want <- vapply(two, function(k) {
+      parts <- strsplit(k, "|", fixed = TRUE)[[1]]
+      sprintf("<b>#%s %s</b>", parts[2], parts[3])
+    }, "")
+    ok("the sheet is the players picked, in the order they were picked",
+       length(named) == 2L && all(trimws(named) == want),
+       paste(named, collapse = " / "))
+    ok("and the picker says who is on it",
+       grepl('data-o="sheetPick"', hp, fixed = TRUE) &&
+         grepl("2 of %d on the sheet" |> sprintf(length(people)), hp, fixed = TRUE))
+    ok("picking nobody is a chip of its own",
+       grepl('data-o="sheetPick" data-v=""', hp, fixed = TRUE))
+  }
+  # A page a coach writes on: typed, not filled in, and the browser keeps it
+  # because every option on this tab redraws the panel under them.
+  ok("the team and the date are typed in",
+     grepl('data-sheetf="who"', h, fixed = TRUE) &&
+       grepl('data-sheetf="date"', h, fixed = TRUE))
+
+  o_sh$sheet <- "servers"
+  hs <- tab_sheet(P, o_sh, ck)
+  tiles <- lengths(regmatches(hs, gregexpr('class="srv-tile"', hs)))
+  srv <- mine("servers")
+  ok("nine servers to a page, and no more",
+     tiles == min(SHEET_MAX, length(srv)) && tiles <= 9L,
+     sprintf("%d tiles, %d servers", tiles, length(srv)))
+  ok("each tile says where her passers stand",
+     lengths(regmatches(hs, gregexpr("Pass from", hs))) == tiles)
+  ok("both sheets offer the other one, and a way to print",
+     grepl('data-o="sheet" data-v="servers"', h, fixed = TRUE) &&
+       grepl('data-o="sheet" data-v="attackers"', hs, fixed = TRUE) &&
+       grepl('data-print="1"', h, fixed = TRUE))
+})
+
+# The sheet reads the way the staff's own sheet always has: net at the top of
+# each little court, the ball coming down the page. The app keeps its own
+# orientation, so the flip has to be put back whatever happens.
+ok("on screen the far court is above the net", SY(COURT$L) < SY(COURT$NET))
+ok("on the sheet it is below it", with_flip(SY(COURT$L) > SY(COURT$NET)))
+ok("and the flip is put back after a sheet is drawn", isFALSE(.SVG$flip))
+ok("even when drawing it fails",
+   local({
+     r <- tryCatch(with_flip(stop("no")), error = function(e) "caught")
+     identical(r, "caught") && isFALSE(.SVG$flip)
+   }))
+ok("no coordinates, no sheet, and it says why",
+   grepl("no ball coordinates",
+         tab_sheet(all_plays(matches, sel), o_auto, FALSE), fixed = TRUE))
+
+# Printing the sheet prints the sheet. Anything of the app's own left on the
+# page pushes a 261mm sheet onto a second piece of paper.
+ok("the print button asks the browser, not the server",
+   grepl("data-print", js, fixed = TRUE) && grepl("window.print()", js, fixed = TRUE))
+ok("and the page goes back to normal when the dialog closes",
+   grepl("afterprint", js, fixed = TRUE) &&
+     grepl('classList.remove("sheet-print-mode")', js, fixed = TRUE))
+ok("the stylesheet leaves nothing but the sheet on the paper",
+   grepl("body.sheet-print-mode #panel>*:not(.sheetwrap){display:none!important}",
+         css, fixed = TRUE))
+ok("on Letter, portrait", grepl("@page{size:Letter portrait", css, fixed = TRUE))
+ok("what was typed survives the panel being redrawn",
+   grepl("scoutr.sheet.", js, fixed = TRUE) && grepl("data-sheetf", js, fixed = TRUE))
+# A 199mm page in a panel narrower than that is a page with its right hand
+# column off the edge, which is no use for checking one before printing.
+ok("the page is scaled to whatever room the screen has",
+   grepl("function fitSheet()", js, fixed = TRUE) &&
+     grepl("style.zoom", js, fixed = TRUE))
+ok("and printed at the size it was drawn for",
+   grepl("zoom:1!important", css, fixed = TRUE))
+ok("the page is Letter inside its margins",
+   grepl("width:199mm;height:261mm", css, fixed = TRUE))
+
+# The two ways in, from the opening screen. Each is the tab picker with a
+# shorter name, so what has to hold is that they name real tabs and that
+# neither leaves a device with nothing.
+cat("\n== scouting, or in game\n")
+local({
+  ids <- vapply(TABS, function(t) t[1], "")
+  ok("there are two ways in", length(MODES) == 2L)
+  ok("every tab a mode names is a tab that exists",
+     all(vapply(MODES, function(m) all(m$tabs %in% ids), TRUE)),
+     paste(setdiff(unlist(lapply(MODES, function(m) m$tabs)), ids), collapse = " "))
+  ok("neither mode leaves a device with nothing",
+     all(vapply(MODES, function(m) length(m$tabs) > 0L, TRUE)))
+  ok("what the browser stores is what the mode leaves off",
+     all(vapply(MODES, function(m)
+       identical(sort(strsplit(mode_hidden(m), ",")[[1]]),
+                 sort(setdiff(ids, m$tabs))), TRUE)))
+  ok("the printed sheet is a scouting tab, and the live one is not",
+     "sheet" %in% MODES[[1]]$tabs && !("sheet" %in% MODES[[2]]$tabs))
+  ok("the browser takes the mode from the button and remembers it",
+     grepl("scoutr.mode", js, fixed = TRUE) &&
+       grepl("data-mode", js, fixed = TRUE) &&
+       grepl("setHiddenTabs(hide", js, fixed = TRUE))
+})
 
 cat(sprintf("\n%d passed, %d failed\n", PASS, FAIL))
 if (FAIL) quit(status = 1)

@@ -101,7 +101,7 @@
   }
 
   document.addEventListener("click", function (ev) {
-    var el = ev.target.closest("[data-detail],[data-simplify],[data-tabpick],[data-tools],[data-pos],[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab],[data-theme-toggle]");
+    var el = ev.target.closest("[data-detail],[data-simplify],[data-tabpick],[data-tools],[data-pos],[data-home],[data-rail],[data-o],[data-set],[data-clr],[data-setx],[data-zone],[data-zoneclear],[data-mt],[data-tab],[data-theme-toggle],[data-print],[data-mode]");
     if (!el) return;
 
     // Light or dark. Local to this device and never sent: the server has no
@@ -147,6 +147,21 @@
     }
     if (el.hasAttribute("data-detail")) {
       toggleDetail();
+      return;
+    }
+    // Printing the scout sheet. The class is what the stylesheet reads to
+    // take the app off the page; it goes on just before the dialog opens and
+    // comes off when it closes, so the screen never keeps the print layout.
+    if (el.hasAttribute("data-print")) {
+      document.body.classList.add("sheet-print-mode");
+      window.print();
+      return;
+    }
+    // Scouting or in game, chosen on the opening screen. It is the tab
+    // picker underneath, so it is this device's choice like the rest of it,
+    // and a coach can still turn any single tab back on afterwards.
+    if (el.hasAttribute("data-mode")) {
+      setMode(el.getAttribute("data-mode"), el.getAttribute("data-hide"));
       return;
     }
     if (el.hasAttribute("data-simplify")) {
@@ -519,6 +534,32 @@
     }
   }
 
+  /* ---- scouting, or in game -------------------------------------------
+     Two ways into the same app. Which tabs each one shows is decided in R
+     and travels on the button, so the lists live next to the tab bar they
+     describe rather than being kept in step by hand in two files.
+
+     Nothing here reaches the server: it is the tab picker with a shorter
+     name, so one coach choosing In game on the bench iPad does not strip
+     the tabs off the laptop running the match. */
+  var MODE_KEY = "scoutr.mode";
+
+  function setMode(mode, hide) {
+    try { window.localStorage.setItem(MODE_KEY, mode); }
+    catch (e) { /* the choice lasts this page only */ }
+    setHiddenTabs(hide ? hide.split(",").filter(Boolean) : []);
+    markMode();
+    applyTabs();
+  }
+
+  function markMode() {
+    var cur = "";
+    try { cur = window.localStorage.getItem(MODE_KEY) || ""; } catch (e) { cur = ""; }
+    [].slice.call(document.querySelectorAll("[data-mode]")).forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-mode") === cur);
+    });
+  }
+
   function setHiddenTabs(list) {
     try {
       window.localStorage.setItem(TABS_KEY, JSON.stringify(list));
@@ -666,8 +707,54 @@
     // syncTools rides along here rather than on a listener of its own: the
     // Tools button is redrawn by the same server renders this already
     // watches for, and it comes back with the server's aria-expanded on it.
-    setTimeout(function () { pending = false; applyTabs(); syncTools(); }, 0);
+    setTimeout(function () {
+      pending = false; applyTabs(); syncTools(); markMode();
+      sheetFields(); fitSheet();
+    }, 0);
   }
+  /* ---- the printed sheet, on a screen ----------------------------------
+     The sheet is a fixed 199mm page, which is wider than the panel on a
+     laptop and far wider than it on an iPad, and a page with its right hand
+     column off the edge is not a page anyone can check before printing. So
+     on screen it is scaled down to whatever room there is; printing resets
+     the scale, since paper is the size the sheet was drawn for. */
+  function fitSheet() {
+    var wrap = document.querySelector(".sheetwrap");
+    var sheet = wrap && wrap.querySelector(".sheet");
+    if (!sheet) return;
+    sheet.style.zoom = "";
+    var natural = sheet.getBoundingClientRect().width;
+    var room = wrap.clientWidth;
+    if (!natural || !room) return;
+    sheet.style.zoom = room < natural ? (room / natural).toFixed(4) : "";
+  }
+  window.addEventListener("resize", fitSheet);
+
+  /* The two fields a coach writes in before printing. They are plain inputs
+     inside server-rendered HTML, so every redraw of the panel would wipe
+     them; the browser keeps what was typed and puts it back. Local, like the
+     tab picker: the sheet one coach is filling in is not the bench's. */
+  var FIELD_KEY = "scoutr.sheet.";
+  function sheetFields() {
+    [].slice.call(document.querySelectorAll("[data-sheetf]")).forEach(function (el) {
+      if (el.value) return;
+      try { el.value = window.localStorage.getItem(FIELD_KEY + el.getAttribute("data-sheetf")) || ""; }
+      catch (e) { /* nothing typed survives this page, which is no worse */ }
+    });
+  }
+  document.addEventListener("input", function (ev) {
+    var el = ev.target;
+    if (!el || !el.getAttribute || !el.hasAttribute("data-sheetf")) return;
+    try { window.localStorage.setItem(FIELD_KEY + el.getAttribute("data-sheetf"), el.value); }
+    catch (e) { /* as above */ }
+  });
+
+  // Safari and Chrome both fire this when the dialog closes, whether the
+  // page was printed or the dialog was cancelled.
+  window.addEventListener("afterprint", function () {
+    document.body.classList.remove("sheet-print-mode");
+  });
+
   new MutationObserver(scheduleApply).observe(document.documentElement,
     { childList: true, subtree: true });
   document.addEventListener("shiny:value", scheduleApply);

@@ -14,10 +14,10 @@
 library(shiny)
 suppressMessages(library(data.table))
 
-for (f in c("core.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R",
+for (f in c("core.R", "tabs.R", "net.R", "qr.R", "positions.R", "next_server.R", "parse_vsm.R", "parse_dvw.R", "model.R", "svg.R",
             "tables.R", "tab_attack.R", "tab_serve.R", "tab_set.R",
             "tab_setter.R", "tab_passing.R", "tab_defense.R", "tab_rotation.R",
-            "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "plot_rotation.R", "plot_runs.R", "plot_sr_sets.R", "matchup.R",
+            "tab_last6.R", "tab_roster.R", "tab_nextserver.R", "tab_sheet.R", "plot_rotation.R", "plot_runs.R", "plot_sr_sets.R", "matchup.R",
             "tab_plays.R"))
   source(file.path("R", f))
 
@@ -228,24 +228,6 @@ local({
   }, domain = NULL)
 })
 
-# Tabs that describe one team's play, and so can be shown for both at once.
-# Rotations and Defense already compare the two by construction, and Plays is
-# a wide table where a second copy would only cost width.
-PAIRED_TABS <- c("attack", "serve", "setter", "passing", "last6")
-
-# Set origin is not here. It was a second tab about setting whose own chart
-# needs a coordinate on the setter's contact, and no file in this program
-# carries one: not a match, not a practice, not an opponent film scouted off
-# video. Its one table that did not need coordinates, the setter calls, now
-# sits on the Setter tab. The code is kept, and the tab comes back the day
-# anyone codes set contacts.
-TABS <- list(c("attack", "Attacking"), c("serve", "Serving"),
-             c("setter", "Setter"),
-             c("passing", "Serve receive"), c("defense", "Defense"),
-             c("rotation", "Rotations"), c("last6", "Last 6"),
-             c("nextserver", "Next server"),
-             c("plays", "Plays &amp; export"), c("roster", "Roster"))
-
 DEFAULT_OPTS <- list(
   # "auto" draws arrows while they are readable and the landing grid when
   # they are not. Tendency lines are off: they are a summary drawn over the
@@ -256,7 +238,10 @@ DEFAULT_OPTS <- list(
   eView = "points", eBins = 3, setSetter = "", setZones = character(),
   setterWho = "main", setterEx = character(), lastN = 6,
   mono = FALSE, phases = character(), sys = character(), showshare = FALSE,
-  pair = TRUE, pinServer = ""
+  pair = TRUE, pinServer = "",
+  # The printed sheet: which one, and about whom. Blank means the opponent if
+  # the files name one, and our own team otherwise.
+  sheet = "attackers", sheetTeam = "", sheetPick = character()
 )
 
 # ---------------------------------------------------------------------------
@@ -497,6 +482,17 @@ server <- function(input, output, session) {
 
   observeEvent(input$js_opt, {
     k <- input$js_opt$key; v <- input$js_opt$val
+    # Who is on the printed sheet is a set, not a setting: a chip adds a
+    # player or takes her off again, and an empty value clears the lot back
+    # to whoever charted the most. Kept here rather than given its own
+    # message because it is still one chip posting one value.
+    if (identical(k, "sheetPick")) {
+      cur <- as.character(S$o$sheetPick %||% character())
+      S$o$sheetPick <- if (!nzchar(v)) character()
+                       else if (v %in% cur) setdiff(cur, v)
+                       else c(cur, v)
+      return()
+    }
     v <- if (identical(v, "true")) TRUE else if (identical(v, "false")) FALSE
          else if (!is.na(suppressWarnings(as.numeric(v))) && nzchar(v)) as.numeric(v)
          else v
@@ -844,6 +840,13 @@ server <- function(input, output, session) {
                          }
                        }))
       }
+      else if (S$tab == "sheet") {
+        # Every play in the files, both sides: a scout sheet is usually about
+        # the other team, so it cannot be built from the focus team's rows.
+        tab_sheet(all_plays(S$matches, sel_live()), o, coords_ok(),
+                  focus_name = S$focus_name,
+                  opponent = live_opponent(LIVE$match, S$focus, S$focus_name))
+      }
       else if (S$tab == "roster")
         tab_roster(position_table(S$matches, ROSTER$ov), S$focus_name)
       else if (S$tab == "defense") {
@@ -927,6 +930,18 @@ intro_ui <- function(errors) {
                   HTML('<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'),
                   div(class = "big", "Select or drag films"),
                   div(class = "small", HTML("<code>.vsm</code> or <code>.dvw</code> · as many as you like"))))),
+      # Third, and last, because it is the only one of the three that changes
+      # nothing about the data: it decides how much of the app is on screen.
+      div(class = "slot",
+          div(class = "slotn", "3"),
+          div(class = "slotbody",
+              div(class = "slott", "What this device is for"),
+              div(class = "slotd", HTML("Sets which tabs this device shows. It is remembered here and nowhere else, so the bench iPad and the laptop running the match can be set differently. Change it any time from <b>Tabs</b> at the end of the tab bar.")),
+              div(class = "modes",
+                  lapply(MODES, function(m)
+                    tags$button(class = "mode", type = "button",
+                                `data-mode` = m$id, `data-hide` = mode_hidden(m),
+                                tags$b(m$label), tags$span(m$blurb)))))),
       uiOutput("share"),
       # Only offered when a sample is actually present. data/ is not in the
       # repository, match files are not ours to publish, so a fresh clone has
