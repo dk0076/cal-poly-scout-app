@@ -177,18 +177,16 @@ finalize_match <- function(m) {
     data.table::set(p, j = nm, value = v[[nm]])
   # What may appear in a report. Kept as a column rather than dropped, so the
   # Plays tab can still show the touch and the count can be reported.
-  cust <- if ("custom" %in% names(p)) p$custom else rep(NA_character_, nrow(p))
   prac <- !is.na(p$num) & p$num %in% PRACTICE_PLAYERS
-  prov <- is_provisional(cust)
-  data.table::set(p, j = "reportable", value = !prac & !prov)
+  # Practice bodies, and nothing else. A "00" in the custom field used to be
+  # taken out here too; see core.R for why it is a set location rather than a
+  # flag, and why leaving it out moved every rate in the file.
+  data.table::set(p, j = "reportable", value = !prac)
 
   w <- character()
   if (any(prac))
     w <- c(w, sprintf("%d touches by practice players (#%s) excluded from every rate; they remain on the Plays tab.",
                       sum(prac), paste(sort(unique(p$num[prac])), collapse = ", #")))
-  if (any(prov))
-    w <- c(w, sprintf("%d touches tagged '00' (coder marked them to revisit) excluded from every rate, because they are not final.",
-                      sum(prov)))
 
   m$plays <- p
   m$warnings <- c(m$warnings, w, contradictory_grades(p, idx))

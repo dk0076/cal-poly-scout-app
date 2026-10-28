@@ -75,10 +75,18 @@ vs_efficiency <- function(effect, skill) {
 # surfaced, so the exclusion is visible instead of silent.
 PRACTICE_PLAYERS <- c(98L, 99L)
 
-# A custom tag containing "00" means the coder marked the play to revisit: it
-# is not final and must not reach a coach's number. "Z" is the opposite -- a
-# play flagged FOR the coach -- so the two must never be treated alike.
-is_provisional <- function(custom) !is.na(custom) & grepl("00", custom, fixed = TRUE)
+# "00" in the custom field is not a flag. It was read as one here, as a play
+# the coder had marked to revisit, and every touch carrying it was kept out
+# of every rate. It is a set location: the field holds 00, 00F, 00B, <1, <1B,
+# >2, >2F and the rest, so 00 is a ball put up on the pin and the tag reads
+# "dead on, front" or "dead on, back". In one file 80 touches of 803 carried
+# it, across both teams, every skill and all three sets, and whole rallies at
+# a time, which is what a set location looks like and not what a to-do list
+# looks like. Those were the best-set rallies in the file, and leaving them
+# out moved every number on every tab.
+#
+# A jersey is the other reason to leave 00 alone: players wear it, and a
+# libero numbered 00 must read as a player like anyone else.
 
 # The 0-4 scales this staff grades on, read off their own VolleyStation
 # worksheet (coachs spreadsheets/1. Cal Poly Practice Totals.vss, WEIGHTS

@@ -286,9 +286,15 @@ falls back to what each hitter actually runs.
 **Rotation labels are sequence-based.** R1 is the setter in zone 1, then 6, 5,
 4, 3, 2, so R1 to R3 are the setter-back-row rotations.
 
-**Some touches never reach a rate.** Practice players #98 and #99, and any play
-tagged `00`, which means the coder marked it to revisit. Both still show on the
-Plays tab, and the count appears in a banner.
+**Some touches never reach a rate.** Practice players #98 and #99. They still
+show on the Plays tab, and the count appears in a banner.
+
+Plays carrying `00` in the custom field used to be held out too, as plays the
+coder had marked to revisit. They are not: the field holds set locations, `00`,
+`00F`, `00B`, `<1`, `>2` and the rest, so `00` is a ball put up on the pin. One
+file had 80 such touches of 803, across both teams, every skill and whole
+rallies at a time, and they were the best-set rallies in it. A jersey is the
+second reason to leave `00` alone: players wear it.
 
 **A card with nothing in it is not drawn.** Most cards here are built on
 coordinates, and a file coded live has none, so they would be frames of

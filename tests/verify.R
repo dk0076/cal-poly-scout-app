@@ -1424,7 +1424,9 @@ ok("a handful of charted attacks draws one card per hitter, not one court",
 ok("and every hitter is on the strip, down to one attempt",
    local({
      A <- Fp[Fp$skill == "A" & Fp$has_xy, ]
-     who <- length(unique(A$num[!is.na(A$num)]))
+     # By jersey AND name, which is how the cards are keyed: across seasons
+     # one number belongs to two people, and they are two hitters.
+     who <- length(unique(paste(A$num, A$player_short)[!is.na(A$num)]))
      h <- paste(small_multiples(A, "attack", TRUE), collapse = "")
      n <- if (grepl('class="sm"', h, fixed = TRUE))
        length(gregexpr('class="sm"', h, fixed = TRUE)[[1]]) else 0L
@@ -1986,6 +1988,30 @@ ok("the stylesheet drops the chart column below the numbers when stacked",
 # one page: every player who charted something is on it, down to a single
 # attempt, nobody past the ninth is squeezed in, and every strip carries a
 # court rather than an empty box.
+# "00" in the custom field is a set location, not a flag. It was read as a
+# play the coder had marked to revisit, and every touch carrying it was held
+# out of every rate: in one file 80 touches of 803, whole rallies at a time,
+# the best-set ones. Nothing but a practice jersey comes out now.
+cat("\n== 00 is a set location, not a flag\n")
+local({
+  p <- data.table::rbindlist(lapply(matches, function(m) m$plays), fill = TRUE)
+  cust <- if ("custom" %in% names(p)) p$custom else rep(NA_character_, nrow(p))
+  tagged <- !is.na(cust) & grepl("00", cust, fixed = TRUE)
+  prac <- !is.na(p$num) & p$num %in% PRACTICE_PLAYERS
+  ok("a touch tagged 00 still counts",
+     !any(tagged) || all(p$reportable[tagged & !prac]),
+     sprintf("%d touches carry it", sum(tagged)))
+  ok("and practice players still do not", all(!p$reportable[prac]))
+  ok("nothing else is held out", identical(p$reportable, !prac))
+  ok("a player wearing it is a player",
+     !any(!is.na(p$num) & p$num == 0L) ||
+       all(p$reportable[!is.na(p$num) & p$num == 0L]),
+     sprintf("%d touches by #0", sum(!is.na(p$num) & p$num == 0L)))
+  ok("and nobody is told their touches were dropped",
+     !any(grepl("revisit", unlist(lapply(matches, function(m) m$warnings)),
+                fixed = TRUE)))
+})
+
 cat("\n== the scout sheet\n")
 local({
   P <- all_plays(matches, sel)
