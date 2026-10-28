@@ -20,9 +20,23 @@
 # Nine players is the page. Beyond that the strips are too short to carry a
 # court, so the rest are named under the sheet rather than squeezed onto it.
 SHEET_MAX <- 9L
-# Six calls across a strip leaves about 24mm each, which is still a readable
-# court. The seventh would not be.
-SHEET_CALLS <- 6L
+# Three calls across a strip. Six fitted, in the sense that six boxes drew
+# without overlapping, and the courts inside them came out too small to read
+# a shot off. Three is what the staff's own printed sheet carries.
+SHEET_CALLS <- 3L
+
+# The printable area, in millimetres, so a cell can be sized from the page
+# rather than from a guess. 199 x 261mm less 4mm of padding on every side,
+# less the 16mm header and the 3mm under it.
+SHEET_INNER_H <- 261 - 8 - 16 - 3
+# What is left across a strip once the name column, the strip's border, its
+# gap and its padding are taken off a 191mm inner width.
+SHEET_INNER_W <- 141
+# A court is 1140 units wide by 1080 tall in the window these charts use, so
+# a box of that shape is filled by it exactly, with nothing left over on any
+# side. Anything wider leaves white margins, which is what made the courts
+# look small on a page that had the room for them.
+COURT_AR <- 1140 / 1080
 
 #' Every attacker, or every server, on every team in the files loaded.
 #'
@@ -118,20 +132,27 @@ attacker_strips <- function(P, team, coords_ok, mono = FALSE, picked = NULL) {
   people <- people[seq_len(min(SHEET_MAX, length(people)))]
   sp <- sheet_sets(P)
 
-  # Every strip is cut to the same cell width, set by whoever has the most
-  # calls, so the courts line up down the page instead of stepping.
-  #
-  # 141mm is what is actually left for charts: a 199mm page, less 4mm of
-  # padding each side, less the 44mm name column, less the strip's own
-  # border, gap and padding. Guessing high here does not widen the page, it
-  # pushes the last column over the ruled edge of every strip.
+  # A cell is as wide as its court is at the height the page gives it, not as
+  # wide as the room divides into. Sizing by width was the mistake: it made a
+  # box far wider than the court it holds, so every chart sat in the middle of
+  # its own white margin and looked half the size it could be. Here the height
+  # comes first, the width follows the court's shape, and whatever is left
+  # over stays at the right hand end of the strip, as it does on the staff's
+  # own sheet.
+  n_rows <- length(people)
+  row_h <- (SHEET_INNER_H - (n_rows - 1) * 1.6) / n_rows
+  # The strip's padding, the call name, the line under it, and the ruled box
+  # around the chart: what is left of the row is the court's.
+  box_h <- max(6, row_h - 2 - 3.4 - 3.1 - 1.2)
   widest <- max(1L, max(vapply(people, function(o)
     min(SHEET_CALLS, length(crosstab(o$rows, o$rows$season_call))), 0L)))
-  cell_w <- floor(((141 - (widest - 1) * 2) / widest) * 10) / 10
+  cell_w <- min(box_h * COURT_AR, (SHEET_INNER_W - (widest - 1) * 2) / widest)
+  cell_w <- floor(cell_w * 10) / 10
 
   rows <- vapply(seq_along(people), function(pi) {
     o <- people[[pi]]
     parts <- strsplit(o$key, "|", fixed = TRUE)[[1]]
+    per_set <- sp[o$key]
     calls <- by_size(crosstab(o$rows, o$rows$season_call))
     extra <- length(calls) - SHEET_CALLS
     calls <- calls[seq_len(min(SHEET_CALLS, length(calls)))]
@@ -143,13 +164,18 @@ attacker_strips <- function(P, team, coords_ok, mono = FALSE, picked = NULL) {
                        marks = arrow_layer(g$rows, cid, 2.6, mono),
                        alt = sprintf("%s, %s", parts[3],
                                      call_label(g$key, g$rows$call_name[1])))
+      # How often she runs it, per set, which is the line the staff's sheet
+      # carries. Her kill rate and her hitting are on the row already, and
+      # three numbers under a 30mm court is a line nobody reads on paper.
       sprintf('<div class="atk-cell" style="flex:0 0 %smm;max-width:%smm">
-        <div class="ct">%s</div><div class="cs">%s · %sk · %s</div>
+        <div class="ct">%s</div><div class="cs">%s</div>
         <div class="cv">%s</div></div>',
               cell_w, cell_w, esc(call_label(g$key, g$rows$call_name[1])),
-              g$stat$ta, pct(g$stat$kpct), eff(g$stat$eff), svg)
+              if (!is.na(per_set) && per_set > 0)
+                sprintf("%.1f/s", g$stat$ta / per_set)
+              else sprintf("%d att", g$stat$ta),
+              svg)
     }, "")
-    per_set <- sp[o$key]
     sprintf('<div class="atk-row"><div class="atk-name">%s<div class="atk-txt">
         <b>#%s %s</b><span>%s att%s</span><span>%s kill · %s hit</span></div></div>
       <div class="atk-charts">%s%s</div></div>',
@@ -268,7 +294,7 @@ tab_sheet <- function(P, o, coords_ok, focus_name = "", opponent = "") {
   left <- body$total - body$shown
   paste0(c(H, bar, sheet_pick_bar(body$pool, picked, kind),
            sprintf('<div class="sheetwrap"><div class="sheet %s">%s<div class="rowCourts">%s</div></div></div>',
-                   kind, sheet_header(if (kind == "servers") "Team" else "Team"),
+                   kind, sheet_header("Player"),
                    body$html),
            if (left > 0)
              note(sprintf("%d of %d on the sheet. A page holds nine and still leaves a court worth reading, so the rest are a tap away in the row above: pick the players this sheet is about and they take the page in the order you pick them.",
