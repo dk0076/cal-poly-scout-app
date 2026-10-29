@@ -395,7 +395,17 @@ tests/verify.R     the check suite
 tests/parity.R     compare one match exported two ways
 tools/             .vss lint and diff
 data-raw/          fixture generator
+legacy/            the single-file tool this app was ported from
 ```
+
+`legacy/scout_vsm_v95.html` is the whole thing in one file: open it in a
+browser, drop match files on it, no R and no install. It is kept because the
+printed scout sheet here is a port of its sheet, and because it still answers
+what the sheet used to look like. It differs from the version this app was
+ported from in one way: it reads ball coordinates out of a DataVolley `.dvw`
+as well as a VolleyStation `.vsm`, using the same grid conversion as
+`R/parse_dvw.R`. Checked on a match held in both formats, the contact points
+agree within about 0.3 m.
 
 Charts are inline SVG, not ggplot2: each shot carries a `<title>`, so hovering
 gives the hitter, set, score, call and outcome, and it stays vector-crisp in
