@@ -2119,6 +2119,14 @@ ok("the print button asks the browser, not the server",
 ok("and the page goes back to normal when the dialog closes",
    grepl("afterprint", js, fixed = TRUE) &&
      grepl('classList.remove("sheet-print-mode")', js, fixed = TRUE))
+# A cell is the width the HTML tool's sheet uses, fixed, so a page of three
+# strips and a page of nine have the same columns down them.
+ok("a cell is the same width on every sheet",
+   grepl("flex:0 0 33.5mm;max-width:33.5mm", css, fixed = TRUE) &&
+     !any(grepl("max-width:%smm", readLines("R/tab_sheet.R"), fixed = TRUE)))
+ok("and the court has the whole of it",
+   grepl(".sheet .atk-cell .cv svg.court{width:100%;height:100%;display:block}",
+         css, fixed = TRUE))
 ok("the stylesheet leaves nothing but the sheet on the paper",
    grepl("body.sheet-print-mode #panel>*:not(.sheetwrap){display:none!important}",
          css, fixed = TRUE))

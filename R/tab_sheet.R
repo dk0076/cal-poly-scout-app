@@ -26,18 +26,6 @@ SHEET_MAX <- 9L
 # off.
 SHEET_CALLS <- 4L
 
-# The printable area, in millimetres, so a cell can be sized from the page
-# rather than from a guess. 199 x 261mm less 4mm of padding on every side,
-# less the 16mm header and the 3mm under it.
-SHEET_INNER_H <- 261 - 8 - 16 - 3
-# What is left across a strip once the name column, the strip's border, its
-# gap and its padding are taken off a 191mm inner width.
-SHEET_INNER_W <- 141
-# A court is 1140 units wide by 1080 tall in the window these charts use, so
-# a box of that shape is filled by it exactly, with nothing left over on any
-# side. Anything wider leaves white margins, which is what made the courts
-# look small on a page that had the room for them.
-COURT_AR <- 1140 / 1080
 
 #' Every attacker, or every server, on every team in the files loaded.
 #'
@@ -133,22 +121,9 @@ attacker_strips <- function(P, team, coords_ok, mono = FALSE, picked = NULL) {
   people <- people[seq_len(min(SHEET_MAX, length(people)))]
   sp <- sheet_sets(P)
 
-  # A cell is as wide as its court is at the height the page gives it, not as
-  # wide as the room divides into. Sizing by width was the mistake: it made a
-  # box far wider than the court it holds, so every chart sat in the middle of
-  # its own white margin and looked half the size it could be. Here the height
-  # comes first, the width follows the court's shape, and whatever is left
-  # over stays at the right hand end of the strip, as it does on the staff's
-  # own sheet.
-  n_rows <- length(people)
-  row_h <- (SHEET_INNER_H - (n_rows - 1) * 1.6) / n_rows
-  # The strip's padding, the call name, the line under it, and the ruled box
-  # around the chart: what is left of the row is the court's.
-  box_h <- max(6, row_h - 2 - 3.4 - 3.1 - 1.2)
-  widest <- max(1L, max(vapply(people, function(o)
-    min(SHEET_CALLS, length(crosstab(o$rows, o$rows$season_call))), 0L)))
-  cell_w <- min(box_h * COURT_AR, (SHEET_INNER_W - (widest - 1) * 2) / widest)
-  cell_w <- floor(cell_w * 10) / 10
+  # Nothing works out a cell width here. The stylesheet fixes it at the width
+  # the HTML tool's sheet uses, so a strip is the same whether the page is
+  # carrying three players or nine, and the columns line up down it.
 
   rows <- vapply(seq_along(people), function(pi) {
     o <- people[[pi]]
@@ -169,10 +144,10 @@ attacker_strips <- function(P, team, coords_ok, mono = FALSE, picked = NULL) {
                                      call_label(g$key, g$rows$call_name[1])))
       # The call's own three numbers, the way the staff's sheet reads them:
       # how many she took on it, how many were kills, and what she hit.
-      sprintf('<div class="atk-cell" style="flex:0 0 %smm;max-width:%smm">
+      sprintf('<div class="atk-cell">
         <div class="ct">%s</div><div class="cs">%d · %sk · %s</div>
         <div class="cv">%s</div></div>',
-              cell_w, cell_w, esc(call_label(g$key, g$rows$call_name[1])),
+              esc(call_label(g$key, g$rows$call_name[1])),
               g$stat$ta, pct(g$stat$kpct), eff(g$stat$eff), svg)
     }, "")
     sprintf('<div class="atk-row"><div class="atk-name">%s<div class="atk-txt">
