@@ -20,10 +20,11 @@
 # Nine players is the page. Beyond that the strips are too short to carry a
 # court, so the rest are named under the sheet rather than squeezed onto it.
 SHEET_MAX <- 9L
-# Three calls across a strip. Six fitted, in the sense that six boxes drew
-# without overlapping, and the courts inside them came out too small to read
-# a shot off. Three is what the staff's own printed sheet carries.
-SHEET_CALLS <- 3L
+# Four calls across a strip, which is what the staff's own printed sheet
+# carries at most. Six fitted, in the sense that six boxes drew without
+# overlapping, and the courts inside them came out too small to read a shot
+# off.
+SHEET_CALLS <- 4L
 
 # The printable area, in millimetres, so a cell can be sized from the page
 # rather than from a guess. 199 x 261mm less 4mm of padding on every side,
@@ -153,8 +154,10 @@ attacker_strips <- function(P, team, coords_ok, mono = FALSE, picked = NULL) {
     o <- people[[pi]]
     parts <- strsplit(o$key, "|", fixed = TRUE)[[1]]
     per_set <- sp[o$key]
+    # Whatever she does not run often enough to make the strip is left off
+    # it rather than counted at the end: the page is the four calls a staff
+    # will talk about, and a "+3 more" in the margin is not one of them.
     calls <- by_size(crosstab(o$rows, o$rows$season_call))
-    extra <- length(calls) - SHEET_CALLS
     calls <- calls[seq_len(min(SHEET_CALLS, length(calls)))]
     cells <- vapply(seq_along(calls), function(gi) {
       g <- calls[[gi]]
@@ -164,17 +167,13 @@ attacker_strips <- function(P, team, coords_ok, mono = FALSE, picked = NULL) {
                        marks = arrow_layer(g$rows, cid, 2.6, mono),
                        alt = sprintf("%s, %s", parts[3],
                                      call_label(g$key, g$rows$call_name[1])))
-      # How often she runs it, per set, which is the line the staff's sheet
-      # carries. Her kill rate and her hitting are on the row already, and
-      # three numbers under a 30mm court is a line nobody reads on paper.
+      # The call's own three numbers, the way the staff's sheet reads them:
+      # how many she took on it, how many were kills, and what she hit.
       sprintf('<div class="atk-cell" style="flex:0 0 %smm;max-width:%smm">
-        <div class="ct">%s</div><div class="cs">%s</div>
+        <div class="ct">%s</div><div class="cs">%d · %sk · %s</div>
         <div class="cv">%s</div></div>',
               cell_w, cell_w, esc(call_label(g$key, g$rows$call_name[1])),
-              if (!is.na(per_set) && per_set > 0)
-                sprintf("%.1f/s", g$stat$ta / per_set)
-              else sprintf("%d att", g$stat$ta),
-              svg)
+              g$stat$ta, pct(g$stat$kpct), eff(g$stat$eff), svg)
     }, "")
     sprintf('<div class="atk-row"><div class="atk-name">%s<div class="atk-txt">
         <b>#%s %s</b><span>%s att%s</span><span>%s kill · %s hit</span></div></div>
@@ -183,8 +182,7 @@ attacker_strips <- function(P, team, coords_ok, mono = FALSE, picked = NULL) {
             if (!is.na(per_set) && per_set > 0)
               sprintf(" · %.1f/set", o$stat$ta / per_set) else "",
             pct(o$stat$kpct), eff(o$stat$eff),
-            paste(cells, collapse = ""),
-            if (extra > 0) sprintf('<div class="atk-more">+%d more</div>', extra) else "")
+            paste(cells, collapse = ""), "")
   }, "")
   list(html = sprintf('<div class="atk-flex">%s</div>', paste(rows, collapse = "")),
        shown = length(people), total = total, pool = all_of_them)
@@ -291,14 +289,10 @@ tab_sheet <- function(P, o, coords_ok, focus_name = "", opponent = "") {
     if (kind == "servers") server_tiles(P, team, coords_ok, isTRUE(o$mono), picked)
     else attacker_strips(P, team, coords_ok, isTRUE(o$mono), picked))
 
-  left <- body$total - body$shown
   paste0(c(H, bar, sheet_pick_bar(body$pool, picked, kind),
            sprintf('<div class="sheetwrap"><div class="sheet %s">%s<div class="rowCourts">%s</div></div></div>',
                    kind, sheet_header("Player"),
                    body$html),
-           if (left > 0)
-             note(sprintf("%d of %d on the sheet. A page holds nine and still leaves a court worth reading, so the rest are a tap away in the row above: pick the players this sheet is about and they take the page in the order you pick them.",
-                          body$shown, body$total)) else "",
-           note("Printing takes the sheet alone: the tab bar, the filters and the rest of the app are left off the page. Letter, portrait, and the browser's own margins set to none or default.")),
+           ""),
          collapse = "")
 }

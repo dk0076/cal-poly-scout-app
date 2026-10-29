@@ -784,8 +784,11 @@ body.simplified .c-coord{display:none}
 .sheet .atk-cell{display:flex;flex-direction:column;min-width:0}
 .sheet .atk-cell .ct{font-size:7pt;font-weight:700;text-align:center;line-height:1.15;
   height:3.4mm;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sheet .atk-cell .cs{font-size:6.5pt;color:#4a5260;text-align:center;line-height:1.15;
-  height:3.1mm;flex:none;white-space:nowrap;overflow:hidden}
+/* Nine strips on a page leave a cell about 27mm across, and the three
+   numbers under a call need every millimetre of it: at 6.5pt the hitting
+   percentage lost its last digit. */
+.sheet .atk-cell .cs{font-size:6pt;color:#4a5260;text-align:center;line-height:1.15;
+  height:3.1mm;flex:none;white-space:nowrap;overflow:hidden;letter-spacing:-.01em}
 /* The chart sits in a ruled box, as it does on the sheet this was taken
    from. A court is narrower than the cell it is given, so without the box
    the little courts read as floating at random rather than as a column. */
@@ -831,17 +834,31 @@ body.simplified .c-coord{display:none}
 
   /* Printing the sheet prints the sheet: the heading above it, the controls,
      the footnotes and the filters are all screen furniture, and any of them
-     left in pushes a 261mm page onto a second sheet of paper. */
+     left in pushes a 261mm page onto a second sheet of paper.
+
+     Keyed on the sheet being on the page, not on the Print button having
+     been pressed. Ctrl+P is how most people print, and keying this on a
+     class the button adds meant their page came out with the app's heading
+     on top and the sheet running onto a second sheet of paper. */
+  body:has(.sheetwrap) .sharebar,
+  body:has(.sheetwrap) .topbar,
+  body:has(.sheetwrap) #panel>*:not(.sheetwrap),
   body.sheet-print-mode .sharebar,
   body.sheet-print-mode .topbar,
   body.sheet-print-mode #panel>*:not(.sheetwrap){display:none!important}
+  body:has(.sheetwrap) .wrap,
   body.sheet-print-mode .wrap{grid-template-columns:1fr;margin:0;padding:0;gap:0}
+  body:has(.sheetwrap) main.panel,
+  body:has(.sheetwrap) #panel,
+  body:has(.sheetwrap) .sheetwrap,
   body.sheet-print-mode main.panel,
   body.sheet-print-mode #panel,
   body.sheet-print-mode .sheetwrap{padding:0;margin:0;overflow:visible}
   /* Paper is the size this was drawn for, so the screen's scaling comes off. */
+  body:has(.sheetwrap) .sheet,
   body.sheet-print-mode .sheet{box-shadow:none;margin:0 auto;overflow:hidden;
     break-inside:avoid;zoom:1!important}
+  body:has(.sheetwrap) *,
   body.sheet-print-mode *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .sheet{box-shadow:none}
 }

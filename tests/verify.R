@@ -2122,6 +2122,11 @@ ok("and the page goes back to normal when the dialog closes",
 ok("the stylesheet leaves nothing but the sheet on the paper",
    grepl("body.sheet-print-mode #panel>*:not(.sheetwrap){display:none!important}",
          css, fixed = TRUE))
+# Ctrl+P is how most people print, and it adds no class. Keyed on the button
+# alone, their page came out with the app's heading on it and the sheet
+# running onto a second piece of paper.
+ok("whether or not the button was the way in",
+   grepl("body:has(.sheetwrap) #panel>*:not(.sheetwrap)", css, fixed = TRUE))
 ok("on Letter, portrait", grepl("@page{size:Letter portrait", css, fixed = TRUE))
 ok("what was typed survives the panel being redrawn",
    grepl("scoutr.sheet.", js, fixed = TRUE) && grepl("data-sheetf", js, fixed = TRUE))
