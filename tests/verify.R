@@ -2119,14 +2119,22 @@ ok("the print button asks the browser, not the server",
 ok("and the page goes back to normal when the dialog closes",
    grepl("afterprint", js, fixed = TRUE) &&
      grepl('classList.remove("sheet-print-mode")', js, fixed = TRUE))
-# A cell is the width the HTML tool's sheet uses, fixed, so a page of three
-# strips and a page of nine have the same columns down them.
-ok("a cell is the same width on every sheet",
-   grepl("flex:0 0 33.5mm;max-width:33.5mm", css, fixed = TRUE) &&
-     !any(grepl("max-width:%smm", readLines("R/tab_sheet.R"), fixed = TRUE)))
+# One cell width per sheet, set by whoever has the most calls, out of the
+# 151mm a strip has across. The columns line up down the page because of it.
+ok("every strip is cut to one cell width",
+   any(grepl("151 - (widest - 1) * 2", readLines("R/tab_sheet.R"), fixed = TRUE)))
 ok("and the court has the whole of it",
    grepl(".sheet .atk-cell .cv svg.court{width:100%;height:100%;display:block}",
          css, fixed = TRUE))
+# Ruled, and cut off at its own edge: without the clip a ball hit long draws
+# across the call beside it.
+ok("a court on the sheet is a ruled box",
+   grepl(".sheet svg.court{border:1px solid #000;overflow:hidden", css, fixed = TRUE))
+# A call she ran once is an arrow under a 100% or a -1.000, in a column a
+# call she actually runs could have had.
+ok("and a call needs three attempts to take a column",
+   identical(SHEET_MIN_ATT, 3L) &&
+     any(grepl("x$stat$ta >= SHEET_MIN_ATT", readLines("R/tab_sheet.R"), fixed = TRUE)))
 ok("the stylesheet leaves nothing but the sheet on the paper",
    grepl("body.sheet-print-mode #panel>*:not(.sheetwrap){display:none!important}",
          css, fixed = TRUE))

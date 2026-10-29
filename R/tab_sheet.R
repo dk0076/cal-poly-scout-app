@@ -20,11 +20,14 @@
 # Nine players is the page. Beyond that the strips are too short to carry a
 # court, so the rest are named under the sheet rather than squeezed onto it.
 SHEET_MAX <- 9L
-# Four calls across a strip, which is what the staff's own printed sheet
-# carries at most. Six fitted, in the sense that six boxes drew without
-# overlapping, and the courts inside them came out too small to read a shot
-# off.
-SHEET_CALLS <- 4L
+# Six calls across a strip, which at 151mm still leaves about 24mm a court.
+# Past that a court is too small to read a shot off, so the rest are counted
+# at the end of the strip instead.
+SHEET_CALLS <- 6L
+# A call nobody ran three times is noise on a printed page: one attempt draws
+# a single arrow under a 100% or a -1.000, and it takes a column from a call
+# she actually runs.
+SHEET_MIN_ATT <- 3L
 
 
 #' Every attacker, or every server, on every team in the files loaded.
@@ -121,18 +124,24 @@ attacker_strips <- function(P, team, coords_ok, mono = FALSE, picked = NULL) {
   people <- people[seq_len(min(SHEET_MAX, length(people)))]
   sp <- sheet_sets(P)
 
-  # Nothing works out a cell width here. The stylesheet fixes it at the width
-  # the HTML tool's sheet uses, so a strip is the same whether the page is
-  # carrying three players or nine, and the columns line up down it.
+  # Every strip is cut to one cell width, set by whoever has the most calls,
+  # so the courts line up down the page instead of stepping. 151mm is what a
+  # strip has across: a 199mm page less the 44mm name column, the strip's own
+  # border, its gap and its padding.
+  sheet_calls <- function(o) {
+    g <- by_size(crosstab(o$rows, o$rows$season_call))
+    g[vapply(g, function(x) x$stat$ta >= SHEET_MIN_ATT, TRUE)]
+  }
+  widest <- max(1L, max(vapply(people, function(o)
+    min(SHEET_CALLS, length(sheet_calls(o))), 0L)))
+  cell_w <- floor(((151 - (widest - 1) * 2) / widest) * 10) / 10
 
   rows <- vapply(seq_along(people), function(pi) {
     o <- people[[pi]]
     parts <- strsplit(o$key, "|", fixed = TRUE)[[1]]
     per_set <- sp[o$key]
-    # Whatever she does not run often enough to make the strip is left off
-    # it rather than counted at the end: the page is the four calls a staff
-    # will talk about, and a "+3 more" in the margin is not one of them.
-    calls <- by_size(crosstab(o$rows, o$rows$season_call))
+    calls <- sheet_calls(o)
+    extra <- length(calls) - SHEET_CALLS
     calls <- calls[seq_len(min(SHEET_CALLS, length(calls)))]
     cells <- vapply(seq_along(calls), function(gi) {
       g <- calls[[gi]]
@@ -144,10 +153,10 @@ attacker_strips <- function(P, team, coords_ok, mono = FALSE, picked = NULL) {
                                      call_label(g$key, g$rows$call_name[1])))
       # The call's own three numbers, the way the staff's sheet reads them:
       # how many she took on it, how many were kills, and what she hit.
-      sprintf('<div class="atk-cell">
+      sprintf('<div class="atk-cell" style="flex:0 0 %smm;max-width:%smm">
         <div class="ct">%s</div><div class="cs">%d · %sk · %s</div>
         <div class="cv">%s</div></div>',
-              esc(call_label(g$key, g$rows$call_name[1])),
+              cell_w, cell_w, esc(call_label(g$key, g$rows$call_name[1])),
               g$stat$ta, pct(g$stat$kpct), eff(g$stat$eff), svg)
     }, "")
     sprintf('<div class="atk-row"><div class="atk-name">%s<div class="atk-txt">
@@ -157,7 +166,11 @@ attacker_strips <- function(P, team, coords_ok, mono = FALSE, picked = NULL) {
             if (!is.na(per_set) && per_set > 0)
               sprintf(" · %.1f/set", o$stat$ta / per_set) else "",
             pct(o$stat$kpct), eff(o$stat$eff),
-            paste(cells, collapse = ""), "")
+            if (length(cells)) paste(cells, collapse = "")
+            else '<div class="atk-empty">no call with three attempts</div>',
+            if (extra > 0)
+              sprintf('<div class="atk-more">+%d more call%s</div>',
+                      extra, if (extra == 1L) "" else "s") else "")
   }, "")
   list(html = sprintf('<div class="atk-flex">%s</div>', paste(rows, collapse = "")),
        shown = length(people), total = total, pool = all_of_them)

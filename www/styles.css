@@ -742,7 +742,7 @@ body.simplified .c-coord{display:none}
    199 x 261 mm is Letter (216 x 279) inside an 8mm margin box, with a
    millimetre of slack for a printer's non-printable edge. */
 .sheetwrap{overflow-x:auto;padding-bottom:6px}
-.sheet{width:199mm;height:261mm;background:#fff;color:#000;padding:4mm;
+.sheet{width:199mm;height:261mm;background:#fff;color:#000;
   display:flex;flex-direction:column;font-family:Arial,Helvetica,sans-serif;
   box-shadow:0 1px 10px var(--shadow);margin:6px 0 2px;
   --wood:#f7f0e1; --wood-line:#b7a385; --wood-line-2:#cdbb9d;
@@ -753,6 +753,10 @@ body.simplified .c-coord{display:none}
      little court. */
   --panel:#fff; --rule:#bbb; --rule-2:#ddd; --shadow:rgba(0,0,0,.09)}
 .sheet *{box-sizing:border-box}
+/* Every court on the sheet is ruled and cuts off at its own edge. The box is
+   what makes a strip read as a row of columns, and the clip is what keeps a
+   ball hit long from drawing across the call beside it. */
+.sheet svg.court{border:1px solid #000;overflow:hidden;background:#fff}
 
 .sheet .rowHeader{height:16mm;display:flex;gap:4mm;flex:none}
 .sheet .title-box{flex:0 0 55%;border:1.5px solid #000;display:flex;
@@ -781,12 +785,7 @@ body.simplified .c-coord{display:none}
   text-overflow:ellipsis}
 .sheet .atk-txt span{font-size:7pt;color:#2c3f36;line-height:1.25}
 .sheet .atk-charts{flex:1 1 auto;display:flex;gap:2mm;padding:1mm;min-width:0}
-/* A fixed cell, the width the HTML tool's sheet uses, not a width worked out
-   from how many strips the page is carrying. Four of them and their gaps is
-   the 141mm a strip has across, and a cell that keeps its size whatever else
-   is on the page is what makes the columns line up down it. */
-.sheet .atk-cell{display:flex;flex-direction:column;min-width:0;
-  flex:0 0 33.5mm;max-width:33.5mm}
+.sheet .atk-cell{display:flex;flex-direction:column;min-width:0}
 .sheet .atk-cell .ct{font-size:7pt;font-weight:700;text-align:center;line-height:1.15;
   height:3.4mm;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sheet .atk-cell .cs{font-size:6.5pt;color:#4a5260;text-align:center;line-height:1.15;
