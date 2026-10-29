@@ -20,7 +20,7 @@
 # Nine players is the page. Beyond that the strips are too short to carry a
 # court, so the rest are named under the sheet rather than squeezed onto it.
 SHEET_MAX <- 9L
-# Six calls across a strip, which at 151mm still leaves about 24mm a court.
+# Six calls across a strip, which at 147mm still leaves about 23mm a court.
 # Past that a court is too small to read a shot off, so the rest are counted
 # at the end of the strip instead.
 SHEET_CALLS <- 6L
@@ -125,16 +125,17 @@ attacker_strips <- function(P, team, coords_ok, mono = FALSE, picked = NULL) {
   sp <- sheet_sets(P)
 
   # Every strip is cut to one cell width, set by whoever has the most calls,
-  # so the courts line up down the page instead of stepping. 151mm is what a
-  # strip has across: a 199mm page less the 44mm name column, the strip's own
-  # border, its gap and its padding.
+  # so the courts line up down the page instead of stepping. 147mm is what a
+  # strip has across: a 195mm page less the 44mm name column, the strip's own
+  # border, its gap and its padding. Guessing high does not widen the paper,
+  # it pushes the last column off the right hand side of it.
   sheet_calls <- function(o) {
     g <- by_size(crosstab(o$rows, o$rows$season_call))
     g[vapply(g, function(x) x$stat$ta >= SHEET_MIN_ATT, TRUE)]
   }
   widest <- max(1L, max(vapply(people, function(o)
     min(SHEET_CALLS, length(sheet_calls(o))), 0L)))
-  cell_w <- floor(((151 - (widest - 1) * 2) / widest) * 10) / 10
+  cell_w <- floor(((147 - (widest - 1) * 2) / widest) * 10) / 10
 
   rows <- vapply(seq_along(people), function(pi) {
     o <- people[[pi]]

@@ -2122,7 +2122,7 @@ ok("and the page goes back to normal when the dialog closes",
 # One cell width per sheet, set by whoever has the most calls, out of the
 # 151mm a strip has across. The columns line up down the page because of it.
 ok("every strip is cut to one cell width",
-   any(grepl("151 - (widest - 1) * 2", readLines("R/tab_sheet.R"), fixed = TRUE)))
+   any(grepl("147 - (widest - 1) * 2", readLines("R/tab_sheet.R"), fixed = TRUE)))
 ok("and the court has the whole of it",
    grepl(".sheet .atk-cell .cv svg.court{width:100%;height:100%;display:block}",
          css, fixed = TRUE))
@@ -2153,8 +2153,11 @@ ok("the page is scaled to whatever room the screen has",
      grepl("style.zoom", js, fixed = TRUE))
 ok("and printed at the size it was drawn for",
    grepl("zoom:1!important", css, fixed = TRUE))
-ok("the page is Letter inside its margins",
-   grepl("width:199mm;height:261mm", css, fixed = TRUE))
+# Sized for a 10mm margin, not the 8mm the stylesheet asks for: the margin
+# is the one thing anybody changes in a print dialog, and a sheet drawn for
+# the narrower one came back with its last column and last strip cut off.
+ok("the page is Letter inside the widest margin a dialog hands it",
+   grepl("width:195mm;height:257mm", css, fixed = TRUE))
 
 # The two ways in, from the opening screen. Each is the tab picker with a
 # shorter name, so what has to hold is that they name real tabs and that
