@@ -122,18 +122,10 @@ tab_serve <- function(F, o, coords_ok) {
 
   R <- list()
 
-  R <- c(R, card("By serve type", c(tbl_generic(
-    c("Type", "Srv", "Sh%", "Ace", "Ace%", "Err", "Err%", "Op", "Eff", "Depth m"),
-    lapply(ordered, function(k) {
-      rs <- V0[srv_type_of(V0$hit_type, V0$skill_type) == k, ]
-      s <- serve_line(rs)
-      ic <- rs$y1[rs$has_xy & !out_of_court(rs$x1, rs$y1)]
-      c(esc(srv_type_name(k)), s$n, pct(s$n / nrow(V0)), s$ace, pct(s$acepct),
-        s$err, pct(s$errpct), s$op, if (s$n) eff_td(s$eff) else "",
-        if (length(ic)) m1(med(ic) - COURT$NET) else "")
-    })),
-    tiny("Ignores the type chips above. Codes: top spin = Q or T, jump float = M, standing float = H. Not coded = no type on the serve."))))
-
+  # Who is serving comes first. The type mix below it is a reading of the
+  # same serves, and nobody opens this tab to ask about float versus top
+  # spin before they have looked at who is on the line.
+  #
   # Nothing is hidden and no row is dropped: the two pass columns simply go
   # quiet below PASS_FLOOR passes and say how few they came from on hover, so
   # a coach reads 100% off two serves as what it is.
@@ -168,6 +160,18 @@ tab_serve <- function(F, o, coords_ok) {
           if (!is.na(g$stat$med_depth)) m1(g$stat$med_depth - COURT$NET) else "")
       })),
     tiny("PS% is the share of the rallies she served that were won, which is a point scored off her serve however the rally got there, so it is read beside what the serve itself did rather than instead of it. Rallies the file records no winner for are left out of it. Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Pass #% is how often the receiving team passed her serve perfect, and KO% how often they did not pass it # or +, which is VolleyStation's positive reception inverted. Both count the serves that drew a pass, so a serve into the net is in neither, and both go grey under five passes, where a percentage is not yet a rate. Lane columns are the receiving team's right / middle / left thirds, zones 1·9·2, 6·8·3 and 5·7·4."))))
+
+  R <- c(R, card("By serve type", c(tbl_generic(
+    c("Type", "Srv", "Sh%", "Ace", "Ace%", "Err", "Err%", "Op", "Eff", "Depth m"),
+    lapply(ordered, function(k) {
+      rs <- V0[srv_type_of(V0$hit_type, V0$skill_type) == k, ]
+      s <- serve_line(rs)
+      ic <- rs$y1[rs$has_xy & !out_of_court(rs$x1, rs$y1)]
+      c(esc(srv_type_name(k)), s$n, pct(s$n / nrow(V0)), s$ace, pct(s$acepct),
+        s$err, pct(s$errpct), s$op, if (s$n) eff_td(s$eff) else "",
+        if (length(ic)) m1(med(ic) - COURT$NET) else "")
+    })),
+    tiny("Ignores the type chips above. Codes: top spin = Q or T, jump float = M, standing float = H. Not coded = no type on the serve."))))
 
   R <- c(R, card("By target zone", c(tbl_generic(
     c("Zone", "", "Srv", "Sh%", "Ace", "Err", "Ace%"),
