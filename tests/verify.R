@@ -1245,6 +1245,47 @@ if (nrow(S_ns)) {
   ok("a pin works before the match too, with no prediction at all",
      grepl("picked by hand", hh, fixed = TRUE))
 
+  # The bench's pick: one device says who is serving and the rest follow it,
+  # so nobody on an iPad is guessing at a rotation the coded file knows.
+  other <- as.character(sort(unique(S_ns$num[S_ns$num != who]))[1])
+  o_plain <- o; o_plain$pinServer <- ""; o_plain$nsShare <- FALSE
+  hh <- tab_nextserver(Fp, Opp_ns2, ns1, o_plain, ck, labs2, TRUE, n_files = 1L,
+                       shared = as.character(who), shared_at = "19:04:11")
+  ok("a device with no pick of its own follows the bench",
+     grepl("from the coding laptop", hh, fixed = TRUE) &&
+       grepl("19:04:11", hh, fixed = TRUE))
+  ok("and the chip it is on says where the page came from",
+     grepl('class="bench"', hh, fixed = TRUE))
+
+  # Own pick first: a coach reading ahead on her own iPad keeps what she
+  # picked, and Follow the match is what hands her back.
+  hh <- tab_nextserver(Fp, Opp_ns2, ns1, o_pin, ck, labs2, TRUE, n_files = 1L,
+                       shared = other)
+  ok("a pick made on this device wins over the bench's",
+     grepl(sprintf("#%s", who), hh, fixed = TRUE) &&
+       grepl("picked by hand", hh, fixed = TRUE) &&
+       !grepl("from the coding laptop", hh, fixed = TRUE))
+
+  # The device doing the sending is told its pick went out, rather than being
+  # told it came from somewhere else.
+  o_share <- o; o_share$pinServer <- as.character(who); o_share$nsShare <- TRUE
+  hh <- tab_nextserver(Fp, Opp_ns2, ns1, o_share, ck, labs2, TRUE, n_files = 1L,
+                       shared = as.character(who))
+  ok("the device that sent it is told so",
+     grepl("sent to every device", hh, fixed = TRUE) &&
+       !grepl("from the coding laptop", hh, fixed = TRUE))
+
+  # Nothing shared and nothing picked is the tab as it was.
+  hh <- tab_nextserver(Fp, Opp_ns2, ns1, o_plain, ck, labs2, FALSE, n_files = 1L)
+  ok("with nobody sharing the page still follows the match",
+     !grepl("from the coding laptop", hh, fixed = TRUE))
+
+  ok("the toggle is on the chip row, and flips",
+     grepl('data-o="nsShare" data-v="true"',
+           server_chips(Opp_ns2, "", "", FALSE), fixed = TRUE) &&
+       grepl('data-o="nsShare" data-v="false"',
+             server_chips(Opp_ns2, "", "", TRUE), fixed = TRUE))
+
   # Between rallies the card is the chart and where she serves. The season
   # totals, the serve types and her last serve are still in the page, folded
   # behind Detail, and before a match they are open.

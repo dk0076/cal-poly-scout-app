@@ -217,6 +217,19 @@ taking the bench off the live one. Measured with two viewers on one coding
 file, 14% of one core, against 19% for a single viewer before this was
 shared.
 
+**The bench's pick.** The person coding knows who is serving next before
+anybody else does, because it is in the file they are typing into. On the Next
+server tab, Send picks to every device turns that laptop into the one that
+says: every server picked there is the player the iPads show, with the time it
+was sent. Nobody on the bench is reading a rotation off a sheet and guessing.
+
+Order of precedence is your own pick, then the bench's, then the match. A coach
+who picks somebody on her own iPad is reading ahead and keeps her pick until
+she presses Follow the match, which hands her back to whatever the bench is
+showing. Turning the sending off releases every device back to the match's own
+prediction. The pick lives with the watched file rather than with a tab
+(`LIVE$pin` in `app.R`), so a tablet that joins late has it.
+
 Below 900px the filter rail opens over the page from a Filters button rather
 than sitting beside it, so the numbers are the first thing on the screen.
 

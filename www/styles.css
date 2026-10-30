@@ -733,6 +733,16 @@ body.simplified .c-coord{display:none}
 .chartcol svg.court{max-width:460px}
 
 
+/* ---- the bench's pick, on the Next server tab ---------------------------
+   One device picks and every other one follows. The chip that says so sits
+   at the end of the row rather than among the jerseys, because it is not a
+   player, and the dot marks the jersey the bench is on so an iPad can see
+   where its page came from. */
+.viewbar.srvpick .chip.share{margin-left:auto}
+.viewbar.srvpick .chip.share.on{border-color:var(--gold);color:var(--gold)}
+.viewbar.srvpick .chip .bench{margin-left:5px;font-size:9px;color:var(--gold);
+  vertical-align:1px}
+
 /* ---- the scout sheet ----------------------------------------------------
    A printed page that happens to be rendered in a browser. Everything here
    is in millimetres against Letter paper, and the colours are fixed rather

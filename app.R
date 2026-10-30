@@ -115,7 +115,13 @@ WATCH_QUIET <- 100L                  # ticks of no change before backing off
 
 # `gen` counts successful parses. Sessions watch it rather than `match`,
 # because a data.table that compares equal to the last one would not wake them.
-LIVE <- reactiveValues(path = "", name = "", at = "", match = NULL, gen = 0L)
+# `pin` is the bench's pick: the jersey somebody on the coding laptop said is
+# serving next, which every device on this router then shows. It belongs here
+# rather than in a device's own options because that is the whole point of it:
+# one person reads the rotation off the file they are coding and the iPads
+# stop guessing. Empty means nobody has said.
+LIVE <- reactiveValues(path = "", name = "", at = "", match = NULL, gen = 0L,
+                       pin = "", pin_at = "")
 
 # Who this R is. A page that reconnects to a different process has a screen
 # full of the old one's numbers and no way to know: on a restart the tab sat
@@ -238,7 +244,7 @@ DEFAULT_OPTS <- list(
   eView = "points", eBins = 3, setSetter = "", setZones = character(),
   setterWho = "main", setterEx = character(), lastN = 6,
   mono = FALSE, phases = character(), sys = character(), showshare = FALSE,
-  pair = TRUE, pinServer = "",
+  pair = TRUE, pinServer = "", nsShare = FALSE,
   # The printed sheet: which one, and about whom. Blank means the opponent if
   # the files name one, and our own team otherwise.
   sheet = "attackers", sheetTeam = "", sheetPick = character()
@@ -497,6 +503,23 @@ server <- function(input, output, session) {
          else if (!is.na(suppressWarnings(as.numeric(v))) && nzchar(v)) as.numeric(v)
          else v
     S$o[[k]] <- v
+    # The coding laptop's picks go to every device. It is the same click as
+    # anyone else's pick, with this device saying it speaks for the room, so
+    # there is nothing extra to remember to press between rallies.
+    if (identical(k, "pinServer") && isTRUE(S$o$nsShare)) {
+      LIVE$pin <- as.character(v)
+      LIVE$pin_at <- format(Sys.time(), "%H:%M:%S")
+    }
+    # Turning it on sends what this device is already showing, so the iPads
+    # do not sit on the match's guess until the next pick.
+    if (identical(k, "nsShare")) {
+      if (isTRUE(v)) {
+        LIVE$pin <- as.character(S$o$pinServer %||% "")
+        LIVE$pin_at <- format(Sys.time(), "%H:%M:%S")
+      } else {
+        LIVE$pin <- ""; LIVE$pin_at <- ""
+      }
+    }
   })
 
   # team|jersey|position, with an empty position meaning "back to the file"
@@ -809,6 +832,7 @@ server <- function(input, output, session) {
                                  else length(S$matches),
                        live_only = nzchar(LIVE$path) && !length(S$sel$matches),
                        opponent = opp_name, live_id = S$live_id %||% "",
+                       shared = LIVE$pin, shared_at = LIVE$pin_at,
                        matchup = local({
                          # Where the two rotations stand for the rally about
                          # to be played, and what that pairing has done. The

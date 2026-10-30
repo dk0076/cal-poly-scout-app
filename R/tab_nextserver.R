@@ -241,19 +241,30 @@ passer_block <- function(Opp, o, live_id = "") {
 #' Pinning is per viewer, like the filters and unlike the roster. Two coaches
 #' watching the same match can be reading different servers, and one of them
 #' looking ahead does not drag the bench along.
-server_chips <- function(Opp, pinned) {
+server_chips <- function(Opp, pinned, shared = "", share_on = FALSE) {
   S <- Opp[Opp$skill == "S" & !is.na(Opp$num), ]
   if (!nrow(S)) return("")
   tab <- table(paste(S$num, S$player_short, sep = "|"))
   keys <- names(sort(tab, decreasing = TRUE))
   chips <- paste0(vapply(keys, function(k) {
     parts <- strsplit(k, "|", fixed = TRUE)[[1]]
-    sprintf('<button class="chip %s" data-o="pinServer" data-v="%s">%s <span class="thin">%s</span><span class="n">%d</span></button>',
-            if (identical(pinned, parts[1])) "on" else "",
-            esc(parts[1]), esc(parts[1]), esc(parts[2]), as.integer(tab[[k]]))
+    # A dot on the chip the bench is on, whether or not this device is the
+    # one that picked her: on an iPad it says where the page came from, and
+    # on the laptop it says the pick went out.
+    from_bench <- !share_on && identical(shared, parts[1]) && !nzchar(pinned)
+    sprintf('<button class="chip %s" data-o="pinServer" data-v="%s">%s <span class="thin">%s</span><span class="n">%d</span>%s</button>',
+            if (identical(pinned, parts[1]) || from_bench) "on" else "",
+            esc(parts[1]), esc(parts[1]), esc(parts[2]), as.integer(tab[[k]]),
+            if (from_bench) '<span class="bench" title="picked on the coding laptop">&#9679;</span>' else "")
   }, ""), collapse = "")
-  sprintf('<div class="viewbar srvpick"><button class="chip %s" data-o="pinServer" data-v="">Follow the match</button>%s</div>',
-          if (!nzchar(pinned)) "on" else "", chips)
+  sprintf('<div class="viewbar srvpick"><button class="chip %s" data-o="pinServer" data-v="">Follow the match</button>%s%s</div>',
+          if (!nzchar(pinned)) "on" else "", chips,
+          sprintf('<button class="chip share %s" data-o="nsShare" data-v="%s" title="%s">Send picks to every device</button>',
+                  if (isTRUE(share_on)) "on" else "",
+                  if (isTRUE(share_on)) "false" else "true",
+                  esc(if (isTRUE(share_on))
+                        "This device is picking for the room. Press to stop, which also lets every device follow the match again."
+                      else "Turn this on where the match is being coded: every pick made here shows on every iPad on this router.")))
 }
 
 #' Their serve order, one table per film, most recent first
@@ -314,7 +325,7 @@ prematch_block <- function(Opp, o, labels, n_files, opponent, why, coords_ok = T
     return(paste0(c(H, empty("No scouting films loaded for them yet. Add their previous matches on the opening screen.")), collapse = ""))
 
   pinned <- as.character(o$pinServer %||% "")
-  chips <- server_chips(Opp, pinned)
+  chips <- server_chips(Opp, pinned, "", isTRUE(o$nsShare))
   if (nzchar(pinned)) {
     S_all <- Opp[Opp$skill == "S", ]
     nm <- S_all$player_short[!is.na(S_all$num) & S_all$num == as.integer(pinned)][1]
@@ -343,12 +354,20 @@ prematch_block <- function(Opp, o, labels, n_files, opponent, why, coords_ok = T
 
 tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
                            n_files = 1L, live_only = FALSE, opponent = "",
-                           live_id = "", matchup = "") {
+                           live_id = "", matchup = "", shared = "",
+                           shared_at = "") {
   # Before the first serve there is nothing to predict from, which is also
   # exactly when a staff opens this: the films are loaded and the match has
   # not started. So the same page falls back to the whole scouting picture,
   # which is what was wanted before a match anyway.
-  pinned <- as.character(o$pinServer %||% "")
+  # Your own pick, then the bench's, then the match. A coach who picks a
+  # player on her own iPad is reading ahead and should keep what she picked;
+  # Follow the match hands her back to whatever the bench is showing.
+  share_on <- isTRUE(o$nsShare)
+  own <- as.character(o$pinServer %||% "")
+  shared <- as.character(shared %||% "")
+  pinned <- if (nzchar(own)) own else shared
+  from_bench <- !nzchar(own) && nzchar(shared) && !share_on
 
   if (is.null(ns) || (!isTRUE(ns$known) && !nzchar(pinned)))
     return(prematch_block(Opp, o, labels, n_files, opponent,
@@ -376,15 +395,20 @@ tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
                       esc(ns$basis)))
 
   S_all <- Opp[Opp$skill == "S", ]
-  chips <- c(matchup, server_chips(Opp, pinned))
+  chips <- c(matchup, server_chips(Opp, own, shared, share_on))
 
   body <- if (nzchar(pinned)) {
     # A pin overrides the prediction and the side: the coach has said who
     # they want, and the page should be about her whoever is serving.
     nm <- S_all$player_short[!is.na(S_all$num) & S_all$num == as.integer(pinned)][1]
     c(chips,
-      sprintf('<h3 class="nsname">#%s %s <span class="thin">picked by hand</span></h3>',
-              esc(pinned), esc(nm %||% "")),
+      sprintf('<h3 class="nsname">#%s %s <span class="thin">%s</span></h3>',
+              esc(pinned), esc(nm %||% ""),
+              if (from_bench)
+                sprintf("from the coding laptop%s",
+                        if (nzchar(shared_at)) paste0(" \u00b7 ", esc(shared_at)) else "")
+              else if (share_on) "picked here, sent to every device"
+              else "picked by hand"),
       server_block(S_all, as.integer(pinned), nm %||% "", o, coords_ok, live_id))
   } else if (isTRUE(ours)) {
     # The passers first, before the matchup and the row of their servers.
@@ -399,6 +423,6 @@ tab_nextserver <- function(F, Opp, ns, o, coords_ok, labels, ours,
   }
 
   paste0(c(H, body, note(
-    "Pick a server by hand when the rotation gets it wrong, or to read ahead; Follow the match hands it back. That choice is yours alone, so another coach on another iPad is unaffected. This page follows the match: when the serve is ours it shows who to serve at, and when it is theirs it shows who is about to serve. Who serves next is worked out from the rotation each side has actually served in, which handles a serving substitute correctly where reading zone 1 off the lineup does not. It was right on 100% of side-outs in one scouted match and 98% in another. Before a match, with no live file, the same pages read off whatever is loaded."
+    "Pick a server by hand when the rotation gets it wrong, or to read ahead; Follow the match hands it back. That choice is this device's own, unless Send picks to every device is on: turn that on where the match is being coded and every pick made there is what the iPads show, so nobody is guessing who serves next off a rotation the file already knows. A coach who then picks somebody on her own iPad keeps her own pick until she presses Follow the match. This page follows the match: when the serve is ours it shows who to serve at, and when it is theirs it shows who is about to serve. Who serves next is worked out from the rotation each side has actually served in, which handles a serving substitute correctly where reading zone 1 off the lineup does not. It was right on 100% of side-outs in one scouted match and 98% in another. Before a match, with no live file, the same pages read off whatever is loaded."
   )), collapse = "")
 }
