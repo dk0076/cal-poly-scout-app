@@ -613,6 +613,21 @@ fbso_line <- function(rows) {
   list(rec = rec, kills = kills, pct = if (rec) kills / rec else NA_real_)
 }
 
+#' The rallies one player's own touch opened, and how many of them were won.
+#'
+#' A rally has one serve and one reception, so a server's serves are the
+#' rallies she served and a passer's receptions are the rallies she received.
+#' The share won is her point-score rate, or her side-out rate: not her doing
+#' alone, which is the point of reading it beside what she did with the ball.
+#'
+#' Rallies the file records no winner for are left out of both sides of the
+#' ratio rather than counted as lost. A set coded as one long exchange carries
+#' a winner only on its last rally, so that is not a rare case.
+rally_won_line <- function(rows) {
+  w <- rows$point_won
+  convert_line(w[!is.na(w)])
+}
+
 convert_line <- function(won) {
   n <- length(won); w <- sum(won)
   list(n = n, won = w, pct = if (n) w / n else NA_real_,

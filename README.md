@@ -344,6 +344,18 @@ Conventions that are this program's own and should be read within one file:
 `Assist%`, `Set eff`, earned `FBSO%`, `Convert%`, and the 0 to 4 pass and serve
 scales in `PASS_SCALE` / `SERVE_SCALE`.
 
+`SO%` on Pass quality and `PS%` on Serving are rally outcomes attached to a
+player, not a skill grade: a rally has one serve and one reception, so a
+passer's receptions are the rallies she received and a server's serves are the
+rallies she served, and the column is the share of those won. They are not her
+doing alone, which is why each sits beside what the player did with the ball
+rather than replacing it. Rallies the file records no winner for are left out
+of both sides. `PS%` by server pools exactly to the rally-level point-score
+rate; `SO%` by passer pools to the side-out rate over rallies we actually
+received a serve in, which is a subset of the rally-level `SO%`, since a
+side-out won on an opponent serve error has no reception to hang on. Both are
+asserted in `tests/verify.R`.
+
 ## Colours and the mark
 
 Cal Poly's own values, not approximations: Poly Green `#154734`, Mustang

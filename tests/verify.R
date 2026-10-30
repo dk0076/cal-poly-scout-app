@@ -424,6 +424,45 @@ ok("earned side-outs are a subset of side-outs won",
    sum(RL$won & RL$kill, na.rm = TRUE) <= sum(RL$won, na.rm = TRUE))
 ok("plus/minus is won minus lost",
    sl$plus_minus == sum(RL$won, na.rm = TRUE) - sum(!RL$won, na.rm = TRUE))
+# Side-out by passer and point score by server. A rally has one serve and one
+# reception, so a player's own touches are the rallies she opened: the rates
+# have to pool back to the rally-level ones they are a cut of.
+local({
+  Fp <- focus_plays(matches, sel_all, focus)
+  R0 <- Fp[Fp$skill == "R", ]
+  V0 <- Fp[Fp$skill == "S", ]
+  byp <- crosstab(R0, paste(R0$num, R0$player_short, sep = "|"), receive_line)
+  bys <- crosstab(V0, paste(V0$num, V0$player_short, sep = "|"), serve_line)
+  part <- function(g) rally_won_line(g$rows)
+  sumn <- function(gs) sum(vapply(gs, function(g) part(g)$n, 0L))
+  sumw <- function(gs) sum(vapply(gs, function(g) part(g)$won, 0L))
+
+  ok("a rally with no recorded winner is in neither side of the rate",
+     sumn(byp) == sum(!is.na(R0$point_won)) &&
+       sumn(bys) == sum(!is.na(V0$point_won)))
+  ok("the passers' rallies add up to the receptions",
+     sumn(byp) == sum(!is.na(R0$point_won)),
+     sprintf("%d of %d receptions have a winner", sumn(byp), nrow(R0)))
+  ok("and PS% by server pools to the rally-level point score",
+     sumn(bys) == 0 || isTRUE(all.equal(sumw(bys) / sumn(bys), sl$ps)),
+     sprintf("%s against %s", pct(if (sumn(bys)) sumw(bys) / sumn(bys) else NA_real_),
+             pct(sl$ps)))
+  # Not equality: a rally we received and never touched -- an opponent serve
+  # error -- is a side-out won with no reception to hang it on, so the
+  # per-passer denominator is the smaller one.
+  ok("SO% by passer is a cut of the rally-level side-out",
+     sumn(byp) <= sl$rec && sumw(byp) <= sum(RL$won, na.rm = TRUE),
+     sprintf("%s off %d, against %s off %d",
+             pct(if (sumn(byp)) sumw(byp) / sumn(byp) else NA_real_), sumn(byp),
+             pct(sl$so), sl$rec))
+  ok("both are proportions",
+     all(vapply(c(byp, bys), function(g) { v <- part(g)$pct
+       is.na(v) || (v >= 0 && v <= 1) }, TRUE)))
+  ok("and they are on the two tabs they belong to",
+     grepl("SO%", tab_passing(Fp, o, ck), fixed = TRUE) &&
+       grepl("PS%", tab_serve(Fp, o, ck), fixed = TRUE))
+})
+
 ok("every rotation label maps to a setter zone",
    all(!is.na(ROT_ZONE[ROTS])) && setequal(unname(ROT_ZONE[ROTS]), 1:6))
 Fa <- focus_plays(matches, sel_all, focus)

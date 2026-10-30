@@ -135,9 +135,8 @@ tab_serve <- function(F, o, coords_ok) {
     tiny("Ignores the type chips above. Codes: top spin = Q or T, jump float = M, standing float = H. Not coded = no type on the serve."))))
 
   # Nothing is hidden and no row is dropped: the two pass columns simply go
-  # quiet below a handful of passes and say how few they came from on hover,
-  # so a coach reads 100% off two serves as what it is.
-  PASS_FLOOR <- 5L
+  # quiet below PASS_FLOOR passes and say how few they came from on hover, so
+  # a coach reads 100% off two serves as what it is.
   pass_pct <- function(v, n)
     if (is.na(v)) "" else if (n < PASS_FLOOR)
       sprintf('<span class="thin" title="off %d pass%s">%s</span>',
@@ -145,7 +144,7 @@ tab_serve <- function(F, o, coords_ok) {
     else pct(v)
 
   R <- c(R, card("By server", c(tbl_generic(
-    c("Server", "Type", "Eff", "Srv", "Ace", "%Ace", "Err", "%Err", "Op",
+    c("Server", "Type", "Eff", "Srv", "PS%", "Ace", "%Ace", "Err", "%Err", "Op",
       "Pass #%", "KO%",
       "→Opp R", "→Mid", "→Opp L", "Depth m"),
     lapply(by_size(crosstab(V, paste(V$num, V$player_short, sep = "|"), serve_line), "n"),
@@ -158,15 +157,17 @@ tab_serve <- function(F, o, coords_ok) {
                               if (startsWith(t$key, "X:")) substring(t$key, 3) else t$key,
                               round(100 * nrow(t$rows) / nrow(g$rows))), ""),
           collapse = " · ")
+        ps <- rally_won_line(g$rows)
         c(sprintf("<b>%s</b> %s", parts[1], esc(parts[2])), thin(mix),
-          eff_td(g$stat$eff), g$stat$n, g$stat$ace, pct(g$stat$acepct),
+          eff_td(g$stat$eff), g$stat$n, pass_pct(ps$pct, ps$n),
+          g$stat$ace, pct(g$stat$acepct),
           g$stat$err, pct(g$stat$errpct), g$stat$op,
           pass_pct(g$stat$opp_perfpct, g$stat$rec_n),
           pass_pct(g$stat$kopct, g$stat$rec_n),
           lane("R"), lane("M"), lane("L"),
           if (!is.na(g$stat$med_depth)) m1(g$stat$med_depth - COURT$NET) else "")
       })),
-    tiny("Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Pass #% is how often the receiving team passed her serve perfect, and KO% how often they did not pass it # or +, which is VolleyStation's positive reception inverted. Both count the serves that drew a pass, so a serve into the net is in neither, and both go grey under five passes, where a percentage is not yet a rate. Lane columns are the receiving team's right / middle / left thirds, zones 1·9·2, 6·8·3 and 5·7·4."))))
+    tiny("PS% is the share of the rallies she served that were won, which is a point scored off her serve however the rally got there, so it is read beside what the serve itself did rather than instead of it. Rallies the file records no winner for are left out of it. Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Pass #% is how often the receiving team passed her serve perfect, and KO% how often they did not pass it # or +, which is VolleyStation's positive reception inverted. Both count the serves that drew a pass, so a serve into the net is in neither, and both go grey under five passes, where a percentage is not yet a rate. Lane columns are the receiving team's right / middle / left thirds, zones 1·9·2, 6·8·3 and 5·7·4."))))
 
   R <- c(R, card("By target zone", c(tbl_generic(
     c("Zone", "", "Srv", "Sh%", "Ace", "Err", "Ace%"),

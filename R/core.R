@@ -454,6 +454,11 @@ rot_pos <- function(k) {
 # same three everywhere they appear, so Serve receive and Next server are
 # answering the same question when they say L6.
 PASS_WINDOWS <- c(3L, 6L, 15L)
+# Below a handful of anything, a percentage is not a rate. Columns that cross
+# this go quiet and say on hover how few they came from, rather than dropping
+# the row: the player a coach is asking about is often the one who has only
+# been served twice.
+PASS_FLOOR <- 5L
 
 wilson <- function(k, n) {
   if (!length(n) || is.na(n) || n == 0) return(c(NA_real_, NA_real_))
