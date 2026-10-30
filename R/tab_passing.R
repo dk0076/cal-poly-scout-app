@@ -20,7 +20,10 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
   H <- hdr("Pass quality",
            sprintf("%s receptions · who to target before serving, sorted worst positive%% first",
                    nrow(R0)))
-  H <- c(H, kpis(list(
+  # Held back rather than appended: the table of who is passing goes above
+  # this, because that is what the tab is open to answer and a row of team
+  # totals was pushing it under the fold.
+  K <- kpis(list(
     list(k = "Receptions", v = t0$n),
     list(k = "Pass average", v = if (is.na(t0$avg)) "" else sprintf("%.2f", t0$avg),
          s = "0–4 scale"),
@@ -30,7 +33,7 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
     list(k = "Median off-net", v = if (!is.na(t0$med_off_net)) m1(t0$med_off_net) else "",
          s = "m, pass result"),
     list(k = "Earned FBSO", v = pct(fbso_line(F)$pct), s = "first-attack kills / receptions")
-  )))
+  ))
 
   # Everyone who has passed a ball. The floor of three was there to keep a
   # one-reception line out of a sorted list, and what it did was hide the
@@ -118,7 +121,8 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
          if ("6-2" %in% (o$sys %||% character()))
            " In a 6-2, R4–R6 are the rotations with the setter slot front row: the opposite is in the slot and the other setter sets from zone 1, 6 or 5." else ""))))
 
-  paste0(c(H, Rc), collapse = "")
+  # By passer first, then the team's own line, then the rest.
+  paste0(c(H, Rc[1], K, Rc[-1]), collapse = "")
 }
 
 #' 5-1 vs 6-2 side by side.

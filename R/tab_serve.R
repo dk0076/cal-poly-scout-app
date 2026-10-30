@@ -39,7 +39,10 @@ tab_serve <- function(F, o, coords_ok) {
                            sum(srv_type_of(V0$hit_type, V0$skill_type) == k)), ""),
                       collapse = "")))
 
-  H <- c(H, kpis(list(
+  # Held back rather than appended: the table of who is serving goes between
+  # the chips and this, because that is what the tab is open to answer and a
+  # row of team totals was pushing it under the fold.
+  K <- kpis(list(
     list(k = "Serves", v = st$n),
     list(k = "Eff", v = eff(st$eff), s = "VolleyStation"),
     list(k = "Serve average", v = if (is.na(st$avg)) "" else sprintf("%.2f", st$avg),
@@ -56,7 +59,7 @@ tab_serve <- function(F, o, coords_ok) {
     list(k = "Median depth",
          v = if (!is.na(st$med_depth)) m1(st$med_depth - COURT$NET) else "",
          s = "m past net")
-  )))
+  ))
 
   H <- c(H, charts_toggle(o))
   show_chart <- charts_on(o)
@@ -122,20 +125,19 @@ tab_serve <- function(F, o, coords_ok) {
 
   R <- list()
 
-  # Who is serving comes first. The type mix below it is a reading of the
-  # same serves, and nobody opens this tab to ask about float versus top
-  # spin before they have looked at who is on the line.
-  #
-  # Nothing is hidden and no row is dropped: the two pass columns simply go
-  # quiet below PASS_FLOOR passes and say how few they came from on hover, so
-  # a coach reads 100% off two serves as what it is.
+  # Nothing is hidden and no row is dropped: the two pass columns and PS%
+  # simply go quiet below PASS_FLOOR of whatever they count, and say how few
+  # that was on hover, so a coach reads 100% off two serves as what it is.
   pass_pct <- function(v, n)
     if (is.na(v)) "" else if (n < PASS_FLOOR)
       sprintf('<span class="thin" title="off %d pass%s">%s</span>',
               n, if (n == 1L) "" else "es", pct(v))
     else pct(v)
 
-  R <- c(R, card("By server", c(tbl_generic(
+  # Who is serving is the first thing on the tab. The type mix and the team's
+  # own line are readings of the same serves, and nobody opens this to ask
+  # about float against top spin before looking at who is on the line.
+  srv_card <- card("By server", c(tbl_generic(
     c("Server", "Type", "Eff", "Srv", "PS%", "Ace", "%Ace", "Err", "%Err", "Op",
       "Pass #%", "KO%",
       "→Opp R", "→Mid", "→Opp L", "Depth m"),
@@ -159,7 +161,7 @@ tab_serve <- function(F, o, coords_ok) {
           lane("R"), lane("M"), lane("L"),
           if (!is.na(g$stat$med_depth)) m1(g$stat$med_depth - COURT$NET) else "")
       })),
-    tiny("PS% is the share of the rallies she served that were won, which is a point scored off her serve however the rally got there, so it is read beside what the serve itself did rather than instead of it. Rallies the file records no winner for are left out of it. Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Pass #% is how often the receiving team passed her serve perfect, and KO% how often they did not pass it # or +, which is VolleyStation's positive reception inverted. Both count the serves that drew a pass, so a serve into the net is in neither, and both go grey under five passes, where a percentage is not yet a rate. Lane columns are the receiving team's right / middle / left thirds, zones 1·9·2, 6·8·3 and 5·7·4."))))
+    tiny("PS% is the share of the rallies she served that were won, which is a point scored off her serve however the rally got there, so it is read beside what the serve itself did rather than instead of it. Rallies the file records no winner for are left out of it. Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Pass #% is how often the receiving team passed her serve perfect, and KO% how often they did not pass it # or +, which is VolleyStation's positive reception inverted. Both count the serves that drew a pass, so a serve into the net is in neither, and both go grey under five passes, where a percentage is not yet a rate. Lane columns are the receiving team's right / middle / left thirds, zones 1·9·2, 6·8·3 and 5·7·4.")))
 
   R <- c(R, card("By serve type", c(tbl_generic(
     c("Type", "Srv", "Sh%", "Ace", "Ace%", "Err", "Err%", "Op", "Eff", "Depth m"),
@@ -204,6 +206,7 @@ tab_serve <- function(F, o, coords_ok) {
     }))))
 
   if (!show_chart) left <- character()
-  paste0(c(H, if (show_chart) cols2(left, R, 420, "chartcol")
-             else paste0(R, collapse = "")), collapse = "")
+  paste0(c(H, srv_card, K,
+           if (show_chart) cols2(left, R, 420, "chartcol")
+           else paste0(R, collapse = "")), collapse = "")
 }
