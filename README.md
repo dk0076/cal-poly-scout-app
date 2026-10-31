@@ -253,17 +253,28 @@ five attacks, because one match gives a handful of stuffs per row. The rows
 are a partition: every attack of theirs is on exactly one, and the stuffs add
 back to the attacks graded blocked, which `tests/verify.R` asserts two ways.
 
-Under it, the same split by player: pick a ball and the table is our front row
-against it, so two blockers can be read side by side against their high ball.
-Two rows of chips, one choice between them. The first is the tempo the ball
-was hit at; the second is the play it came off, in this program's own season
-codes, so the pick is their Go (`PG`) or their highball outside (`V4`) rather
-than a shape in the air. A blocker is credited with every attack she was on the net for, not the
-balls she touched. Nothing in the file says which of the three was at the pin
-on a given swing, and a block that closes late is the same block, so the unit
-in front of the ball is the honest unit. That makes the rows three per attack
-by construction, which is what `tests/verify.R` checks. Her touch count, which
-is a different number, is the By blocker table further down.
+Under it, the same split by player: pick a ball and the table is whoever was
+in front of it, so two blockers can be read side by side against their high
+ball. Two rows of chips, one choice between them. The first is the tempo the
+ball was hit at; the second is the play it came off, in this program's own
+season codes, so the pick is their Go (`PG`) or their highball outside (`V4`)
+rather than a shape in the air.
+
+**One blocker an attack, by the matchup** (`blocker_of()` in `R/model.R`).
+Their left pin is our opposite, their right pin our outside, and their middle,
+their dump and anything out of the back row our middle. Which of our three is
+doing which job comes from our setter's zone rather than from where she stood
+in serve receive, because everybody switches after the contact; which job is
+in front of which attack comes from the zone that attack was struck from,
+per attack, since a highball outside is occasionally set to the middle. On a
+scouted match their Go goes only to the two who play our right side and their
+slide only to the two outsides, which is the check that this is a matchup and
+not a minutes table. It is the same attribution the staff's nn app uses for
+its blocking matchups, so the two agree on who was in front of a ball.
+
+She is credited whether or not she touched it: a ball hit past her is the
+point of the table. Her touch count, which is a different number, is the By
+blocker table further down.
 
 **Shot charts only work on files coded with lines.** No coordinates, no charts.
 The tables still work. Either format can carry them.

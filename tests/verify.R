@@ -583,24 +583,53 @@ local({
 # on two rows of one attack, or none, would break it.
 local({
   OA <- OppP[OppP$skill == "A", ]
-  fr <- data.table::rbindlist(lapply(c("olu4", "olu3", "olu2"), function(z)
-    data.table::data.table(num = OA[[z]], hit = OA$hit_type, eff = OA$effect,
-                           call = OA$season_call)))
+  blk <- blocker_of(OA)
+  fr <- data.table::data.table(num = blk, hit = OA$hit_type, eff = OA$effect,
+                               call = OA$season_call)
   fr <- fr[!is.na(fr$num), ]
-  ok("three of ours are in front of every attack of theirs",
-     nrow(fr) == 3L * sum(!is.na(OA$olu4) & !is.na(OA$olu3) & !is.na(OA$olu2)),
-     sprintf("%d rows for %d attacks", nrow(fr), nrow(OA)))
-  ok("and the stuffs they were on the net for add up the same way",
-     sum(!is.na(fr$eff) & fr$eff == "/") ==
-       3L * sum(!is.na(OA$effect) & OA$effect == "/"),
-     sprintf("%d against %d", sum(!is.na(fr$eff) & fr$eff == "/"),
-             sum(!is.na(OA$effect) & OA$effect == "/")))
+  ok("one blocker an attack, not the whole front row",
+     length(blk) == nrow(OA) && nrow(fr) <= nrow(OA),
+     sprintf("%d of %d attacks have one", nrow(fr), nrow(OA)))
+  ok("and she is one of the three who were on the net",
+     all(vapply(which(!is.na(blk)), function(i)
+       blk[i] %in% c(OA$olu2[i], OA$olu3[i], OA$olu4[i]), TRUE)))
+  # The matchup itself: their left pin is our opposite, their right is our
+  # outside, their middle and their back row are our middle. Checked against
+  # the slot table rather than against itself.
+  slot_zone <- function(i, slot) FRONT_SLOT[[as.character(OA$opp_setter_at[i])]][[slot]]
+  want <- function(i, slot) as.integer(OA[[paste0("olu", slot_zone(i, slot))]][i])
+  for (z in c(4L, 2L, 3L)) {
+    slot <- unname(BLOCK_SLOT[as.character(z)])
+    idx <- which(!is.na(OA$start_zone) & OA$start_zone == z &
+                   !is.na(OA$opp_setter_at) & !is.na(blk))
+    if (!length(idx)) next
+    ok(sprintf("their zone %d is blocked by our %s", z,
+               c(opp = "opposite", oh = "outside", mb = "middle")[[slot]]),
+       all(vapply(idx, function(i) identical(blk[i], want(i, slot)), TRUE)),
+       sprintf("%d attacks, %d of ours take them", length(idx),
+               length(unique(blk[idx]))))
+  }
+  # Their left pin and their right pin should not be landing on the same
+  # player: that was the bug this replaced.
+  z4 <- unique(blk[!is.na(OA$start_zone) & OA$start_zone == 4 & !is.na(blk)])
+  z2 <- unique(blk[!is.na(OA$start_zone) & OA$start_zone == 2 & !is.na(blk)])
+  if (length(z4) && length(z2))
+    ok("the two pins are not blocked by the same players",
+       !length(intersect(z4, z2)),
+       sprintf("zone 4 at %s, zone 2 at %s",
+               paste(sort(z4), collapse = "/"), paste(sort(z2), collapse = "/")))
+  # No lineup, nobody credited, rather than a guess.
+  flat <- data.table::copy(OA)
+  for (z in 1:6) data.table::set(flat, j = paste0("olu", z), value = NA_integer_)
+  ok("no lineup, nobody in front of it", all(is.na(blocker_of(flat))))
+  ok("and an empty set of attacks is empty rather than an error",
+     length(blocker_of(OA[0, ])) == 0L)
   # Picking one tempo is a cut of the same rows, never more of them.
   ht <- names(sort(table(OA$hit_type[!is.na(OA$hit_type)]), decreasing = TRUE))
   if (length(ht)) {
     one <- fr[!is.na(fr$hit) & fr$hit == ht[1], ]
     ok("picking a hit type takes a cut of it",
-       nrow(one) == 3L * sum(!is.na(OA$hit_type) & OA$hit_type == ht[1]) &&
+       nrow(one) <= sum(!is.na(OA$hit_type) & OA$hit_type == ht[1]) &&
          nrow(one) <= nrow(fr))
     o_blk <- o; o_blk$blkType <- paste0("t:", ht[1])
     h <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_blk, ck)
@@ -633,8 +662,9 @@ local({
                                                 OA$season_call == cl[1]][1]),
                sum(!is.na(OA$season_call) & OA$season_call == cl[1])))
     one <- fr[!is.na(fr$call) & fr$call == cl[1], ]
-    ok("and picking one takes exactly the attacks it was run on",
-       nrow(one) == 3L * sum(!is.na(OA$season_call) & OA$season_call == cl[1]))
+    ok("and picking one takes the attacks it was run on, one blocker each",
+       nrow(one) == sum(!is.na(OA$season_call) & OA$season_call == cl[1] &
+                          !is.na(blk)))
     ok("the caption names the play rather than the code",
        grepl(sprintf("on their %s",
                      call_label(cl[1], OA$call_name[!is.na(OA$season_call) &

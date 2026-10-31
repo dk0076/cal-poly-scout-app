@@ -406,6 +406,41 @@ rot_name <- function(zone) {
   ifelse(is.na(i), NA_character_, paste0("R", i))
 }
 WHEEL_OPP <- c(`1` = 4, `4` = 1, `2` = 5, `5` = 2, `3` = 6, `6` = 3)
+
+# Which lineup zone holds each front-row job, given where the setter is.
+#
+# Not where they stand when the ball is served: where they end up. Everybody
+# switches after the contact, so the opposite blocks the other team's left
+# pin and the middle blocks the middle wherever the rotation parked them,
+# and it is the job rather than the zone that is in front of a given attack.
+# Keyed on the setter's zone, so with the setter at 1 the opposite is the
+# player in zone 4, the middle in 3 and the outside in 2.
+#
+# Read off the same table the nn app derives its blocking matchups from, so
+# the two agree on who was in front of a ball.
+FRONT_SLOT <- list(
+  `1` = c(opp = 4L, mb = 3L, oh = 2L),
+  `2` = c(opp = 2L, mb = 4L, oh = 3L),
+  `3` = c(opp = 3L, mb = 2L, oh = 4L),
+  `4` = c(opp = 4L, mb = 3L, oh = 2L),
+  `5` = c(opp = 2L, mb = 4L, oh = 3L),
+  `6` = c(opp = 3L, mb = 2L, oh = 4L))
+
+# Their attack, and whose job it is to be in front of it. Zone 4 is their
+# left pin, which our opposite blocks; zone 2 is their right, which our
+# outside blocks; the middle takes everything else, which is their quick,
+# their dump and anything out of the back row.
+BLOCK_SLOT <- c(`4` = "opp", `2` = "oh", `3` = "mb",
+                `1` = "mb", `5` = "mb", `6` = "mb",
+                `7` = "mb", `8` = "mb", `9` = "mb")
+
+# Where a call is hit from, for the files that code the call but not the
+# zone. Their own codes, so a file that uses none of them simply has no
+# fallback and those attacks go uncredited rather than guessed at.
+CALL_SLOT <- c(PG = "opp", V4 = "opp", P4 = "opp",
+               PR = "oh", LS = "oh", LD = "oh", PH = "oh", V2 = "oh",
+               LT = "mb", LG = "mb", LP = "mb", L2 = "mb", ID = "mb",
+               IP = "mb", VP = "mb", PD = "mb", P2 = "mb")
 SYS_LABEL <- c(`5-1` = "5-1", `6-2` = "6-2", `?` = "Unclear")
 
 # --------------------------------------------------------------- small numbers

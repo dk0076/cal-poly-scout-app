@@ -613,6 +613,49 @@ fbso_line <- function(rows) {
   list(rec = rec, kills = kills, pct = if (rec) kills / rec else NA_real_)
 }
 
+#' Which of ours was in front of each of their attacks.
+#'
+#' One blocker, not three. A block is three people, but the question a staff
+#' asks is about one of them: their outside hit at our right side is the
+#' matchup, and crediting all three front-row players with every attack sorts
+#' the table by who was on court most instead.
+#'
+#' The job is read off our setter's zone (`FRONT_SLOT`), because everybody
+#' switches after the serve and it is the job rather than the serve-receive
+#' zone that ends up in front of the ball. Which job is in front of which
+#' attack comes from where the attack was struck (`BLOCK_SLOT`), per attack
+#' rather than per call, since a highball outside is occasionally set to the
+#' middle and a dump comes off zone 4 as often as zone 3.
+#'
+#' `rows` are THEIR plays, so our six are the `olu` columns and our setter's
+#' zone is `opp_setter_at`. Returns a jersey per row, NA where the lineup or
+#' the zone is missing.
+blocker_of <- function(rows) {
+  n <- nrow(rows)
+  if (!n) return(integer(0))
+  sz <- suppressWarnings(as.integer(rows$opp_setter_at))
+  zone <- suppressWarnings(as.integer(rows$start_zone))
+  slot <- unname(BLOCK_SLOT[as.character(zone)])
+  # No zone on the row: fall back to what the call says, which is where that
+  # play is hit from when it is run at all.
+  if ("season_call" %in% names(rows)) {
+    miss <- is.na(slot)
+    if (any(miss)) slot[miss] <- unname(CALL_SLOT[as.character(rows$season_call[miss])])
+  }
+  lu <- vapply(1:6, function(z) {
+    v <- rows[[paste0("olu", z)]]
+    if (is.null(v)) rep(NA_integer_, n) else suppressWarnings(as.integer(v))
+  }, integer(n))
+  if (n == 1L) lu <- matrix(lu, nrow = 1L)
+  out <- rep(NA_integer_, n)
+  ok <- !is.na(sz) & !is.na(slot) & sz >= 1L & sz <= 6L
+  for (i in which(ok)) {
+    z <- FRONT_SLOT[[as.character(sz[i])]][[slot[i]]]
+    out[i] <- lu[i, z]
+  }
+  out
+}
+
 #' The rallies one player's own touch opened, and how many of them were won.
 #'
 #' A rally has one serve and one reception, so a server's serves are the
