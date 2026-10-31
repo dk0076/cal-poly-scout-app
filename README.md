@@ -253,9 +253,12 @@ five attacks, because one match gives a handful of stuffs per row. The rows
 are a partition: every attack of theirs is on exactly one, and the stuffs add
 back to the attacks graded blocked, which `tests/verify.R` asserts two ways.
 
-Under it, the same split by player: pick a tempo and the table is our front
-row against it, so two blockers can be read side by side against their high
-ball. A blocker is credited with every attack she was on the net for, not the
+Under it, the same split by player: pick a ball and the table is our front row
+against it, so two blockers can be read side by side against their high ball.
+Two rows of chips, one choice between them. The first is the tempo the ball
+was hit at; the second is the play it came off, in this program's own season
+codes, so the pick is their Go (`PG`) or their highball outside (`V4`) rather
+than a shape in the air. A blocker is credited with every attack she was on the net for, not the
 balls she touched. Nothing in the file says which of the three was at the pin
 on a given swing, and a block that closes late is the same block, so the unit
 in front of the ball is the honest unit. That makes the rows three per attack

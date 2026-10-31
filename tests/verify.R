@@ -584,7 +584,8 @@ local({
 local({
   OA <- OppP[OppP$skill == "A", ]
   fr <- data.table::rbindlist(lapply(c("olu4", "olu3", "olu2"), function(z)
-    data.table::data.table(num = OA[[z]], hit = OA$hit_type, eff = OA$effect)))
+    data.table::data.table(num = OA[[z]], hit = OA$hit_type, eff = OA$effect,
+                           call = OA$season_call)))
   fr <- fr[!is.na(fr$num), ]
   ok("three of ours are in front of every attack of theirs",
      nrow(fr) == 3L * sum(!is.na(OA$olu4) & !is.na(OA$olu3) & !is.na(OA$olu2)),
@@ -601,15 +602,44 @@ local({
     ok("picking a hit type takes a cut of it",
        nrow(one) == 3L * sum(!is.na(OA$hit_type) & OA$hit_type == ht[1]) &&
          nrow(one) <= nrow(fr))
-    o_blk <- o; o_blk$blkType <- ht[1]
+    o_blk <- o; o_blk$blkType <- paste0("t:", ht[1])
     h <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_blk, ck)
     ok("the tab draws it, with the chip for that tempo on",
-       grepl("Blocking by player, against a hit type", h, fixed = TRUE) &&
-         grepl(sprintf('data-o="blkType" data-v="%s"', ht[1]), h, fixed = TRUE))
-    o_bad <- o; o_bad$blkType <- "not-a-tempo"
+       grepl("Blocking by player, against one ball", h, fixed = TRUE) &&
+         grepl(sprintf('data-v="t:%s"', ht[1]), h, fixed = TRUE))
+    # A browser that remembers the bare code this picker used to store still
+    # lands on that tempo rather than being thrown back to everything.
+    o_old <- o; o_old$blkType <- ht[1]
+    h_old <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_old, ck)
+    ok("a bare code from before the calls were added is still a tempo",
+       grepl(sprintf('class="chip on" data-o="blkType" data-v="t:%s"', ht[1]),
+             h_old, fixed = TRUE))
+    o_bad <- o; o_bad$blkType <- "t:not-a-tempo"
     h2 <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_bad, ck)
     ok("and a tempo that is not in the file falls back to all of them",
-       grepl('data-o="blkType" data-v="all">Every hit type', h2, fixed = TRUE))
+       grepl('data-v="all">Everything they hit', h2, fixed = TRUE))
+  }
+  # The exact play, not only the tempo: "how do we block their Go" is the
+  # question a staff asks out loud, and PG is what the file calls it.
+  cl <- names(sort(table(OA$season_call[!is.na(OA$season_call)]), decreasing = TRUE))
+  if (length(cl)) {
+    o_cl <- o; o_cl$blkType <- paste0("c:", cl[1])
+    h <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_cl, ck)
+    ok("their calls are on the picker too",
+       grepl(sprintf('class="chip on" data-o="blkType" data-v="c:%s"', cl[1]),
+             h, fixed = TRUE),
+       sprintf("%s is %s, %d of them", cl[1],
+               call_label(cl[1], OA$call_name[!is.na(OA$season_call) &
+                                                OA$season_call == cl[1]][1]),
+               sum(!is.na(OA$season_call) & OA$season_call == cl[1])))
+    one <- fr[!is.na(fr$call) & fr$call == cl[1], ]
+    ok("and picking one takes exactly the attacks it was run on",
+       nrow(one) == 3L * sum(!is.na(OA$season_call) & OA$season_call == cl[1]))
+    ok("the caption names the play rather than the code",
+       grepl(sprintf("on their %s",
+                     call_label(cl[1], OA$call_name[!is.na(OA$season_call) &
+                                                      OA$season_call == cl[1]][1])),
+             h, fixed = TRUE))
   }
 })
 

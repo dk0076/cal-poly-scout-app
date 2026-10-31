@@ -148,22 +148,55 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
       d
     }))[!is.na(blocker)]
   }
+  # Two ways to cut it, because a staff asks it both ways. The tempo is the
+  # shape of the ball in the air; the call is the play that produced it, and
+  # "how do we block their Go" is the question that gets asked out loud. A
+  # pick is one or the other, written t:H or c:PG, so the two rows of chips
+  # are one choice between them.
   blk_type <- as.character(o$blkType %||% "all")
   ht_keys <- names(sort(table(OA$hit_type[!is.na(OA$hit_type)]), decreasing = TRUE))
-  if (!(blk_type %in% c("all", ht_keys))) blk_type <- "all"
-  FR <- fr_long(if (blk_type == "all") OA
-                else OA[!is.na(OA$hit_type) & OA$hit_type == blk_type, ])
-  R <- c(R, if (!length(ht_keys) || !nrow(FR)) "" else
-    card("Blocking by player, against a hit type", c(
+  cl_keys <- names(sort(table(OA$season_call[!is.na(OA$season_call)]), decreasing = TRUE))
+  # A bare code is a tempo, which is what this picker stored before it could
+  # take a call, and a browser remembers the last thing it was given.
+  if (blk_type %in% ht_keys) blk_type <- paste0("t:", blk_type)
+  valid <- c("all", paste0("t:", ht_keys), paste0("c:", cl_keys))
+  if (!(blk_type %in% valid)) blk_type <- "all"
+  blk_kind <- substr(blk_type, 1, 1)
+  blk_key <- if (blk_type == "all") "" else substring(blk_type, 3)
+  blk_name <- if (blk_type == "all") ""
+              else if (blk_kind == "t")
+                tolower(if (is.na(HITTYPE[blk_key])) blk_key else unname(HITTYPE[blk_key]))
+              else call_label(blk_key, OA$call_name[!is.na(OA$season_call) &
+                                                      OA$season_call == blk_key][1])
+
+  picked <- if (blk_type == "all") OA
+            else if (blk_kind == "t") OA[!is.na(OA$hit_type) & OA$hit_type == blk_key, ]
+            else OA[!is.na(OA$season_call) & OA$season_call == blk_key, ]
+  FR <- fr_long(picked)
+
+  chip <- function(v, label, n)
+    sprintf('<button class="chip %s" data-o="blkType" data-v="%s">%s<span class="n">%d</span></button>',
+            if (identical(blk_type, v)) "on" else "", esc(v), esc(label), n)
+
+  R <- c(R, if (!length(ht_keys) && !length(cl_keys)) "" else
+    card("Blocking by player, against one ball", c(
       sprintf('<div class="viewbar">%s%s</div>',
-              sprintf('<button class="chip %s" data-o="blkType" data-v="all">Every hit type<span class="n">%d</span></button>',
-                      if (blk_type == "all") "on" else "", nrow(OA)),
+              chip("all", "Everything they hit", nrow(OA)),
               paste0(vapply(ht_keys, function(k)
-                sprintf('<button class="chip %s" data-o="blkType" data-v="%s">%s<span class="n">%d</span></button>',
-                        if (identical(blk_type, k)) "on" else "", esc(k),
-                        esc(if (is.na(HITTYPE[k])) k else unname(HITTYPE[k])),
-                        sum(!is.na(OA$hit_type) & OA$hit_type == k)), ""), collapse = "")),
-      tbl_generic(
+                chip(paste0("t:", k),
+                     if (is.na(HITTYPE[k])) k else unname(HITTYPE[k]),
+                     sum(!is.na(OA$hit_type) & OA$hit_type == k)), ""), collapse = "")),
+      if (length(cl_keys))
+        sprintf('<div class="viewbar">%s</div>',
+                paste0(vapply(cl_keys, function(k)
+                  chip(paste0("c:", k),
+                       call_label(k, OA$call_name[!is.na(OA$season_call) &
+                                                    OA$season_call == k][1]),
+                       sum(!is.na(OA$season_call) & OA$season_call == k)), ""),
+                  collapse = "")) else "",
+      if (!nrow(FR))
+        empty("Nothing of theirs in this filter was hit that way.")
+      else tbl_generic(
         c("Blocker", "On the net for", "Stuff", "Stuff%", "Their K%", "Their eff", "We dug"),
         lapply(by_size(crosstab(FR, paste(FR$blocker,
                                           F$player_short[match(FR$blocker, F$num)],
@@ -180,11 +213,10 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
               g$stat$ta, stuff, rate(stuff, g$stat$ta),
               pct(g$stat$kpct), eff_td(g$stat$eff), rate(dug, g$stat$ta))
           })),
-      tiny(sprintf("Their attacks while she was in our front row%s, so she is credited with all of them whether or not she touched the ball: the file does not say which of the three was at the pin, and a block that closes late is the same block. Their K%% and eff are theirs on those attacks, so low is good down those two columns and high is good on the other two. Rates go quiet under five attacks.",
+      tiny(sprintf("Their attacks while she was in our front row%s, so she is credited with all of them whether or not she touched the ball: the file does not say which of the three was at the pin, and a block that closes late is the same block. Their K%% and eff are theirs on those attacks, so low is good down those two columns and high is good on the other two. The first row of chips is the tempo the ball was hit at, the second the play it came off. Rates go quiet under five attacks.",
                    if (blk_type == "all") ""
-                   else sprintf(", on their %s ball",
-                                tolower(if (is.na(HITTYPE[blk_type])) blk_type
-                                        else unname(HITTYPE[blk_type]))))))))
+                   else if (blk_kind == "t") sprintf(", on their %s ball", blk_name)
+                   else sprintf(", on their %s", blk_name))))))
 
   # ---- what they run at us ------------------------------------------
   R <- c(R, card("What they run at us", tbl_generic(
