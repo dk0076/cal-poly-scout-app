@@ -544,6 +544,39 @@ if (nrow(MP)) {
      mean(MP$y0 > COURT$NET) > 0.85,
      sprintf("%.0f%% are", 100 * mean(MP$y0 > COURT$NET)))
 }
+# The block, split by the tempo they hit. A block read as one number says
+# nothing about what to change, so the rows have to be a true partition of
+# their attacks rather than a selection of them.
+local({
+  OA <- OppP[OppP$skill == "A", ]
+  g <- by_size(crosstab(OA, OA$hit_type))
+  att <- sum(vapply(g, function(x) x$stat$ta, 0L))
+  stuff <- sum(vapply(g, function(x)
+    sum(!is.na(x$rows$effect) & x$rows$effect == "/"), 0L))
+  ok("every attack of theirs is on exactly one hit-type row",
+     att == nrow(OA), sprintf("%d of %d", att, nrow(OA)))
+  ok("and the stuffs add up to the ones graded blocked",
+     stuff == sum(!is.na(OA$effect) & OA$effect == "/"),
+     sprintf("%d of %d", stuff, sum(!is.na(OA$effect) & OA$effect == "/")))
+  # Counted a second way, off the column rather than through crosstab.
+  ok("each row counts the same either way",
+     all(vapply(g, function(x) {
+       raw <- OA[!is.na(OA$hit_type) & OA$hit_type == x$key, ]
+       nrow(raw) == x$stat$ta &&
+         sum(!is.na(raw$effect) & raw$effect == "/") ==
+           sum(!is.na(x$rows$effect) & x$rows$effect == "/")
+     }, TRUE)))
+  h <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o, ck)
+  ok("the table is on the tab", grepl("Against our block, by hit type", h, fixed = TRUE))
+  # A file that does not code the tempo says so rather than drawing one row
+  # called NA, which reads like a finding.
+  flat <- data.table::copy(OppP)
+  data.table::set(flat, j = "hit_type", value = NA_character_)
+  h2 <- tab_defense(Fp, flat, convert_rallies(matches, sel, focus), o, ck)
+  ok("and says so when nothing records how the ball was hit",
+     grepl("records how it was hit", h2, fixed = TRUE))
+})
+
 RLo <- rally_outcomes(matches, sel_all, focus, opp = TRUE)
 ok("the opponent view covers the same rallies",
    nrow(RLo) == nrow(RL))

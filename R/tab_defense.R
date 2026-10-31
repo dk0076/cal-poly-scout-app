@@ -90,6 +90,41 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
     })),
     tiny("Blockers up is the number the coder recorded on their attack. \"Stuff\" counts their attacks graded as blocked. The row that matters is whether their efficiency actually falls as the block grows. If it does not, the block is not the problem."))))
 
+  # ---- the block, against each kind of swing --------------------------
+  #
+  # A block is not one thing. The same three bodies that stuff a high ball
+  # outside are the ones a quick goes through, and a tip goes over all of it,
+  # so a block read as one number says nothing about what to change. Grouped
+  # by the tempo the coder put on their attack, it does: if their quick is
+  # the row with no stuffs and their best efficiency, the answer is the
+  # middle, not the pins.
+  #
+  # Stuff% is of their attacks on that tempo, so the rows do not pool into
+  # anything but themselves. A count of four stuffs is four, whatever the
+  # percentage beside it reads, which is why the count is the column before
+  # it and the rate goes quiet underneath a handful.
+  ht <- by_size(crosstab(OA, OA$hit_type))
+  R <- c(R, if (!length(ht) || (length(ht) == 1 && is.na(ht[[1]]$key)))
+    card("Against our block, by hit type",
+         c(empty("No attack in this filter records how it was hit, so there is nothing to split."),
+           tiny("Hit type is the tempo on the coder's own attack entry: high, quick, standard, tense, off-speed, slow.")))
+  else card("Against our block, by hit type", c(tbl_generic(
+    c("Hit type", "Their att", "Sh%", "Their K%", "Their eff", "Stuff", "Stuff%", "We dug"),
+    lapply(ht, function(g) {
+      stuff <- sum(!is.na(g$rows$effect) & g$rows$effect == "/")
+      dug <- sum(g$rows$uid %in% dug_after(g$rows, F))
+      rate <- function(k, n) if (!n) "" else if (n < PASS_FLOOR)
+        sprintf('<span class="thin" title="off %d attack%s">%s</span>',
+                n, if (n == 1L) "" else "s", pct(k / n))
+        else pct(k / n)
+      c(sprintf("<b>%s</b>", esc(if (is.na(g$key)) "Not coded"
+                                 else if (is.na(HITTYPE[g$key])) g$key
+                                 else unname(HITTYPE[g$key]))),
+        g$stat$ta, pct(g$stat$ta / nrow(OA)), pct(g$stat$kpct), eff_td(g$stat$eff),
+        stuff, rate(stuff, g$stat$ta), rate(dug, g$stat$ta))
+    })),
+    tiny("Hit type is the tempo on the coder's own attack entry. Stuff counts their attacks graded blocked, We dug the ones a dig of ours came up on, both out of their attacks on that tempo. Rates go quiet under five attacks. A tempo they hit well and we neither stuff nor dig is the one to move the block to."))))
+
   # ---- what they run at us ------------------------------------------
   R <- c(R, card("What they run at us", tbl_generic(
     c("Call", "Att", "Sh%", "Their K%", "Their eff"),

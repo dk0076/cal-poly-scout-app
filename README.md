@@ -73,7 +73,7 @@ Rscript tests/verify.R path/to/match.vsm path/to/another.dvw
 | **Serving** | Contact to landing. By type, server, target zone, depth, and where to stand a passer against each server. Each server also carries what her serves did to the other team's pass: Pass #% and KO%. |
 | **Setter** | Distribution and efficiency. Every player who set is listed and any can be switched off. |
 | **Serve receive** | Sorted worst first, because this page is for picking who to serve. Pass average, earned FBSO, 5-1 vs 6-2. No court: reception is read as grades, not geometry. |
-| **Defense** | What they manage against us, whether we touch it, and whether we win the rally after. Court drawn from our baseline. |
+| **Defense** | What they manage against us, whether we touch it, and whether we win the rally after. The block is split by how many were up and by the tempo they hit. Court drawn from our baseline. |
 | **Rotations** | SO%, ESO%, FBSO%, PS%, +/-, aces and errors per rotation, both teams, then the same by set. |
 | **Last 6** | Who is swinging well now. Recent attempts as chips, split into pins and middles. |
 | **Next server** | Follows the match. Our serve shows their passers, weakest first; their serve shows the player about to serve, chart first. |
@@ -243,6 +243,15 @@ and the arrows come back by themselves, which is the scale the chart was
 built for. Tendency lines are off unless asked for: they are a summary drawn
 over the evidence, and on a team-sized chart they were the only legible
 thing on it.
+
+**The block is read per hit type, not as one number.** The same three bodies
+that stuff a high ball outside are the ones a quick goes through, and a tip
+goes over all of it, so Defense groups their attacks by the tempo on the
+coder's own entry and gives stuff% and dug% out of their attacks on that
+tempo. Both are counts first and rates second, and the rates go quiet under
+five attacks, because one match gives a handful of stuffs per row. The rows
+are a partition: every attack of theirs is on exactly one, and the stuffs add
+back to the attacks graded blocked, which `tests/verify.R` asserts two ways.
 
 **Shot charts only work on files coded with lines.** No coordinates, no charts.
 The tables still work. Either format can carry them.
