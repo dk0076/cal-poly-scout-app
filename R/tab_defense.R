@@ -125,6 +125,67 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
     })),
     tiny("Hit type is the tempo on the coder's own attack entry. Stuff counts their attacks graded blocked, We dug the ones a dig of ours came up on, both out of their attacks on that tempo. Rates go quiet under five attacks. A tempo they hit well and we neither stuff nor dig is the one to move the block to."))))
 
+  # ---- one blocker against one tempo ---------------------------------
+  #
+  # The table above says the block is worse against a quick. It cannot say
+  # who, and "who" is the question a staff actually has: she is in the
+  # middle against their high ball, is she the one being hit through.
+  #
+  # An attack of theirs is credited to all three of our front row, because
+  # that is what the file supports. Nothing in it says which of the three
+  # was at the pin on that swing, and a block is three people anyway: the
+  # one who closes late is as responsible as the one who was there. So this
+  # is attacks she was on the net for, not balls she touched, and the two
+  # are different numbers. The touch count is the table after this one.
+  #
+  # Zones 4, 3 and 2 of our lineup, read off their attack row, where our six
+  # are the olu columns.
+  fr_long <- function(rows) {
+    if (!nrow(rows)) return(rows[0, ])
+    data.table::rbindlist(lapply(c("olu4", "olu3", "olu2"), function(z) {
+      d <- data.table::copy(rows)
+      data.table::set(d, j = "blocker", value = d[[z]])
+      d
+    }))[!is.na(blocker)]
+  }
+  blk_type <- as.character(o$blkType %||% "all")
+  ht_keys <- names(sort(table(OA$hit_type[!is.na(OA$hit_type)]), decreasing = TRUE))
+  if (!(blk_type %in% c("all", ht_keys))) blk_type <- "all"
+  FR <- fr_long(if (blk_type == "all") OA
+                else OA[!is.na(OA$hit_type) & OA$hit_type == blk_type, ])
+  R <- c(R, if (!length(ht_keys) || !nrow(FR)) "" else
+    card("Blocking by player, against a hit type", c(
+      sprintf('<div class="viewbar">%s%s</div>',
+              sprintf('<button class="chip %s" data-o="blkType" data-v="all">Every hit type<span class="n">%d</span></button>',
+                      if (blk_type == "all") "on" else "", nrow(OA)),
+              paste0(vapply(ht_keys, function(k)
+                sprintf('<button class="chip %s" data-o="blkType" data-v="%s">%s<span class="n">%d</span></button>',
+                        if (identical(blk_type, k)) "on" else "", esc(k),
+                        esc(if (is.na(HITTYPE[k])) k else unname(HITTYPE[k])),
+                        sum(!is.na(OA$hit_type) & OA$hit_type == k)), ""), collapse = "")),
+      tbl_generic(
+        c("Blocker", "On the net for", "Stuff", "Stuff%", "Their K%", "Their eff", "We dug"),
+        lapply(by_size(crosstab(FR, paste(FR$blocker,
+                                          F$player_short[match(FR$blocker, F$num)],
+                                          sep = "|")), "ta"),
+          function(g) {
+            parts <- strsplit(g$key, "|", fixed = TRUE)[[1]]
+            stuff <- sum(!is.na(g$rows$effect) & g$rows$effect == "/")
+            dug <- sum(g$rows$uid %in% dug_after(g$rows, F))
+            rate <- function(k, n) if (!n) "" else if (n < PASS_FLOOR)
+              sprintf('<span class="thin" title="off %d attack%s">%s</span>',
+                      n, if (n == 1L) "" else "s", pct(k / n))
+              else pct(k / n)
+            c(sprintf("<b>%s</b> %s", esc(parts[1]), esc(parts[2] %||% "")),
+              g$stat$ta, stuff, rate(stuff, g$stat$ta),
+              pct(g$stat$kpct), eff_td(g$stat$eff), rate(dug, g$stat$ta))
+          })),
+      tiny(sprintf("Their attacks while she was in our front row%s, so she is credited with all of them whether or not she touched the ball: the file does not say which of the three was at the pin, and a block that closes late is the same block. Their K%% and eff are theirs on those attacks, so low is good down those two columns and high is good on the other two. Rates go quiet under five attacks.",
+                   if (blk_type == "all") ""
+                   else sprintf(", on their %s ball",
+                                tolower(if (is.na(HITTYPE[blk_type])) blk_type
+                                        else unname(HITTYPE[blk_type]))))))))
+
   # ---- what they run at us ------------------------------------------
   R <- c(R, card("What they run at us", tbl_generic(
     c("Call", "Att", "Sh%", "Their K%", "Their eff"),

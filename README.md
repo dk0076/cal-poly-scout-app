@@ -253,6 +253,15 @@ five attacks, because one match gives a handful of stuffs per row. The rows
 are a partition: every attack of theirs is on exactly one, and the stuffs add
 back to the attacks graded blocked, which `tests/verify.R` asserts two ways.
 
+Under it, the same split by player: pick a tempo and the table is our front
+row against it, so two blockers can be read side by side against their high
+ball. A blocker is credited with every attack she was on the net for, not the
+balls she touched. Nothing in the file says which of the three was at the pin
+on a given swing, and a block that closes late is the same block, so the unit
+in front of the ball is the honest unit. That makes the rows three per attack
+by construction, which is what `tests/verify.R` checks. Her touch count, which
+is a different number, is the By blocker table further down.
+
 **Shot charts only work on files coded with lines.** No coordinates, no charts.
 The tables still work. Either format can carry them.
 

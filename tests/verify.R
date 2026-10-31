@@ -577,6 +577,42 @@ local({
      grepl("records how it was hit", h2, fixed = TRUE))
 })
 
+# The same split, by the player who was on the net for it. Three of ours are
+# in front of every attack of theirs, so the per-player rows are three times
+# the attacks by construction, and that is the check: a blocker who appeared
+# on two rows of one attack, or none, would break it.
+local({
+  OA <- OppP[OppP$skill == "A", ]
+  fr <- data.table::rbindlist(lapply(c("olu4", "olu3", "olu2"), function(z)
+    data.table::data.table(num = OA[[z]], hit = OA$hit_type, eff = OA$effect)))
+  fr <- fr[!is.na(fr$num), ]
+  ok("three of ours are in front of every attack of theirs",
+     nrow(fr) == 3L * sum(!is.na(OA$olu4) & !is.na(OA$olu3) & !is.na(OA$olu2)),
+     sprintf("%d rows for %d attacks", nrow(fr), nrow(OA)))
+  ok("and the stuffs they were on the net for add up the same way",
+     sum(!is.na(fr$eff) & fr$eff == "/") ==
+       3L * sum(!is.na(OA$effect) & OA$effect == "/"),
+     sprintf("%d against %d", sum(!is.na(fr$eff) & fr$eff == "/"),
+             sum(!is.na(OA$effect) & OA$effect == "/")))
+  # Picking one tempo is a cut of the same rows, never more of them.
+  ht <- names(sort(table(OA$hit_type[!is.na(OA$hit_type)]), decreasing = TRUE))
+  if (length(ht)) {
+    one <- fr[!is.na(fr$hit) & fr$hit == ht[1], ]
+    ok("picking a hit type takes a cut of it",
+       nrow(one) == 3L * sum(!is.na(OA$hit_type) & OA$hit_type == ht[1]) &&
+         nrow(one) <= nrow(fr))
+    o_blk <- o; o_blk$blkType <- ht[1]
+    h <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_blk, ck)
+    ok("the tab draws it, with the chip for that tempo on",
+       grepl("Blocking by player, against a hit type", h, fixed = TRUE) &&
+         grepl(sprintf('data-o="blkType" data-v="%s"', ht[1]), h, fixed = TRUE))
+    o_bad <- o; o_bad$blkType <- "not-a-tempo"
+    h2 <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_bad, ck)
+    ok("and a tempo that is not in the file falls back to all of them",
+       grepl('data-o="blkType" data-v="all">Every hit type', h2, fixed = TRUE))
+  }
+})
+
 RLo <- rally_outcomes(matches, sel_all, focus, opp = TRUE)
 ok("the opponent view covers the same rallies",
    nrow(RLo) == nrow(RL))
