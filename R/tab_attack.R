@@ -183,11 +183,12 @@ tab_attack <- function(F, o, coords_ok) {
     })),
     tiny("Shot type comes from the coder's own skill-type entry. Tips land a median 3.4 m past the net against 7.0 m for hard swings, which is what identifies them."))))
 
-  R <- c(R, card_extra(blk_varies, "Against the block", tbl_generic(
-    c("Blockers", "Att", "K%", "Hit"),
+  R <- c(R, card_extra(blk_varies, "Against the block", c(tbl_generic(
+    c("Block", "Att", "K%", "Hit"),
     lapply(by_key(crosstab(A, A$blockers)), function(g)
-      c(paste0(g$key, if (g$key == "1") " blocker" else " blockers"),
-        g$stat$ta, pct(g$stat$kpct), eff_td(g$stat$eff))))))
+      c(blockers_label(g$key),
+        g$stat$ta, pct(g$stat$kpct), eff_td(g$stat$eff)))),
+    tiny("The block field on the coder's own attack entry, which reads like a count and is not one: a hole block is two blockers with a gap between them and the file writes it as a 4."))))
 
   if (!show_chart) left <- character()
   paste0(c(H, if (show_chart) cols2(left, R, 460, "chartcol")

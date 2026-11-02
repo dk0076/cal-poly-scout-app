@@ -171,19 +171,19 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
     card("Against our block", c(
       empty(if (!length(nb))
               "No attack in this filter records how many blockers were up."
-            else sprintf("Every one of these %d attacks records %s blocker%s, so there is nothing to compare. The field is not being coded in this file.",
-                         nrow(OA), nb, if (nb == 1) "" else "s")),
+            else sprintf("Every one of these %d attacks records %s, so there is nothing to compare. The field is not being coded in this file.",
+                         nrow(OA), tolower(blockers_label(nb)))),
       tiny("Code the blocker count on the opponent's attack and this becomes the most useful table on the page: whether their efficiency actually falls as the block grows.")))
   else card("Against our block", c(tbl_generic(
     c("Blockers up", "Their att", "Their K%", "Their eff", "We dug", "Stuff"),
     lapply(by_key(crosstab(OA, OA$blockers)), function(g) {
       dug <- sum(dug_after(g$rows, F))
-      c(paste(g$key, if (g$key == "1") "blocker" else "blockers"),
+      c(blockers_label(g$key),
         g$stat$ta, pct(g$stat$kpct), eff_td(g$stat$eff),
         pct(if (g$stat$ta) dug / g$stat$ta else NA),
         sum(!is.na(g$rows$effect) & g$rows$effect == "/"))
     })),
-    tiny("Blockers up is the number the coder recorded on their attack. \"Stuff\" counts their attacks graded as blocked. The row that matters is whether their efficiency actually falls as the block grows. If it does not, the block is not the problem."))))
+    tiny("Blockers up is the field the coder set on their attack. It is not a count all the way up: a hole block is two of ours with a gap between them, which the file writes as a 4 and which is why no row says four blockers, since the back row may not block. \"Stuff\" counts their attacks graded as blocked. The row that matters is whether their efficiency actually falls as the block grows. If it does not, the block is not the problem."))))
 
   # ---- the block, against each kind of swing --------------------------
   #

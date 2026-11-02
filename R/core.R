@@ -24,6 +24,22 @@ OWN_ZONE <- rbind(c(4, 3, 2), c(7, 8, 9), c(5, 6, 1))  # y 600-900  / 300-600   
 TARGET  <- c(F = "Outside", C = "Middle", B = "Opposite", P = "Pipe", S = "Setter")
 HITTYPE <- c(H = "High", Q = "Quick", M = "Standard", T = "Tense", O = "Off-speed", N = "Slow")
 
+# What the coder put in the block field on the attack. It reads like a count
+# and is not one: 0 to 3 are the players up, and 4 is a hole block, a block
+# that got two bodies there with a gap between them. Volleyball has no fourth
+# blocker (the back row may not block), so a row reading "4 blockers" was the
+# app reporting an enum as arithmetic. The values are the DataVolley attack
+# field, which openvolley's reference parser names "No block", "1 player
+# block", "2 player block", "3 player block", "Hole block"; VolleyStation
+# writes the same 0-4 into .vsm, and a match exported both ways agrees on
+# every attack.
+BLOCKERS <- c(`0` = "No block", `1` = "One blocker", `2` = "Two blockers",
+              `3` = "Three blockers", `4` = "Hole block")
+blockers_label <- function(k) {
+  lab <- unname(BLOCKERS[as.character(k)])
+  ifelse(is.na(lab), paste(k, "blockers"), lab)
+}
+
 # How the ball was struck, from the play's skillType. Read off the data rather
 # than assumed: T lands a median 3.4 m past the net against 7.0 m for H, which
 # is the signature of a tip.
