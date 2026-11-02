@@ -2438,6 +2438,52 @@ ok("and printed at the size it was drawn for",
 ok("the page is Letter inside the widest margin a dialog hands it",
    grepl("width:195mm;height:257mm", css, fixed = TRUE))
 
+# Every other tab prints too, and used to print badly: the chart-beside-
+# tables grid is wider than a sheet of paper, so it came out clipped down the
+# right-hand edge, and a grid row cannot break across pages in Chrome, so a
+# column holding a full court threw itself onto a page of its own and left
+# the one before it blank. Printed headless at both an 8mm and a one-inch
+# margin, all eleven tabs now keep their ink inside the page and no page
+# comes out empty.
+cat("
+== the other tabs on paper
+")
+local({
+  # The one big print block, taken from the comment that opens it to the
+  # brace that closes it. There are small print blocks all over the
+  # stylesheet, so it is found by its own words rather than by position.
+  i <- regexpr("Paper is paper", css, fixed = TRUE)
+  pr <- substring(css, i, i + regexpr("
+}
+", substring(css, i), fixed = TRUE))
+  ok("there is one print block for the whole app",
+     i > 0 && nchar(pr) > 400)
+  ok("the controls come off the page",
+     all(vapply(c("header.appbar", "aside.rail", ".tabs", ".topbar", ".viewbar",
+                  "button{display:none!important}"),
+                function(k) grepl(k, pr, fixed = TRUE), TRUE)))
+  # A position is a chip with one of them on, so the roster is the one place
+  # a chip is the data rather than a control.
+  ok("except the one that is a player's position",
+     grepl(".poschips .chip.on{display:inline-flex!important}", pr, fixed = TRUE))
+  ok("the two-column layouts stack rather than running off the edge",
+     grepl(".cols,.twoup{display:block}", pr, fixed = TRUE) &&
+       !grepl(".twoup{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}", css,
+              fixed = TRUE))
+  ok("a card that scrolls sideways on a tablet shows all of it on paper",
+     grepl(".card,.twoup .side .card,.sheetwrap{overflow:visible!important}",
+           pr, fixed = TRUE))
+  ok("and the reception chips wrap instead of running off it",
+     grepl(".atts{flex-wrap:wrap}", pr, fixed = TRUE))
+  ok("a court is sized by its height, so it cannot own a page",
+     grepl("height:150mm", pr, fixed = TRUE))
+  # Keeping a card of small multiples whole left half a page empty and then
+  # broke it anyway, so only the single-court card is held together.
+  ok("the card kept whole is the one with a single court in it",
+     grepl(".chartcol>.card:not(:has(.smgrid)){break-inside:avoid}", pr,
+           fixed = TRUE))
+})
+
 # The two ways in, from the opening screen. Each is the tab picker with a
 # shorter name, so what has to hold is that they name real tabs and that
 # neither leaves a device with nothing.

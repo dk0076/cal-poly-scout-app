@@ -426,16 +426,58 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
     --them-ink:#BF4F2A;
     color-scheme:light;
   }
-  header.appbar,aside.rail,.tabs,.viewbar{display:none!important}
+  /* Every control on the page is screen furniture: the tab bar, the filter
+     rail, the view chips, the pickers. What is left is the heading, the
+     numbers and the courts, which is what a printed page is for. The topbar
+     is in here because an empty sticky bar still rules a grey line across
+     the top of every sheet of paper. */
+  header.appbar,aside.rail,.tabs,.topbar,.viewbar,.toolset,.toolmore,
+  .sharebar,.railtop,.livebox,.watchrow,.modes,#tabpick,.themetog,
+  .hdr .detailbtn,.chip,button{display:none!important}
+  /* Except on the roster, where a player's position IS a row of chips with
+     one of them on, and hiding the row prints a name with no position. */
+  .poschips .chip.on{display:inline-flex!important}
   body{background:#fff}
-  .wrap{grid-template-columns:1fr}
+  .wrap{display:block;grid-template-columns:1fr;margin:0;gap:0}
   main.panel{padding:0}
+
+  /* Paper is about 190mm across, and the screen's chart-beside-tables split
+     wants 420px of chart plus 300px of table plus a gutter, which is wider
+     than that: it printed clipped off the right edge. Worse, a grid row
+     cannot break across pages in Chrome, so a column holding a full-height
+     court threw the whole row onto a page of its own and left the one
+     before it blank. Both stop being true once these stack. */
+  .cols,.twoup{display:block}
+  .cols>.chartcol,.twoup>.side{margin-bottom:14px}
+  .twoup>.side+.side{margin-top:4px}
+
+  /* A card that scrolls sideways on a tablet has nowhere to scroll on
+     paper: it printed its scrollbar and clipped the rest. The tablet rules
+     apply here because the paper is narrow, so they are undone by name. */
+  .card,.twoup .side .card,.sheetwrap{overflow:visible!important}
+  /* The reception chips are a single nowrap strip, and off the edge of a
+     page they are simply gone. They wrap instead. */
+  .atts{flex-wrap:wrap}
+  td:has(.atts){white-space:normal}
+
+  /* A court at full width would own most of a page, so it is sized by its
+     height and centred, and kept with the legend that explains it. */
+  .chartcol svg.court,.cols svg.court{max-width:none;width:auto;height:150mm;
+    margin:0 auto}
+  .srvcourt svg.court,.sm svg.court{height:auto;max-width:300px}
+  /* A single court is kept with the legend that explains it. A card full of
+     small multiples is not: it is taller than a page, and asking Chrome to
+     keep it whole left half a page empty before it broke the card anyway.
+     Each small court is kept whole instead. */
+  .chartcol>.card:not(:has(.smgrid)){break-inside:avoid}
+  .sm,.legend,.kpis{break-inside:avoid}
   th{position:static!important;top:auto!important}
   thead{display:table-header-group}
   tr{break-inside:avoid}
   .card>h3,.hdr,.hdr h2,.kpis{break-after:avoid}
   .card,.kpis,.sm,.kpi,td,th,tr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .scroll{overflow:visible}
+  table:has(th:nth-child(10)){font-size:10.5px}
   table:has(th:nth-child(12)){font-size:9px}
   table:has(th:nth-child(12)) th,table:has(th:nth-child(12)) td{padding:2px 3px}
 }
@@ -549,7 +591,9 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
   .side.them{border-top:1px solid var(--rule);padding-top:6px}
 }
 @media print{
-  .twoup{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  /* Stacked, not side by side: two teams across 190mm of paper gave each of
+     them 90mm for a table of ten numeric columns. The side headings say
+     which team is which, so stacking costs nothing but paper. */
   .sidehdr{position:static}
 }
 

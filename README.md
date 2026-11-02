@@ -130,6 +130,17 @@ courts are drawn the way the staff's own sheet has always read, net at the
 top and the ball coming down, which is the one place the app flips its
 charts over.
 
+**Every other tab prints too.** Ctrl+P on any tab now gives a page rather
+than a mess. The controls come off it, the chart-beside-tables split stacks,
+the cards that scroll sideways on a tablet show all of it, the reception
+chips wrap instead of running off the edge, and a court is sized by its
+height so it cannot take a page to itself. Before this, the grid was wider
+than a sheet of paper and printed clipped down the right-hand edge, and
+because a grid row cannot break across pages in Chrome, Defense came out as
+seven pages with two of them blank. It is four now, and all eleven tabs were
+printed headless at both an 8mm and a one-inch margin to check that the ink
+stays inside the page and no page comes out empty.
+
 **Each device picks its own tabs.** The **Tabs** button hides the ones a
 coach does not want, and the choice is remembered on that device. One laptop
 serves every iPad on the bench, so this is kept in the browser rather than on
