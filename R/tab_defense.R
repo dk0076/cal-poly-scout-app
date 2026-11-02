@@ -68,17 +68,41 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
   picked <- if (blk_type == "all") OA
             else if (blk_kind == "t") OA[!is.na(OA$hit_type) & OA$hit_type == blk_key, ]
             else OA[!is.na(OA$season_call) & OA$season_call == blk_key, ]
+  blkv <- blocker_of(picked)
   FR <- data.table::copy(picked)
-  data.table::set(FR, j = "blocker", value = blocker_of(picked))
+  data.table::set(FR, j = "blocker", value = blkv)
   FR <- FR[!is.na(FR$blocker), ]
+
+  # Whose ball, or whose matchup. Two ways again, because the chart answers
+  # both questions and they are not the same one: where #12 of theirs hits,
+  # and where they hit when #6 of ours was the one in front of it. Written
+  # h:12 or b:6, so the two rows are a single choice. The pick holds the
+  # chart only; the tables under it stay on everybody, since "blocking by
+  # player" is already cut that way and crossing the two reads as a bug.
+  who <- as.character(o$defWho %||% "")
+  hit_nums <- sort(unique(picked$num[!is.na(picked$num)]))
+  blk_nums <- sort(unique(blkv[!is.na(blkv)]))
+  if (!(who %in% c(paste0("h:", hit_nums), paste0("b:", blk_nums)))) who <- ""
+  who_kind <- substr(who, 1, 1)
+  who_num <- suppressWarnings(as.integer(substring(who, 3)))
+  keep_who <- if (!nzchar(who)) rep(TRUE, nrow(picked))
+              else if (who_kind == "h") !is.na(picked$num) & picked$num == who_num
+              else !is.na(blkv) & blkv == who_num
+  name_of <- function(n, rows) {
+    nm <- rows$player_short[match(n, rows$num)]
+    if (is.na(nm) || !nzchar(nm)) sprintf("#%s", n) else sprintf("#%s %s", n, nm)
+  }
+  who_name <- if (!nzchar(who)) ""
+              else if (who_kind == "h") name_of(who_num, picked)
+              else name_of(who_num, F)
 
   # ---- the court, from our side -------------------------------------
   # Of the ball that is picked below, not of everything: picking their Go and
   # reading a court of all 136 attacks was the chart answering a question
   # nobody had asked.
   touched <- block_touched(picked, F)
-  drawn <- if (isTRUE(o$defTouch)) picked[picked$has_xy & !touched, ]
-           else picked[picked$has_xy, ]
+  on <- picked$has_xy & keep_who
+  drawn <- if (isTRUE(o$defTouch)) picked[on & !touched, ] else picked[on, ]
   MA <- mirror_plays(drawn)
   rect <- list(x0 = 0, y0 = 0, x1 = COURT$W, y1 = COURT$NET)
   court <- court_svg("DF", x_min = -170, x_max = 1070, y_min = -190, y_max = 1700,
@@ -89,11 +113,31 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
                      alt = "opponent attacks into our court",
                      mono = mono, coords_ok = coords_ok)
 
+  wchip <- function(v, label, n)
+    sprintf('<button class="chip %s" data-o="defWho" data-v="%s">%s<span class="n">%d</span></button>',
+            if (identical(who, v)) "on" else "", esc(v), esc(label), n)
+  wrow <- function(lead, chips)
+    if (!length(chips)) "" else
+      viewbar(paste0(utils::head(lead, -1L), collapse = ""),
+              sprintf('<span class="tiny" style="align-self:center">%s</span>',
+                      lead[length(lead)]),
+              paste0(chips, collapse = ""))
+
   left <- plain_card(c(
     viewbar(vtoggle("defTouch", "Drop balls we touched", o$defTouch)),
-    if (blk_type != "all" && !nrow(MA))
-      caveat(sprintf("No %s of theirs carries a drawn line, so there is nothing to chart. The tables below still count them.",
-                     if (blk_kind == "t") paste(blk_name, "ball") else blk_name))
+    wrow(c(wchip("", "Everybody", nrow(picked)), "Their hitter"),
+         vapply(hit_nums, function(n)
+      wchip(paste0("h:", n), name_of(n, picked),
+            sum(!is.na(picked$num) & picked$num == n)), "")),
+    wrow("Our blocker", vapply(blk_nums, function(n)
+      wchip(paste0("b:", n), name_of(n, F),
+            sum(!is.na(blkv) & blkv == n)), "")),
+    if ((blk_type != "all" || nzchar(who)) && !nrow(MA))
+      caveat(sprintf("Nothing in this pick%s%s carries a drawn line, so there is nothing to chart. The tables below still count them.",
+                     if (blk_type == "all") ""
+                     else sprintf(", their %s",
+                                  if (blk_kind == "t") paste(blk_name, "ball") else blk_name),
+                     if (!nzchar(who)) "" else paste(",", who_name)))
     else "",
     court,
     legend(c("var(--kill)", "their kill"), c("var(--inplay)", "we kept it up"),
@@ -102,10 +146,16 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
     tiny(sprintf("Their attacks mirrored into our frame, so this is the view from our baseline. Where the green concentrates is where we are being beaten.%s%s",
                  if (!isTRUE(o$defTouch)) ""
                  else sprintf(" %d of them came off our block and are left out, so this is where they hit when we did not touch it; the tables below still count all of them.",
-                              sum(touched & picked$has_xy)),
-                 if (blk_type == "all") ""
-                 else sprintf(" Their %s only, picked below; the numbers above it are every attack they made.",
-                              if (blk_kind == "t") paste(blk_name, "ball") else blk_name)))
+                              sum(touched & on)),
+                 paste0(
+                   if (blk_type == "all") ""
+                   else sprintf(" Their %s only, picked below; the numbers above it are every attack they made.",
+                                if (blk_kind == "t") paste(blk_name, "ball") else blk_name),
+                   if (!nzchar(who)) ""
+                   else if (who_kind == "h")
+                     sprintf(" Only the balls %s hit.", who_name)
+                   else sprintf(" Only the ones %s was in front of, hers by the matchup whether or not she touched it.",
+                                who_name))))
   ))
 
   R <- list()
@@ -291,11 +341,6 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
   )), collapse = "")
 }
 
-#' uids of opponent attacks that we dug, matched within the rally.
-#'
-#' An attack we dug is one followed by a dig of ours in the same rally before
-#' the other team touches it again. Matching on the rally rather than on the
-#' play order keeps it correct when a rally carries several attacks.
 #' Which of their attacks our block got a hand on.
 #'
 #' A ball off the block is not where the hitter put it: it drops short, or
@@ -321,6 +366,12 @@ block_touched <- function(oa, F) {
   stuffed | paste(oa$match_id, oa$set_no, oa$rally_no, oa$seq) %in% after
 }
 
+#' Which of their attacks we dug, matched within the rally.
+#'
+#' An attack we dug is one followed by a dig of ours in the same rally before
+#' the other team touches it again. Matching on the rally rather than on the
+#' play order keeps it correct when a rally carries several attacks.
+#'
 #' Per row, for the same reason as `block_touched`: by uid, a dig in one film
 #' was answering an attack in another.
 dug_after <- function(oa, F) {

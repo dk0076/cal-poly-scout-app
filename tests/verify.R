@@ -649,6 +649,45 @@ local({
        grepl('data-o="defTouch"', h, fixed = TRUE) &&
          grepl("came off our block and are left out", h, fixed = TRUE) })
 
+  # The chart cuts to one player two ways: the one of theirs who hit it, and
+  # the one of ours the matchup put in front of it. Counted off the drawn
+  # lines, since the chart is the whole of what the pick moves.
+  arrows <- function(h) length(regmatches(h, gregexpr("url(#ah-", h, fixed = TRUE))[[1]])
+  h_all <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o, ck)
+  xy <- OA$has_xy
+  hn <- names(sort(table(OA$num[xy]), decreasing = TRUE))
+  if (length(hn)) {
+    n1 <- as.integer(hn[1])
+    o_h <- o; o_h$defWho <- paste0("h:", n1)
+    h_h <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_h, ck)
+    ok("their hitter is on the picker, and the chart is hers alone",
+       grepl(sprintf('class="chip on" data-o="defWho" data-v="h:%d"', n1), h_h, fixed = TRUE) &&
+         arrows(h_h) == sum(xy & !is.na(OA$num) & OA$num == n1),
+       sprintf("#%d drew %d of the %d lines", n1, arrows(h_h), arrows(h_all)))
+    ok("and the tables under it still count everybody",
+       length(gregexpr("</tr>", h_h, fixed = TRUE)[[1]]) ==
+         length(gregexpr("</tr>", h_all, fixed = TRUE)[[1]]))
+  }
+  bnum <- names(sort(table(blk[xy & !is.na(blk)]), decreasing = TRUE))
+  if (length(bnum)) {
+    b1 <- as.integer(bnum[1])
+    o_b <- o; o_b$defWho <- paste0("b:", b1)
+    h_b <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_b, ck)
+    ok("so is the blocker of ours it was hit at",
+       grepl(sprintf('class="chip on" data-o="defWho" data-v="b:%d"', b1), h_b, fixed = TRUE) &&
+         arrows(h_b) == sum(xy & !is.na(blk) & blk == b1),
+       sprintf("#%d was in front of %d of the %d", b1, arrows(h_b), arrows(h_all)))
+  }
+  ok("a player who is not in the file falls back to everybody",
+     { o_w <- o; o_w$defWho <- "h:999"
+       h_w <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_w, ck)
+       arrows(h_w) == arrows(h_all) &&
+         grepl('class="chip on" data-o="defWho" data-v=""', h_w, fixed = TRUE) })
+  ok("picking a player never draws more than everybody does",
+     { o_w <- o; o_w$defWho <- if (length(hn)) paste0("h:", hn[1]) else ""
+       arrows(tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_w, ck)) <=
+         arrows(h_all) })
+
   # No lineup, nobody credited, rather than a guess.
   flat <- data.table::copy(OA)
   for (z in 1:6) data.table::set(flat, j = paste0("olu", z), value = NA_integer_)

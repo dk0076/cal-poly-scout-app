@@ -259,6 +259,18 @@ block row sitting directly after their attack, which is how both formats
 record it, and every stuff counts as one. On a scouted match it takes 136
 arrows down to 54. The tables under the court still count all of them.
 
+**The chart cuts to one player, either side of the net.** Above the court is
+a row of their hitters and a row of our blockers, and picking one draws that
+player's balls alone: their #7 is forty arrows off the left pin, our #6 is
+the forty-five she was in front of whether or not she touched any of them.
+Their hitter is who struck it; our blocker is the matchup, the same
+`blocker_of()` the table below uses. The two pickers compose, so their high
+ball at our #6 is twelve of the hundred and thirty-six, and two of those once
+the touched balls are dropped. The pick holds the chart only: the tables
+under it stay on everybody, since Blocking by player is already cut that way.
+The chip counts were checked straight off the raw file, which gives the same
+136 attacks and the same per-shirt split.
+
 Picking a ball takes the court with it: the chart above the tables draws that
 play alone, so their slide is nineteen arrows off one pin rather than a
 hundred and thirty-six crossing each other. The numbers in the strip above it

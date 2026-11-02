@@ -244,7 +244,7 @@ DEFAULT_OPTS <- list(
   eView = "points", eBins = 3, setSetter = "", setZones = character(),
   setterWho = "main", setterEx = character(), lastN = 6,
   mono = FALSE, phases = character(), sys = character(), showshare = FALSE,
-  pair = TRUE, pinServer = "", nsShare = FALSE, blkType = "all", defTouch = FALSE,
+  pair = TRUE, pinServer = "", nsShare = FALSE, blkType = "all", defTouch = FALSE, defWho = "",
   # The printed sheet: which one, and about whom. Blank means the opponent if
   # the files name one, and our own team otherwise.
   sheet = "attackers", sheetTeam = "", sheetPick = character()
