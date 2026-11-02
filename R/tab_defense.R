@@ -44,8 +44,39 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
          s = sprintf("%d transition chances", conv$n))
   )))
 
+  # Two ways to cut it, because a staff asks it both ways. The tempo is the
+  # shape of the ball in the air; the call is the play that produced it, and
+  # "how do we block their Go" is the question that gets asked out loud. A
+  # pick is one or the other, written t:H or c:PG, so the two rows of chips
+  # are one choice between them.
+  blk_type <- as.character(o$blkType %||% "all")
+  ht_keys <- names(sort(table(OA$hit_type[!is.na(OA$hit_type)]), decreasing = TRUE))
+  cl_keys <- names(sort(table(OA$season_call[!is.na(OA$season_call)]), decreasing = TRUE))
+  # A bare code is a tempo, which is what this picker stored before it could
+  # take a call, and a browser remembers the last thing it was given.
+  if (blk_type %in% ht_keys) blk_type <- paste0("t:", blk_type)
+  valid <- c("all", paste0("t:", ht_keys), paste0("c:", cl_keys))
+  if (!(blk_type %in% valid)) blk_type <- "all"
+  blk_kind <- substr(blk_type, 1, 1)
+  blk_key <- if (blk_type == "all") "" else substring(blk_type, 3)
+  blk_name <- if (blk_type == "all") ""
+              else if (blk_kind == "t")
+                tolower(if (is.na(HITTYPE[blk_key])) blk_key else unname(HITTYPE[blk_key]))
+              else call_label(blk_key, OA$call_name[!is.na(OA$season_call) &
+                                                      OA$season_call == blk_key][1])
+
+  picked <- if (blk_type == "all") OA
+            else if (blk_kind == "t") OA[!is.na(OA$hit_type) & OA$hit_type == blk_key, ]
+            else OA[!is.na(OA$season_call) & OA$season_call == blk_key, ]
+  FR <- data.table::copy(picked)
+  data.table::set(FR, j = "blocker", value = blocker_of(picked))
+  FR <- FR[!is.na(FR$blocker), ]
+
   # ---- the court, from our side -------------------------------------
-  MA <- mirror_plays(OA[OA$has_xy, ])
+  # Of the ball that is picked below, not of everything: picking their Go and
+  # reading a court of all 136 attacks was the chart answering a question
+  # nobody had asked.
+  MA <- mirror_plays(picked[picked$has_xy, ])
   rect <- list(x0 = 0, y0 = 0, x1 = COURT$W, y1 = COURT$NET)
   court <- court_svg("DF", x_min = -170, x_max = 1070, y_min = -190, y_max = 1700,
                      marks = arrow_layer(MA, "DF", 1, mono,
@@ -56,11 +87,18 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
                      mono = mono, coords_ok = coords_ok)
 
   left <- plain_card(c(
+    if (blk_type != "all" && !nrow(MA))
+      caveat(sprintf("No %s of theirs carries a drawn line, so there is nothing to chart. The tables below still count them.",
+                     if (blk_kind == "t") paste(blk_name, "ball") else blk_name))
+    else "",
     court,
     legend(c("var(--kill)", "their kill"), c("var(--inplay)", "we kept it up"),
            c("var(--blocked)", "we blocked it"), c("var(--err)", "they erred"),
            trailing = "their contact at the top · the ball lands in our half"),
-    tiny("Their attacks mirrored into our frame, so this is the view from our baseline. Where the green concentrates is where we are being beaten.")
+    tiny(sprintf("Their attacks mirrored into our frame, so this is the view from our baseline. Where the green concentrates is where we are being beaten.%s",
+                 if (blk_type == "all") ""
+                 else sprintf(" Their %s only, picked below; the numbers above it are every attack they made.",
+                              if (blk_kind == "t") paste(blk_name, "ball") else blk_name)))
   ))
 
   R <- list()
@@ -136,34 +174,6 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
   # `blocker_of` is the whole of it: our setter's zone says who is doing
   # which job, the zone their attack was struck from says whose job it was
   # to be there. See R/model.R.
-
-  # Two ways to cut it, because a staff asks it both ways. The tempo is the
-  # shape of the ball in the air; the call is the play that produced it, and
-  # "how do we block their Go" is the question that gets asked out loud. A
-  # pick is one or the other, written t:H or c:PG, so the two rows of chips
-  # are one choice between them.
-  blk_type <- as.character(o$blkType %||% "all")
-  ht_keys <- names(sort(table(OA$hit_type[!is.na(OA$hit_type)]), decreasing = TRUE))
-  cl_keys <- names(sort(table(OA$season_call[!is.na(OA$season_call)]), decreasing = TRUE))
-  # A bare code is a tempo, which is what this picker stored before it could
-  # take a call, and a browser remembers the last thing it was given.
-  if (blk_type %in% ht_keys) blk_type <- paste0("t:", blk_type)
-  valid <- c("all", paste0("t:", ht_keys), paste0("c:", cl_keys))
-  if (!(blk_type %in% valid)) blk_type <- "all"
-  blk_kind <- substr(blk_type, 1, 1)
-  blk_key <- if (blk_type == "all") "" else substring(blk_type, 3)
-  blk_name <- if (blk_type == "all") ""
-              else if (blk_kind == "t")
-                tolower(if (is.na(HITTYPE[blk_key])) blk_key else unname(HITTYPE[blk_key]))
-              else call_label(blk_key, OA$call_name[!is.na(OA$season_call) &
-                                                      OA$season_call == blk_key][1])
-
-  picked <- if (blk_type == "all") OA
-            else if (blk_kind == "t") OA[!is.na(OA$hit_type) & OA$hit_type == blk_key, ]
-            else OA[!is.na(OA$season_call) & OA$season_call == blk_key, ]
-  FR <- data.table::copy(picked)
-  data.table::set(FR, j = "blocker", value = blocker_of(picked))
-  FR <- FR[!is.na(FR$blocker), ]
 
   chip <- function(v, label, n)
     sprintf('<button class="chip %s" data-o="blkType" data-v="%s">%s<span class="n">%d</span></button>',

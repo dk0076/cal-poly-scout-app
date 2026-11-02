@@ -253,6 +253,11 @@ five attacks, because one match gives a handful of stuffs per row. The rows
 are a partition: every attack of theirs is on exactly one, and the stuffs add
 back to the attacks graded blocked, which `tests/verify.R` asserts two ways.
 
+Picking a ball takes the court with it: the chart above the tables draws that
+play alone, so their slide is nineteen arrows off one pin rather than a
+hundred and thirty-six crossing each other. The numbers in the strip above it
+stay on every attack, and the caption under the court says so.
+
 Under it, the same split by player: pick a ball and the table is whoever was
 in front of it, so two blockers can be read side by side against their high
 ball. Two rows of chips, one choice between them. The first is the tempo the
