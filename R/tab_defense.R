@@ -76,7 +76,10 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
   # Of the ball that is picked below, not of everything: picking their Go and
   # reading a court of all 136 attacks was the chart answering a question
   # nobody had asked.
-  MA <- mirror_plays(picked[picked$has_xy, ])
+  touched <- block_touched(picked, F)
+  drawn <- if (isTRUE(o$defTouch)) picked[picked$has_xy & !touched, ]
+           else picked[picked$has_xy, ]
+  MA <- mirror_plays(drawn)
   rect <- list(x0 = 0, y0 = 0, x1 = COURT$W, y1 = COURT$NET)
   court <- court_svg("DF", x_min = -170, x_max = 1070, y_min = -190, y_max = 1700,
                      marks = arrow_layer(MA, "DF", 1, mono,
@@ -87,6 +90,7 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
                      mono = mono, coords_ok = coords_ok)
 
   left <- plain_card(c(
+    viewbar(vtoggle("defTouch", "Drop balls we touched", o$defTouch)),
     if (blk_type != "all" && !nrow(MA))
       caveat(sprintf("No %s of theirs carries a drawn line, so there is nothing to chart. The tables below still count them.",
                      if (blk_kind == "t") paste(blk_name, "ball") else blk_name))
@@ -95,7 +99,10 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
     legend(c("var(--kill)", "their kill"), c("var(--inplay)", "we kept it up"),
            c("var(--blocked)", "we blocked it"), c("var(--err)", "they erred"),
            trailing = "their contact at the top · the ball lands in our half"),
-    tiny(sprintf("Their attacks mirrored into our frame, so this is the view from our baseline. Where the green concentrates is where we are being beaten.%s",
+    tiny(sprintf("Their attacks mirrored into our frame, so this is the view from our baseline. Where the green concentrates is where we are being beaten.%s%s",
+                 if (!isTRUE(o$defTouch)) ""
+                 else sprintf(" %d of them came off our block and are left out, so this is where they hit when we did not touch it; the tables below still count all of them.",
+                              sum(touched & picked$has_xy)),
                  if (blk_type == "all") ""
                  else sprintf(" Their %s only, picked below; the numbers above it are every attack they made.",
                               if (blk_kind == "t") paste(blk_name, "ball") else blk_name)))
@@ -120,7 +127,7 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
   else card("Against our block", c(tbl_generic(
     c("Blockers up", "Their att", "Their K%", "Their eff", "We dug", "Stuff"),
     lapply(by_key(crosstab(OA, OA$blockers)), function(g) {
-      dug <- sum(g$rows$uid %in% dug_after(g$rows, F))
+      dug <- sum(dug_after(g$rows, F))
       c(paste(g$key, if (g$key == "1") "blocker" else "blockers"),
         g$stat$ta, pct(g$stat$kpct), eff_td(g$stat$eff),
         pct(if (g$stat$ta) dug / g$stat$ta else NA),
@@ -150,7 +157,7 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
     c("Hit type", "Their att", "Sh%", "Their K%", "Their eff", "Stuff", "Stuff%", "We dug"),
     lapply(ht, function(g) {
       stuff <- sum(!is.na(g$rows$effect) & g$rows$effect == "/")
-      dug <- sum(g$rows$uid %in% dug_after(g$rows, F))
+      dug <- sum(dug_after(g$rows, F))
       rate <- function(k, n) if (!n) "" else if (n < PASS_FLOOR)
         sprintf('<span class="thin" title="off %d attack%s">%s</span>',
                 n, if (n == 1L) "" else "s", pct(k / n))
@@ -206,7 +213,7 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
           function(g) {
             parts <- strsplit(g$key, "|", fixed = TRUE)[[1]]
             stuff <- sum(!is.na(g$rows$effect) & g$rows$effect == "/")
-            dug <- sum(g$rows$uid %in% dug_after(g$rows, F))
+            dug <- sum(dug_after(g$rows, F))
             rate <- function(k, n) if (!n) "" else if (n < PASS_FLOOR)
               sprintf('<span class="thin" title="off %d attack%s">%s</span>',
                       n, if (n == 1L) "" else "s", pct(k / n))
@@ -289,10 +296,37 @@ tab_defense <- function(F, Opp, cv, o, coords_ok) {
 #' An attack we dug is one followed by a dig of ours in the same rally before
 #' the other team touches it again. Matching on the rally rather than on the
 #' play order keeps it correct when a rally carries several attacks.
+#' Which of their attacks our block got a hand on.
+#'
+#' A ball off the block is not where the hitter put it: it drops short, or
+#' sideways, or back over, and on a chart of where they hit it is the block's
+#' mark rather than theirs. So the chart can drop them and show the swings
+#' that went past untouched.
+#'
+#' A touch is our own block row sitting directly after their attack, which is
+#' how both formats record it: 82 of 136 attacks in a scouted match, every
+#' one of the nine stuffs among them. The grade on that row does not matter,
+#' a block error is still a touch. An attack graded blocked counts as well,
+#' for a file that records the stuff on the attack and never writes the block
+#' row.
+#' Answers per row rather than by uid: a uid is unique inside its own file
+#' and starts again at 1 in the next one, so a library of four films has four
+#' plays numbered 7 and `%in%` cannot tell them apart.
+block_touched <- function(oa, F) {
+  if (!nrow(oa)) return(logical(0))
+  stuffed <- !is.na(oa$effect) & oa$effect == "/"
+  B <- F[F$skill == "B", ]
+  if (!nrow(B)) return(stuffed)
+  after <- paste(B$match_id, B$set_no, B$rally_no, B$seq - 1L)
+  stuffed | paste(oa$match_id, oa$set_no, oa$rally_no, oa$seq) %in% after
+}
+
+#' Per row, for the same reason as `block_touched`: by uid, a dig in one film
+#' was answering an attack in another.
 dug_after <- function(oa, F) {
-  if (!nrow(oa) || !nrow(F)) return(integer())
+  if (!nrow(oa) || !nrow(F)) return(logical(max(0L, nrow(oa))))
   dig <- F[F$skill == "D" & (is.na(F$effect) | F$effect != "="), ]
-  if (!nrow(dig)) return(integer())
+  if (!nrow(dig)) return(logical(nrow(oa)))
   k <- paste(dig$match_id, dig$set_no, dig$rally_no)
-  oa$uid[paste(oa$match_id, oa$set_no, oa$rally_no) %in% k]
+  paste(oa$match_id, oa$set_no, oa$rally_no) %in% k
 }

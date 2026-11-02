@@ -618,6 +618,37 @@ local({
        !length(intersect(z4, z2)),
        sprintf("zone 4 at %s, zone 2 at %s",
                paste(sort(z4), collapse = "/"), paste(sort(z2), collapse = "/")))
+  # A ball off our block is not where the hitter put it, so the chart can
+  # leave it out. A touch is our own block row sitting right after their
+  # attack, and every stuff is one of them.
+  tch <- which(block_touched(OA, Fp))
+  Bk2 <- Fp[Fp$skill == "B", ]
+  ok("a stuff is a touch",
+     all(which(!is.na(OA$effect) & OA$effect == "/") %in% tch),
+     sprintf("%d touched of %d attacks, %d stuffs", length(tch), nrow(OA),
+             sum(!is.na(OA$effect) & OA$effect == "/")))
+  ok("and every touch has one of our block rows behind it, or is a stuff",
+     { after <- paste(Bk2$match_id, Bk2$set_no, Bk2$rally_no, Bk2$seq - 1L)
+       i <- tch
+       all((!is.na(OA$effect[i]) & OA$effect[i] == "/") |
+             paste(OA$match_id[i], OA$set_no[i], OA$rally_no[i], OA$seq[i]) %in% after) })
+  ok("dropping them leaves fewer attacks on the chart, never more",
+     length(tch) <= nrow(OA) &&
+       nrow(OA[-tch, ]) == nrow(OA) - length(tch))
+  # One answer per row, which is what keeps a library of films straight: a
+  # uid is unique inside its own file and starts again in the next one.
+  ok("it answers once per attack, whatever else is loaded",
+     length(block_touched(OA, Fp)) == nrow(OA) &&
+       length(dug_after(OA, Fp)) == nrow(OA))
+  ok("no blocks of ours, nothing to drop but the stuffs",
+     identical(block_touched(OA, Fp[Fp$skill != "B", ]),
+               !is.na(OA$effect) & OA$effect == "/"))
+  ok("and the toggle is on the tab",
+     { o_t <- o; o_t$defTouch <- TRUE
+       h <- tab_defense(Fp, OppP, convert_rallies(matches, sel, focus), o_t, ck)
+       grepl('data-o="defTouch"', h, fixed = TRUE) &&
+         grepl("came off our block and are left out", h, fixed = TRUE) })
+
   # No lineup, nobody credited, rather than a guess.
   flat <- data.table::copy(OA)
   for (z in 1:6) data.table::set(flat, j = paste0("olu", z), value = NA_integer_)

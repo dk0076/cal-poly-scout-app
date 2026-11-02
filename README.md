@@ -253,6 +253,12 @@ five attacks, because one match gives a handful of stuffs per row. The rows
 are a partition: every attack of theirs is on exactly one, and the stuffs add
 back to the attacks graded blocked, which `tests/verify.R` asserts two ways.
 
+**Drop balls we touched** leaves out every attack our block got a hand on, so
+the chart is where they hit when they were not touched. A touch is our own
+block row sitting directly after their attack, which is how both formats
+record it, and every stuff counts as one. On a scouted match it takes 136
+arrows down to 54. The tables under the court still count all of them.
+
 Picking a ball takes the court with it: the chart above the tables draws that
 play alone, so their slide is nineteen arrows off one pin rather than a
 hundred and thirty-six crossing each other. The numbers in the strip above it
