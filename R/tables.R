@@ -190,12 +190,12 @@ has_lines <- function(rows, col = "has_xy") {
 #' red is theirs, the same pairing the rest of the app uses. The heading
 #' stays with each column while it scrolls, because the two halves are the
 #' same shape and lose their identity the moment the names leave the screen.
-#' `fit` is the bench's version of the same view: both teams on the screen at
-#' once with nothing to scroll past. It keeps each side's heading, its figures
-#' and its first table, which is the by-player one both columns exist to
-#' compare, and drops the charts and the footnotes. The page itself does not
-#' scroll; a column with more players than fit scrolls inside its own half,
-#' so the other team never leaves the screen.
+#' `fit` is the bench's version of the same view: the two columns locked to
+#' the window, the page itself not moving. It keeps the whole tab, courts and
+#' all, and drops the furniture -- the chip rows, which are controls, and the
+#' footnotes, which are read once -- then tightens what is left. Each column
+#' scrolls inside itself under a heading that stays put, so reading further
+#' down one team never takes the other off the screen.
 two_up <- function(us, them, us_label, them_label, fit = FALSE) {
   sprintf(paste0('<div class="twoup%s">',
                  '<section class="side us"><h2 class="sidehdr">%s</h2>%s</section>',

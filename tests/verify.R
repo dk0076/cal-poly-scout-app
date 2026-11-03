@@ -1073,12 +1073,16 @@ local({
 ")
   js <- paste(readLines("www/app.js", warn = FALSE), collapse = "
 ")
-  # One table a side, whatever the tab put above it. `~` rather than a count
-  # because the heading and the figures are divs too, so nth-of-type counts
-  # them.
-  ok("fit keeps one card a side and drops the charts",
-     grepl(".twoup.fit .card~.card{display:none}", css, fixed = TRUE) &&
-       grepl(".twoup.fit .chartcol", css, fixed = TRUE))
+  # The whole tab, courts and all. Cutting it to one table a side did fit
+  # and threw away most of what the tab is for; what goes is the furniture.
+  ok("fit keeps every card and drops the controls and footnotes",
+     grepl(".twoup.fit .viewbar,.twoup.fit .tiny{display:none}", css, fixed = TRUE) &&
+       !grepl(".card~.card{display:none}", css, fixed = TRUE))
+  # Put first, the per-hitter courts filled the column and the numbers were
+  # off the bottom, which is the opposite of the trade this view makes.
+  ok("the courts stay under the tables, sized for half a window",
+     grepl(".twoup.fit .chartcol svg.court{max-width:230px", css, fixed = TRUE) &&
+       !grepl("chartcol{order:-1", css, fixed = TRUE))
   ok("each half scrolls inside itself rather than the page",
      grepl(".twoup.fit>.side{overflow-y:auto", css, fixed = TRUE))
   # The columns hold down to a portrait tablet: in fit they are one table,

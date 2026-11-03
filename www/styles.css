@@ -602,31 +602,48 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
    wrong between rallies: the comparison a coach wants is four inches down a
    page that is six feet long. Fit keeps the heading, the figures and the
    first table on each side and drops everything else, so the two columns
-   are the thing they exist to be, side by side with nothing to scroll past.
+   are the thing they exist to be, two columns locked to the window with the
+   page itself not moving.
 
-   `~` rather than a count: it hides every card that follows another card,
-   which leaves the first one whatever the tab put above it. nth-of-type
-   counts divs, and the heading and the figures are divs too. */
+   It keeps the tab: every card, and the courts with them. Cutting it to one
+   table a side did fit, and threw away most of what the tab is for. What
+   goes is the furniture -- the chip rows, which are controls, and the
+   footnotes, which are there to be read once -- and what is left is tighter
+   and shorter. Each column scrolls inside itself, under a heading that
+   stays put, so reading further down one team never takes the other off the
+   screen, which was the thing wrong with the paired view at a bench. */
 /* The height is set by the browser, which is the only thing that knows
    where these columns start; this is the fallback until it does. */
 .twoup.fit{height:calc(100dvh - 190px);align-items:stretch}
 .twoup.fit>.side{overflow-y:auto;min-height:0;padding-right:2px}
-.twoup.fit .chartcol,.twoup.fit .viewbar,.twoup.fit .tiny,.twoup.fit .legend,
-.twoup.fit .card~.card{display:none}
-.twoup.fit .cols{display:block}
+.twoup.fit .viewbar,.twoup.fit .tiny{display:none}
+/* .cols stays a grid here. Laid out as blocks the courts came out above the
+   tables, because what puts them under is an `order` on the chart column
+   and order means nothing outside a grid. */
+/* The courts stay under the tables, where the rest of the app keeps them:
+   put first they were a column of one court per hitter and the numbers were
+   off the bottom of the screen, which is the opposite of the trade this
+   view is making. Sized for half a window rather than for a panel, and read
+   here for where the arrows cluster. */
+.twoup.fit .chartcol svg.court{max-width:230px;margin:0 auto}
+.twoup.fit .smgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.twoup.fit .sm .nm{font-size:11px}
+.twoup.fit .sm .ln{font-size:9.5px;margin-bottom:3px}
+.twoup.fit .legend{font-size:10.5px}
 /* Tighter, because the point is how much of it lands above the fold. */
 .twoup.fit .card{padding:8px 9px 9px}
-.twoup.fit table{font-size:11.5px}
-.twoup.fit th,.twoup.fit td{padding:2px 5px}
+.twoup.fit .card+.card{margin-top:10px}
+.twoup.fit .card>h3{margin-bottom:6px}
+.twoup.fit table{font-size:11px}
+.twoup.fit th,.twoup.fit td{padding:2px 4px}
 .twoup.fit .kpi{padding:5px 10px;min-width:62px}
 .twoup.fit .kpi .v{font-size:16px}
 .twoup.fit .sidehdr{margin-bottom:8px}
 .twoup.fit .hdr{margin-bottom:7px}
 /* The paired view stacks on a tablet because a whole tab in half a screen
-   is unreadable. In fit it is one table, which reads perfectly well in half
-   an iPad held sideways, and side by side is the entire point. So the two
-   columns hold down to a portrait tablet, and the table scrolls sideways in
-   its own card rather than taking the other team off the screen. */
+   is unreadable. Side by side is the entire point of this one, so the two
+   columns hold down to a portrait tablet, and a wide table scrolls sideways
+   in its own card rather than taking the other team off the screen. */
 @media (max-width:1180px){
   .twoup.fit{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 14px}
   .twoup.fit .side.them{border-top:0;padding-top:0}
