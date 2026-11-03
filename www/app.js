@@ -709,7 +709,7 @@
     // watches for, and it comes back with the server's aria-expanded on it.
     setTimeout(function () {
       pending = false; applyTabs(); syncTools(); markMode();
-      sheetFields(); fitSheet();
+      sheetFields(); fitSheet(); fitTwoup();
     }, 0);
   }
   /* ---- the printed sheet, on a screen ----------------------------------
@@ -729,6 +729,52 @@
     sheet.style.zoom = room < natural ? (room / natural).toFixed(4) : "";
   }
   window.addEventListener("resize", fitSheet);
+
+  /* ---- both teams on one screen ---------------------------------------
+     Fit asks for the two columns to end where the window does, and only the
+     browser knows where they start: the header wraps to a second line on a
+     narrow laptop and the tab bar is taller on a tablet, so the offset is
+     not a number a stylesheet can hold. Measured here and handed back as a
+     height. Stacked, under the tablet breakpoint, the stylesheet's own
+     half-screen rule is the right answer, so this leaves it alone. */
+  function fitTwoup() {
+    var t = document.querySelector(".twoup.fit");
+    // The rail is sized against the window and starts below the header, so
+    // it ends past the bottom of it by however tall the header is. That is
+    // 40-odd pixels of page scroll on every view, and on this one it is the
+    // only thing left to scroll, which rather defeats the point.
+    var rail = document.querySelector("aside.rail");
+    if (rail) rail.style.maxHeight = "";
+    var mp = document.querySelector("main.panel");
+    if (mp) mp.style.paddingBottom = "";
+    if (!t) return;
+    t.style.height = "";
+    // Below the stylesheet's own narrow breakpoint the columns stack and it
+    // sizes the halves itself.
+    if (window.innerWidth <= 820) return;
+    if (rail) {
+      var rt = rail.getBoundingClientRect().top;
+      if (rt < window.innerHeight) rail.style.maxHeight = (window.innerHeight - rt - 8) + "px";
+    }
+    // The panel keeps its own padding under the columns, which is part of
+    // the page whether or not anything is drawn in it, so the room is the
+    // window less where the columns start and less what is reserved below.
+    // The panel's own padding is seventy pixels of table on an iPad, and on
+    // this view there is nothing under the columns for it to hold off.
+    var panel = t.closest(".panel") || t.parentNode;
+    panel.style.paddingBottom = "10px";
+    var pad = parseFloat(window.getComputedStyle(panel).paddingBottom) || 0;
+    var top = t.getBoundingClientRect().top;
+    var room = window.innerHeight - top - pad - 2;
+    if (room < 240) return;
+    t.style.height = room + "px";
+    // And whatever is still below that: a margin on the wrapper, a footnote
+    // under the columns. Reading scrollHeight here forces the layout, so
+    // this is the page as it now stands rather than as it was.
+    var over = document.documentElement.scrollHeight - window.innerHeight;
+    if (over > 0 && room - over > 240) t.style.height = (room - over) + "px";
+  }
+  window.addEventListener("resize", fitTwoup);
 
   /* The two fields a coach writes in before printing. They are plain inputs
      inside server-rendered HTML, so every redraw of the panel would wipe

@@ -244,7 +244,7 @@ DEFAULT_OPTS <- list(
   eView = "points", eBins = 3, setSetter = "", setZones = character(),
   setterWho = "main", setterEx = character(), lastN = 6,
   mono = FALSE, phases = character(), sys = character(), showshare = FALSE,
-  pair = TRUE, pinServer = "", nsShare = FALSE, blkType = "all", defTouch = FALSE, defWho = "",
+  pair = TRUE, pinServer = "", nsShare = FALSE, blkType = "all", defTouch = FALSE, defWho = "", fit = FALSE,
   # The printed sheet: which one, and about whom. Blank means the opponent if
   # the files name one, and our own team otherwise.
   sheet = "attackers", sheetTeam = "", sheetPick = character()
@@ -732,6 +732,15 @@ server <- function(input, output, session) {
         tags$button(class = "chip", `data-o` = "pair",
                     `data-v` = if (isTRUE(S$o$pair)) "false" else "true",
                     if (isTRUE(S$o$pair)) "One team" else "Both teams") else NULL,
+      # Only while both teams are up, because it is about what the two
+      # columns cost in height. Per device, like the other view switches:
+      # the laptop at the scorer's table and an iPad on the bench are not
+      # the same amount of screen.
+      if (S$tab %in% PAIRED_TABS && isTRUE(S$o$pair))
+        tags$button(class = paste("chip", if (isTRUE(S$o$fit)) "on" else ""),
+                    `data-o` = "fit",
+                    `data-v` = if (isTRUE(S$o$fit)) "false" else "true",
+                    "Fit to screen") else NULL,
       tags$button(class = "chip themetog", `data-theme-toggle` = "1",
                   type = "button", title = "Light or dark",
                   `aria-label` = "Switch between light and dark",
@@ -802,7 +811,7 @@ server <- function(input, output, session) {
         # from their side, not mirrored into ours. Mirroring is for the
         # Defense tab, where the question is what we see coming.
         else two_up(ours, one_side(opponent_plays(S$matches, sel_live(), S$focus), o),
-                    side_labels(S)$us, side_labels(S)$them)
+                    side_labels(S)$us, side_labels(S)$them, fit = isTRUE(o$fit))
       }
       else if (S$tab == "nextserver") {
         # The two halves of this tab come from different places on purpose.

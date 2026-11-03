@@ -1060,6 +1060,42 @@ ok("two_up puts both sides in one block, each labelled",
      grepl('class="side them"', h, fixed = TRUE) &&
      grepl(">Cal Poly<", h, fixed = TRUE) && grepl(">Grand Canyon<", h, fixed = TRUE) &&
      grepl("ours", h, fixed = TRUE) && grepl("theirs", h, fixed = TRUE))
+# Fit is the bench's version of the same view: both teams on the screen with
+# nothing to scroll past. Measured in the browser at a laptop's 1440x900 and
+# an iPad's 1024x768: two columns, no page scroll and no scrollbar inside
+# either half.
+ok("fit is off unless it is asked for, and names itself on the container",
+   !grepl("twoup fit", h, fixed = TRUE) &&
+     grepl('<div class="twoup fit">',
+           two_up("<p>a</p>", "<p>b</p>", "Us", "Them", fit = TRUE), fixed = TRUE))
+local({
+  css <- paste(readLines("www/styles.css", warn = FALSE), collapse = "
+")
+  js <- paste(readLines("www/app.js", warn = FALSE), collapse = "
+")
+  # One table a side, whatever the tab put above it. `~` rather than a count
+  # because the heading and the figures are divs too, so nth-of-type counts
+  # them.
+  ok("fit keeps one card a side and drops the charts",
+     grepl(".twoup.fit .card~.card{display:none}", css, fixed = TRUE) &&
+       grepl(".twoup.fit .chartcol", css, fixed = TRUE))
+  ok("each half scrolls inside itself rather than the page",
+     grepl(".twoup.fit>.side{overflow-y:auto", css, fixed = TRUE))
+  # The columns hold down to a portrait tablet: in fit they are one table,
+  # which reads in half an iPad, and side by side is the whole point.
+  ok("and stay side by side on a tablet",
+     grepl(".twoup.fit{grid-template-columns:minmax(0,1fr) minmax(0,1fr)", css,
+           fixed = TRUE))
+  # Only the browser knows where the columns start: the header wraps on a
+  # narrow laptop and the tab bar is taller on a tablet.
+  ok("the height is measured rather than assumed",
+     grepl("function fitTwoup()", js, fixed = TRUE) &&
+       grepl("window.innerHeight - top - pad", js, fixed = TRUE) &&
+       grepl('window.addEventListener("resize", fitTwoup)', js, fixed = TRUE))
+  ok("and the rail is cut to the window with it, since it is the only other thing that scrolls",
+     grepl("aside.rail", js, fixed = TRUE) &&
+       grepl("rail.style.maxHeight", js, fixed = TRUE))
+})
 ok("a team name with markup in it is escaped, not rendered",
    !grepl("<script>", two_up("", "", "<script>x</script>", "b"), fixed = TRUE))
 

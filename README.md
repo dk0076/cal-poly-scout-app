@@ -87,6 +87,20 @@ between, and the comparison is the point. The **One team** button gives a
 single side the full width, and below 1180px the two stack rather than
 squeeze. Rotations and Defense already had both teams by construction.
 
+**Fit to screen** is the bench's version of that view. Both teams at once is
+right at a desk and wrong between rallies: the comparison a coach wants is
+four inches down a page six feet long. Fit keeps each side's heading, its
+figures and its first table, which is the by-player one the two columns
+exist to compare, and drops the charts and the footnotes. The page itself
+does not scroll; a column with more players than fit scrolls inside its own
+half, so the other team never leaves the screen. The height is measured in
+the browser rather than assumed, because only it knows where the columns
+start once the header has wrapped, and the filter rail is cut to the window
+with them, since it was the only other thing left to scroll. The columns
+hold side by side down to a portrait tablet: in fit each one is a single
+table, which reads in half an iPad. Checked at 1440x900 and at an iPad's
+1024x768, both with nothing to scroll in either direction.
+
 The team picker in the header no longer decides whose numbers you see. It
 says which team is yours, which is what sets the colours and the order.
 

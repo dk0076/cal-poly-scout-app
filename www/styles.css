@@ -597,6 +597,47 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
   .sidehdr{position:static}
 }
 
+/* ---- both teams, on one screen ----------------------------------------
+   The paired view puts the whole tab up twice, which is right at a desk and
+   wrong between rallies: the comparison a coach wants is four inches down a
+   page that is six feet long. Fit keeps the heading, the figures and the
+   first table on each side and drops everything else, so the two columns
+   are the thing they exist to be, side by side with nothing to scroll past.
+
+   `~` rather than a count: it hides every card that follows another card,
+   which leaves the first one whatever the tab put above it. nth-of-type
+   counts divs, and the heading and the figures are divs too. */
+/* The height is set by the browser, which is the only thing that knows
+   where these columns start; this is the fallback until it does. */
+.twoup.fit{height:calc(100dvh - 190px);align-items:stretch}
+.twoup.fit>.side{overflow-y:auto;min-height:0;padding-right:2px}
+.twoup.fit .chartcol,.twoup.fit .viewbar,.twoup.fit .tiny,.twoup.fit .legend,
+.twoup.fit .card~.card{display:none}
+.twoup.fit .cols{display:block}
+/* Tighter, because the point is how much of it lands above the fold. */
+.twoup.fit .card{padding:8px 9px 9px}
+.twoup.fit table{font-size:11.5px}
+.twoup.fit th,.twoup.fit td{padding:2px 5px}
+.twoup.fit .kpi{padding:5px 10px;min-width:62px}
+.twoup.fit .kpi .v{font-size:16px}
+.twoup.fit .sidehdr{margin-bottom:8px}
+.twoup.fit .hdr{margin-bottom:7px}
+/* The paired view stacks on a tablet because a whole tab in half a screen
+   is unreadable. In fit it is one table, which reads perfectly well in half
+   an iPad held sideways, and side by side is the entire point. So the two
+   columns hold down to a portrait tablet, and the table scrolls sideways in
+   its own card rather than taking the other team off the screen. */
+@media (max-width:1180px){
+  .twoup.fit{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 14px}
+  .twoup.fit .side.them{border-top:0;padding-top:0}
+}
+@media (max-width:820px){
+  /* Narrower than that it is a phone in all but name: stacked, with each
+     half taking half the screen rather than one of them taking all of it. */
+  .twoup.fit{grid-template-columns:minmax(0,1fr);height:auto}
+  .twoup.fit>.side{max-height:calc(50dvh - 60px)}
+}
+
 /* Inside a column there is no room for the chart-beside-table split that a
    full-width panel uses. The breakpoint on .cols watches the window, which
    is the wrong thing to watch once the panel is half a window, so stack them
