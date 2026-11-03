@@ -137,11 +137,8 @@ tab_serve <- function(F, o, coords_ok) {
   # Who is serving is the first thing on the tab. The type mix and the team's
   # own line are readings of the same serves, and nobody opens this to ask
   # about float against top spin before looking at who is on the line.
-  srv_card <- card("By server", c(tbl_generic(
-    c("Server", "Type", "Eff", "Srv", "PS%", "Ace", "%Ace", "Err", "%Err", "Op",
-      "Pass #%", "KO%",
-      "→Opp R", "→Mid", "→Opp L", "Depth m"),
-    lapply(by_size(crosstab(V, paste(V$num, V$player_short, sep = "|"), serve_line), "n"),
+  srv_rows <- lapply(
+    by_size(crosstab(V, paste(V$num, V$player_short, sep = "|"), serve_line), "n"),
       function(g) {
         parts <- strsplit(g$key, "|", fixed = TRUE)[[1]]
         gg <- g$rows[g$rows$has_xy & !out_of_court(g$rows$x1, g$rows$y1), ]
@@ -160,7 +157,13 @@ tab_serve <- function(F, o, coords_ok) {
           pass_pct(g$stat$kopct, g$stat$rec_n),
           lane("R"), lane("M"), lane("L"),
           if (!is.na(g$stat$med_depth)) m1(g$stat$med_depth - COURT$NET) else "")
-      })),
+      })
+  srv_t <- cut_cols(
+    c("Server", "Type", "Eff", "Srv", "PS%", "Ace", "%Ace", "Err", "%Err", "Op",
+      "Pass #%", "KO%", "→Opp R", "→Mid", "→Opp L", "Depth m"),
+    srv_rows, drop = if (fit_narrow(o)) NARROW_DROP else character())
+  srv_card <- card("By server", c(
+    tbl_generic(srv_t$head, srv_t$rows),
     tiny("PS% is the share of the rallies she served that were won, which is a point scored off her serve however the rally got there, so it is read beside what the serve itself did rather than instead of it. Rallies the file records no winner for are left out of it. Eff and Op reproduce VolleyStation's report exactly: Eff = (aces + no-attack + positive − errors) ÷ serves, Op = serves after which the receiving team could not set up an attack. Pass #% is how often the receiving team passed her serve perfect, and KO% how often they did not pass it # or +, which is VolleyStation's positive reception inverted. Both count the serves that drew a pass, so a serve into the net is in neither, and both go grey under five passes, where a percentage is not yet a rate. Lane columns are the receiving team's right / middle / left thirds, zones 1·9·2, 6·8·3 and 5·7·4.")))
 
   R <- c(R, card("By serve type", c(tbl_generic(

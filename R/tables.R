@@ -41,6 +41,32 @@ tbl_generic <- function(head, rows, cls = NULL) {
 
 tot_row <- function(cells) list(cells = cells, tot = TRUE)
 
+#' Take named columns out of a table before it is drawn.
+#'
+#' Half a window is not a panel, and the widest tables here run to sixteen
+#' columns: side by side they ran off the edge of their own card and had to
+#' be scrolled sideways, which is the one thing a coach between rallies will
+#' not do. Dropping columns by their heading rather than by position means
+#' the caller says what it is giving up in the words on the page, and a
+#' column that is renamed later takes its entry with it.
+#'
+#' Rows are either a character vector or a tot_row, so both are cut.
+cut_cols <- function(head, rows, cls = NULL, drop = character()) {
+  keep <- !(head %in% drop)
+  if (all(keep)) return(list(head = head, rows = rows, cls = cls))
+  list(head = head[keep],
+       rows = lapply(rows, function(r)
+         if (is.list(r) && !is.null(r$cells)) tot_row(r$cells[keep]) else r[keep]),
+       cls = if (is.null(cls)) NULL else cls[keep])
+}
+
+#' The columns that go when both teams are up and the window is the limit.
+#' Where the ball went is the one thing the table says that the court under
+#' it says better, so it is what comes out first.
+NARROW_DROP <- c("Line", "Seam", "Cross", "→Opp R", "→Mid", "→Opp L")
+#' Fit only narrows while it is actually drawing two columns.
+fit_narrow <- function(o) isTRUE(o$fit) && isTRUE(o$pair)
+
 eff_td <- function(v) sprintf('<span class="%s">%s</span>', eff_cls(v), eff(v))
 
 card <- function(title, body)

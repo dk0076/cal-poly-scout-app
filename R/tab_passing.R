@@ -88,11 +88,7 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
               x$n, if (x$n == 1L) "y" else "ies", pct(x$pct))
     else pct(x$pct)
 
-  Rc <- c(Rc, card("By passer, weakest first", c(tbl_generic(
-    c("Passer", "Rec", "Avg", "Perfect", "Good", "Poor", "Neg", "Err", "Pos%", "Err%",
-      "SO%",
-      paste(sprintf("L%d", PASS_WINDOWS), collapse = " / "), "Last 15", "Off-net m"),
-    lapply(by_player, function(g) {
+  pass_rows <- lapply(by_player, function(g) {
       parts <- strsplit(g$key, "|", fixed = TRUE)[[1]]
       s <- g$stat
       c(sprintf("<b>%s</b> %s", parts[1], esc(parts[2])), s$n,
@@ -105,7 +101,17 @@ tab_passing <- function(F, o, coords_ok, sys_rows = NULL) {
         paste(rec_window(g$rows), collapse = ""),
         sprintf('<div class="atts">%s</div>', rec_chips(g$rows)),
         if (!is.na(s$med_off_net)) m1(s$med_off_net) else "")
-    })),
+    })
+  # Her last fifteen receptions as chips are the widest thing on this table,
+  # and the three windows beside them say the same stretch as numbers, so
+  # they are what goes when both teams are sharing the window.
+  pass_t <- cut_cols(
+    c("Passer", "Rec", "Avg", "Perfect", "Good", "Poor", "Neg", "Err", "Pos%", "Err%",
+      "SO%",
+      paste(sprintf("L%d", PASS_WINDOWS), collapse = " / "), "Last 15", "Off-net m"),
+    pass_rows, drop = if (fit_narrow(o)) "Last 15" else character())
+  Rc <- c(Rc, card("By passer, weakest first", c(
+    tbl_generic(pass_t$head, pass_t$rows),
     tiny("SO% is the share of the rallies she received that were won: her pass is one touch of it, so it is read beside her grades rather than instead of them. Rallies the file records no winner for are left out of it. L3, L6 and L15 are reception efficiency over that player's last 3, 6 and 15 receptions, with the arrow comparing the window with her whole figure; the chips are those receptions themselves, oldest on the left. Avg is this staff's own 0–4 scale, taken from the WEIGHTS block of their VolleyStation worksheet: # 4, + 3, ! 2, - 1, overpass 0.5, error 0. Positive = perfect (#) or good (+), VolleyStation's own \"positive reception\" grouping. Sorted so the passer most worth targeting sits at the top. Off-net m is the median result of the pass itself (distance from net), not where they stood to receive."))))
 
   if (!is.null(sys_rows)) Rc <- c(Rc, sys_rows)

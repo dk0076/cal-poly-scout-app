@@ -115,7 +115,7 @@ tab_attack <- function(F, o, coords_ok) {
   R <- list()
 
   R <- c(R, card("By hitter", tbl_attack(
-    crosstab(A, paste(A$num, A$player_short, sep = "|")), A)))
+    crosstab(A, paste(A$num, A$player_short, sep = "|")), A, fit_narrow(o))))
 
   R <- c(R, card_extra(landed, "Landing third of the opponent court", tbl_generic(
     c("Third", "Zones", "Att", "Sh%", "K%", "Hit"),
@@ -224,7 +224,7 @@ phase_by_rot_card <- function(A, label, cls) {
           tiny("SR = this team's first attack off their own serve receive. Trans = first transition and all later swings combined. Rotation is the setter's court position."))
 }
 
-tbl_attack <- function(groups, all) {
+tbl_attack <- function(groups, all, narrow = FALSE) {
   groups <- by_size(groups)
   rows <- lapply(groups, function(g) {
     parts <- strsplit(g$key, "|", fixed = TRUE)[[1]]
@@ -250,11 +250,16 @@ tbl_attack <- function(groups, all) {
   rows <- c(rows, list(tot_row(c("Total", "", t0$ta, pct(t0$kpct), pct(t0$epct),
                                  eff_td(t0$eff), pct(tip_line(all)$tip_pct),
                                  "", "", "", "", "", "", ""))))
-  paste0(tbl_generic(
+  t <- cut_cols(
     c("Hitter", "From", "Att", "K%", "E%", "Hit", "Tip%", "Line", "Seam", "Cross",
       "→Opp R", "→Mid", "→Opp L", "Depth m"), rows,
-    cls = c("", "coord", "", "", "", "", "", rep("coord", 7))),
-    tiny("Line / seam / cross are relative to the hitter's own contact point and are left blank for attacks taken from the middle of the court. The three arrow columns are absolute: the receiving team's right, middle and left thirds."))
+    cls = c("", "coord", "", "", "", "", "", rep("coord", 7)),
+    drop = if (narrow) NARROW_DROP else character())
+  paste0(tbl_generic(t$head, t$rows, cls = t$cls),
+    if (narrow)
+      tiny("Where the ball went is off this table while both teams are up: the court under it is the same six columns drawn.")
+    else
+      tiny("Line / seam / cross are relative to the hitter's own contact point and are left blank for attacks taken from the middle of the court. The three arrow columns are absolute: the receiving team's right, middle and left thirds."))
 }
 
 #' Middle-attack routes: every call whose attack-combination definition targets

@@ -1100,6 +1100,55 @@ local({
      grepl("aside.rail", js, fixed = TRUE) &&
        grepl("rail.style.maxHeight", js, fixed = TRUE))
 })
+# Half a window is not a panel. The widest tables ran to sixteen columns and
+# had to be scrolled sideways inside their own card, which is the one thing a
+# coach between rallies will not do, so where the ball went comes out of them
+# while both teams are up: the court under the table is the same columns
+# drawn. Measured in the browser afterwards, no table on any of the five
+# paired tabs scrolls sideways.
+local({
+  head <- c("Hitter", "Att", "Line", "Seam", "Cross", "→Opp R", "→Mid",
+            "→Opp L", "Depth m")
+  rows <- list(as.character(1:9), tot_row(as.character(11:19)))
+  t <- cut_cols(head, rows, cls = letters[1:9], drop = NARROW_DROP)
+  ok("cut_cols takes the named columns out of the heading, the rows and the classes",
+     identical(t$head, c("Hitter", "Att", "Depth m")) &&
+       identical(t$rows[[1]], c("1", "2", "9")) &&
+       identical(t$cls, c("a", "b", "i")))
+  ok("and a total row is still a total row after it",
+     isTRUE(t$rows[[2]]$tot) && identical(t$rows[[2]]$cells, c("11", "12", "19")))
+  ok("dropping nothing changes nothing",
+     identical(cut_cols(head, rows, drop = character())$head, head))
+  # It narrows only while it is drawing two columns: fit left on with one
+  # team up would be a full-width table missing columns for no reason.
+  ok("narrowing follows fit and both teams, not fit alone",
+     fit_narrow(list(fit = TRUE, pair = TRUE)) &&
+       !fit_narrow(list(fit = TRUE, pair = FALSE)) &&
+       !fit_narrow(list(fit = FALSE, pair = TRUE)))
+  o_n <- modifyList(o, list(fit = TRUE, pair = TRUE))
+  a_wide <- tab_attack(Fp, o, ck)
+  a_thin <- tab_attack(Fp, o_n, ck)
+  ok("the by-hitter table loses its six directional columns and keeps the rest",
+     grepl(">Line</th>", a_wide, fixed = TRUE) &&
+       !grepl(">Line</th>", a_thin, fixed = TRUE) &&
+       !grepl(">→Mid</th>", a_thin, fixed = TRUE) &&
+       grepl(">Depth m</th>", a_thin, fixed = TRUE) &&
+       grepl(">Hit</th>", a_thin, fixed = TRUE))
+  ok("and says where that reading went instead",
+     grepl("the court under it is the same six columns drawn", a_thin, fixed = TRUE))
+  s_thin <- tab_serve(Fp, o_n, ck)
+  ok("by server narrows the same way",
+     grepl(">→Opp R</th>", tab_serve(Fp, o, ck), fixed = TRUE) &&
+       !grepl(">→Opp R</th>", s_thin, fixed = TRUE) &&
+       grepl(">KO%</th>", s_thin, fixed = TRUE))
+  # Fifteen chips in a cell is the widest thing on the passing table, and the
+  # three windows beside them say the same stretch as numbers.
+  p_thin <- tab_passing(Fp, o_n, ck)
+  ok("and the passer table drops the chip strip rather than a number",
+     grepl(">Last 15</th>", tab_passing(Fp, o, ck), fixed = TRUE) &&
+       !grepl(">Last 15</th>", p_thin, fixed = TRUE) &&
+       grepl(">SO%</th>", p_thin, fixed = TRUE))
+})
 ok("a team name with markup in it is escaped, not rendered",
    !grepl("<script>", two_up("", "", "<script>x</script>", "b"), fixed = TRUE))
 

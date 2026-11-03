@@ -630,12 +630,21 @@ rect.setzone:hover{fill:var(--accent);fill-opacity:.1}
 .twoup.fit .sm .nm{font-size:11px}
 .twoup.fit .sm .ln{font-size:9.5px;margin-bottom:3px}
 .twoup.fit .legend{font-size:10.5px}
+/* The recent-reception strips are one nowrap row, which is three hundred
+   pixels of chips that no half-window table can hold. They wrap here
+   instead, the same answer print came to. */
+.twoup.fit .atts{flex-wrap:wrap}
+.twoup.fit td:has(.atts){white-space:normal}
+.twoup.fit .att{padding:0 3px}
 /* Tighter, because the point is how much of it lands above the fold. */
 .twoup.fit .card{padding:8px 9px 9px}
 .twoup.fit .card+.card{margin-top:10px}
 .twoup.fit .card>h3{margin-bottom:6px}
 .twoup.fit table{font-size:11px}
-.twoup.fit th,.twoup.fit td{padding:2px 4px}
+.twoup.fit th,.twoup.fit td{padding:2px 3px}
+/* A table still over a dozen columns wide takes a smaller size rather than
+   a sideways scrollbar, the same trade the printed page makes. */
+.twoup.fit table:has(th:nth-child(13)){font-size:10px}
 .twoup.fit .kpi{padding:5px 10px;min-width:62px}
 .twoup.fit .kpi .v{font-size:16px}
 .twoup.fit .sidehdr{margin-bottom:8px}

@@ -100,6 +100,18 @@ the window with them, since it was the only other thing left to scroll. The
 columns hold side by side down to a portrait tablet. Checked at 1512x900 and
 at an iPad's 1024x768, both with the page itself not scrolling at all.
 
+In Fit the widest tables lose their directional columns, because half a
+window is not a panel and sixteen columns had to be scrolled sideways inside
+their own card, which is the one thing a coach between rallies will not do.
+By hitter drops line / seam / cross and the three arrow columns, By server
+drops the same three, and By passer drops the strip of her last fifteen
+receptions as chips, keeping the three windows beside it that say the same
+stretch as numbers. Where the ball went is what goes, since the court under
+the table is those columns drawn. Columns are dropped by their heading
+rather than by position, so renaming one takes its entry with it, and the
+narrowing only happens while two columns are actually being drawn. Measured
+after: no table on any of the five paired tabs scrolls sideways.
+
 The team picker in the header no longer decides whose numbers you see. It
 says which team is yours, which is what sets the colours and the order.
 
