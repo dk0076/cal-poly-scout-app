@@ -147,7 +147,7 @@ tab_attack <- function(F, o, coords_ok) {
 
   # Draws a row of little courts of its own, so it belongs to the chart
   # switch even though it sits in the numbers column.
-  R <- c(R, middle_routes(A, coords_ok && show_chart, mono))
+  R <- c(R, middle_routes(A, coords_ok && show_chart, mono, fit_narrow(o)))
 
   R <- c(R, card("By hit type", tbl_generic(
     c("Hit type", "Code", "Att", "K%", "Hit", "Most-used lane"),
@@ -266,7 +266,7 @@ tbl_attack <- function(groups, all, narrow = FALSE) {
 #' the middle (C) in this file's own coding scheme -- not a fixed list, so this
 #' reflects whatever call vocabulary was used to code the match. Empty when the
 #' file's metadata never targets 'C'; some schemes route middles elsewhere.
-middle_routes <- function(A, coords_ok, mono = FALSE) {
+middle_routes <- function(A, coords_ok, mono = FALSE, narrow = FALSE) {
   routes <- A[!is.na(A$target) & A$target == "C", ]
   if (!nrow(routes)) return("")
   key <- routes$season_call; key[is.na(key)] <- "(no call)"
@@ -305,8 +305,14 @@ middle_routes <- function(A, coords_ok, mono = FALSE) {
   }, ""), collapse = "") else ""
 
   card(sprintf("Middle routes · %s attempts · run by %s", t0$ta, esc(run_by)),
-       c(tbl_generic(c("Route", "Name", "Att", "K%", "Hit", "Approach zones",
-                       "Contact x range"), rows),
+       c(local({
+           # Where she took off from is two columns of coordinates, and in
+           # half a tablet they are what pushes the rest off the card.
+           t <- cut_cols(c("Route", "Name", "Att", "K%", "Hit", "Approach zones",
+                           "Contact x range"), rows,
+                         drop = if (narrow) "Contact x range" else character())
+           tbl_generic(t$head, t$rows)
+         }),
          tiny("Routes are every call whose attack-combination definition targets the middle (C) in this file's own coding scheme. Approach zones are where the attacker's own contact was coded; contact x range shows how far left/right of centre that call is actually run from."),
          if (nzchar(smg)) sprintf('<div class="smgrid" style="margin-top:12px">%s</div>', smg) else ""))
 }

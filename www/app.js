@@ -751,7 +751,7 @@
     t.style.height = "";
     // Below the stylesheet's own narrow breakpoint the columns stack and it
     // sizes the halves itself.
-    if (window.innerWidth <= 820) return;
+    if (window.innerWidth <= 600) return;
     if (rail) {
       var rt = rail.getBoundingClientRect().top;
       if (rt < window.innerHeight) rail.style.maxHeight = (window.innerHeight - rt - 8) + "px";

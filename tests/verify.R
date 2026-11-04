@@ -1085,11 +1085,21 @@ local({
        !grepl("chartcol{order:-1", css, fixed = TRUE))
   ok("each half scrolls inside itself rather than the page",
      grepl(".twoup.fit>.side{overflow-y:auto", css, fixed = TRUE))
-  # The columns hold down to a portrait tablet: in fit they are one table,
-  # which reads in half an iPad, and side by side is the whole point.
-  ok("and stay side by side on a tablet",
+  # Side by side is the whole point, so the columns hold down to an iPad
+  # stood up, which is 768 across: two columns of about 345 once the gutter
+  # is off. A step down in type at 900, and nothing stacks until 600, which
+  # is a phone in all but name.
+  ok("and stay side by side on a tablet, standing up as well as lying down",
      grepl(".twoup.fit{grid-template-columns:minmax(0,1fr) minmax(0,1fr)", css,
-           fixed = TRUE))
+           fixed = TRUE) &&
+       grepl("@media (max-width:600px)", css, fixed = TRUE) &&
+       !grepl("@media (max-width:820px)", css, fixed = TRUE))
+  # What sets a numeric column's width is its heading, not its numbers.
+  ok("headings wrap at that width rather than columns leaving the card",
+     grepl(".twoup.fit th{white-space:normal", css, fixed = TRUE) &&
+       grepl(".twoup.fit table{font-size:9.5px}", css, fixed = TRUE))
+  ok("and the browser stops sizing them at the same width the stylesheet stacks them",
+     grepl("window.innerWidth <= 600", js, fixed = TRUE))
   # Only the browser knows where the columns start: the header wraps on a
   # narrow laptop and the tab bar is taller on a tablet.
   ok("the height is measured rather than assumed",

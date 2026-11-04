@@ -97,8 +97,14 @@ screen, which was what was wrong with the paired view at a bench. The height
 is measured in the browser rather than assumed, because only it knows where
 the columns start once the header has wrapped, and the filter rail is cut to
 the window with them, since it was the only other thing left to scroll. The
-columns hold side by side down to a portrait tablet. Checked at 1512x900 and
-at an iPad's 1024x768, both with the page itself not scrolling at all.
+columns hold side by side down to an iPad stood up, which is 768 across and
+two columns of about 345 once the gutter is off: the type steps down at 900
+and nothing stacks until 600, which is a phone in all but name. Headings
+wrap at that width too, since what sets a numeric column's width is its
+heading rather than its numbers. Checked at 1512x900, at 1024x768 and at
+768x1024, all three with the page itself not scrolling at all. Standing up,
+Attacking and Last 6 fit whole; By server, By setter and By passer are still
+wider than half an iPad and scroll sideways inside their own card.
 
 In Fit the widest tables lose their directional columns, because half a
 window is not a panel and sixteen columns had to be scrolled sideways inside
