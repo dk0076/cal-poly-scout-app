@@ -150,17 +150,11 @@ tab_attack <- function(F, o, coords_ok) {
   R <- c(R, middle_routes(A, coords_ok && show_chart, mono, fit_narrow(o)))
 
   R <- c(R, card("By hit type", tbl_generic(
-    c("Hit type", "Code", "Att", "K%", "Hit", "Most-used lane"),
-    lapply(by_size(crosstab(A, A$season_call)), function(g) {
-      rs <- g$rows[g$rows$has_xy, ]
-      lanes <- by_size(crosstab(rs, lat_third(rs$x1)))
-      lane <- if (length(lanes)) LAT[[match(lanes[[1]]$key, LAT_KEYS)]] else NULL
+    c("Hit type", "Code", "Att", "K%", "Hit"),
+    lapply(by_size(crosstab(A, A$season_call)), function(g)
       c(sprintf("<b>%s</b>", esc(call_label(g$key, g$rows$call_name[1]))),
         thin(esc(raw_codes_of(g$rows$call))), g$stat$ta,
-        pct(g$stat$kpct), eff_td(g$stat$eff),
-        if (!is.null(lane)) sprintf("%s %s", lane$label,
-                                    thin(pct(lanes[[1]]$stat$ta / nrow(rs)))) else "")
-    }))))
+        pct(g$stat$kpct), eff_td(g$stat$eff))))))
 
   # Serve receive vs transition by rotation now lives on the Rotations tab,
   # which is where a coach is already reading rotation by rotation. By hit
