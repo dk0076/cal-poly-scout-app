@@ -20,15 +20,42 @@ tab_attack <- function(F, o, coords_ok) {
   # file actually distinguishes.
   blk_varies <- length(unique(A$blockers[!is.na(A$blockers)])) > 1L
   if (!nrow(A)) return(empty("No attacks in the current filter."))
-  shown <- if (isTRUE(o$aIncErr)) A else A[!(!is.na(A$effect) & A$effect %in% c("=", "/")), ]
+  # Whose ball, and which one. Two rows of chips rather than the defense
+  # tab's single choice, because here they cross: "where does #10 put her
+  # Go" is the question a staff asks out loud, and either row on its own
+  # answers half of it. The pick holds the chart only; the tables under it
+  # stay on everybody, since By hitter and By hit type are already cut that
+  # way and crossing the two reads as a bug.
+  atk_nums <- sort(unique(A$num[!is.na(A$num)]))
+  atk_calls <- names(sort(table(A$season_call[!is.na(A$season_call)]), decreasing = TRUE))
+  a_who <- as.character(o$aWho %||% "")
+  if (!(a_who %in% as.character(atk_nums))) a_who <- ""
+  a_call <- as.character(o$aCall %||% "")
+  if (!(a_call %in% atk_calls)) a_call <- ""
+  keep_pick <- rep(TRUE, nrow(A))
+  if (nzchar(a_who)) keep_pick <- keep_pick & !is.na(A$num) & A$num == as.integer(a_who)
+  if (nzchar(a_call)) keep_pick <- keep_pick & !is.na(A$season_call) & A$season_call == a_call
+  P <- A[keep_pick, ]
+  a_name <- function(n) {
+    nm <- A$player_short[match(n, A$num)]
+    if (is.na(nm) || !nzchar(nm)) sprintf("#%s", n) else sprintf("#%s %s", n, nm)
+  }
+  pick_name <- paste(c(if (nzchar(a_who)) a_name(as.integer(a_who)),
+                       if (nzchar(a_call))
+                         call_label(a_call, A$call_name[!is.na(A$season_call) &
+                                                          A$season_call == a_call][1])),
+                     collapse = ", ")
+
+  shown <- if (isTRUE(o$aIncErr)) P else P[!(!is.na(P$effect) & P$effect %in% c("=", "/")), ]
   xy <- A[A$has_xy, ]
   st <- attack_line(A)
   rect <- list(x0 = 0, y0 = COURT$NET, x1 = COURT$W, y1 = COURT$L)
   mono <- isTRUE(o$mono)
 
   H <- hdr("Attacking",
-           sprintf("%s attempts · %s with trajectory · contact→landing",
-                   nrow(A), nrow(xy)))
+           sprintf("%s attempts · %s with trajectory · contact→landing%s",
+                   nrow(A), nrow(xy),
+                   if (nzchar(pick_name)) sprintf(" · charting %s", pick_name) else ""))
   H <- c(H, kpis(list(
     list(k = "Attempts", v = st$ta),
     list(k = "Kills", v = st$k, s = pct(st$kpct)),
@@ -79,17 +106,38 @@ tab_attack <- function(F, o, coords_ok) {
   # where every arrow is hers by construction, and as a fallback if the
   # strip somehow has nothing in it while there is something charted.
   charted <- sum(shown$has_xy)
-  one_hitter <- length(unique(A$num[!is.na(A$num)])) == 1L
+  one_hitter <- length(unique(P$num[!is.na(P$num)])) == 1L
   strip <- if (charted) small_multiples(shown, "attack", coords_ok, mono) else ""
   full_court <- one_hitter || (charted > 0L && !nzchar(strip))
 
+  pchip <- function(opt, cur, v, label, n)
+    sprintf('<button class="chip %s" data-o="%s" data-v="%s">%s<span class="n">%d</span></button>',
+            if (identical(cur, v)) "on" else "", opt, esc(v), esc(label), n)
+  prow <- function(lead, chips)
+    if (!length(chips)) "" else
+      viewbar(sprintf('<span class="tiny" style="align-self:center">%s</span>', lead),
+              paste0(chips, collapse = ""))
+  picker <- c(
+    prow("Hitter", c(pchip("aWho", a_who, "", "Everybody", nrow(A)),
+                     vapply(atk_nums, function(n)
+                       pchip("aWho", a_who, as.character(n), a_name(n),
+                             sum(!is.na(A$num) & A$num == n)), ""))),
+    prow("Hit type", if (!length(atk_calls)) character() else
+      c(pchip("aCall", a_call, "", "Every ball", nrow(A)),
+        vapply(atk_calls, function(k)
+          pchip("aCall", a_call, k,
+                call_label(k, A$call_name[!is.na(A$season_call) & A$season_call == k][1]),
+                sum(!is.na(A$season_call) & A$season_call == k)), ""))))
+
   left <- if (!full_court) character() else plain_card(c(
+    picker,
     viewbar(vbtn("aView", "arrows", "Trajectories", aView),
             vbtn("aView", "heat", "Landing grid", aView),
             vbtn("aView", "contact", "Contact points", aView)),
     if (auto_grid)
-      caveat(sprintf("%d attacks is too many arrows to read at once, so this is where they landed. Pick a hitter in the rail, or press Trajectories to draw them anyway.",
-                   sum(shown$has_xy))) else "",
+      caveat(sprintf("%d attacks is too many arrows to read at once, so this is where they landed. %sPress Trajectories to draw them anyway.",
+                   sum(shown$has_xy),
+                   if (nzchar(a_who)) "" else "Pick a hitter above, or ")) else "",
     viewbar(if (heat) c(vbtn("aBins", "3", "3×3 zones", as.character(o$aBins)),
                         vbtn("aBins", "6", "6×6", as.character(o$aBins)),
                         vbtn("aColor", "volume", "By volume", o$aColor),
@@ -102,13 +150,17 @@ tab_attack <- function(F, o, coords_ok) {
            trailing = "net at bottom · dot = contact")
   ))
   if (!charted)
-    left <- plain_card(caveat("No attack in view carries a drawn line, so there is nothing to chart. A file coded live during a match usually has none; the scouting films do, so picking one in the rail brings the charts back."))
+    left <- plain_card(c(picker, caveat(
+      if (nzchar(pick_name))
+        sprintf("Nothing of %s carries a drawn line, so there is nothing to chart. The tables below still count them.", pick_name)
+      else "No attack in view carries a drawn line, so there is nothing to chart. A file coded live during a match usually has none; the scouting films do, so picking one in the rail brings the charts back.")))
   else {
     if (!full_court)
       left <- c(left,
-        plain_card(c(viewbar(vtoggle("aIncErr", "Include errors &amp; blocks", o$aIncErr),
+        plain_card(c(picker,
+                     viewbar(vtoggle("aIncErr", "Include errors &amp; blocks", o$aIncErr),
                              vtoggle("tend", "Tendency lines", o$tend)),
-                     tiny("One court per hitter below. Pick a hitter in the rail for the full chart: a whole team on one court is every attack a volleyball team hits, which is the same picture every week."))))
+                     tiny("One court per hitter below. Pick a hitter above for the full chart: a whole team on one court is every attack a volleyball team hits, which is the same picture every week."))))
     left <- c(left, strip)
   }
 

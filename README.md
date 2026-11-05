@@ -286,6 +286,14 @@ built for. Tendency lines are off unless asked for: they are a summary drawn
 over the evidence, and on a team-sized chart they were the only legible
 thing on it.
 
+**Attacking cuts the same way, by hitter and by hit type.** Above the court
+are two rows of chips, one per shirt and one per call, and they cross: our
+#10 alone, her Go alone, or her Go alone. The counts on the chips are the
+attempts in the current filter, so they say what a pick is about to draw
+before it is pressed. Like Defense, the pick holds the chart and the
+per-hitter strip only; By hitter and By hit type under it stay on everybody,
+since those tables are already cut that way.
+
 **The block is read per hit type, not as one number.** The same three bodies
 that stuff a high ball outside are the ones a quick goes through, and a tip
 goes over all of it, so Defense groups their attacks by the tempo on the

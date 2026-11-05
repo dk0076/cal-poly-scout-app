@@ -1832,7 +1832,7 @@ ok("a court never spans the panel, whatever the layout does",
 "), fixed = TRUE))
 
 ok("and says where the full chart is",
-   grepl("Pick a hitter in the rail", h_team, fixed = TRUE))
+   grepl("Pick a hitter above", h_team, fixed = TRUE))
 ok("the per-hitter strip is still drawn",
    grepl('class="sm"', h_team, fixed = TRUE) || !any(A_all$has_xy))
 
@@ -1846,6 +1846,48 @@ if (nrow(A_all) && any(!is.na(A_all$num))) {
              if (n_one > ARROWS_READABLE) "the grid" else "arrows"),
      grepl("too many arrows", h_one, fixed = TRUE) == (n_one > ARROWS_READABLE))
 }
+
+# The Attacking picker: hitter and hit type, crossed, holding the chart only.
+# Counted off the drawn lines, which here include the per-hitter strip, so the
+# test is that a pick never draws more than everybody and that the chip and
+# the header both say whose it is.
+local({
+  o_p <- o_auto; o_p$aView <- "arrows"; o_p$aIncErr <- TRUE
+  narrows <- function(h) length(regmatches(h, gregexpr("url(#ah-", h, fixed = TRUE))[[1]])
+  h_base <- paste(tab_attack(Fp, o_p, ck), collapse = "")
+  nums <- sort(unique(A_all$num[!is.na(A_all$num)]))
+  calls <- names(sort(table(A_all$season_call[!is.na(A_all$season_call)]), decreasing = TRUE))
+  ok("the hitter chips are on the Attacking tab",
+     grepl('data-o="aWho"', h_base, fixed = TRUE) &&
+       (!length(calls) || grepl('data-o="aCall"', h_base, fixed = TRUE)))
+  if (length(nums)) {
+    n1 <- nums[1]
+    o_w <- o_p; o_w$aWho <- as.character(n1)
+    h_w <- paste(tab_attack(Fp, o_w, ck), collapse = "")
+    ok("picking a hitter lights her chip and says so in the header",
+       grepl(sprintf('class="chip on" data-o="aWho" data-v="%d"', n1), h_w, fixed = TRUE) &&
+         grepl(sprintf("charting #%d", n1), h_w, fixed = TRUE))
+    ok("and the chart never draws more than everybody does",
+       narrows(h_w) <= narrows(h_base),
+       sprintf("#%d drew %d of %d", n1, narrows(h_w), narrows(h_base)))
+    ok("while the tables under it still count everybody",
+       length(gregexpr("</tr>", h_w, fixed = TRUE)[[1]]) ==
+         length(gregexpr("</tr>", h_base, fixed = TRUE)[[1]]))
+  }
+  if (length(calls)) {
+    k1 <- calls[1]
+    o_c <- o_p; o_c$aCall <- k1
+    h_c <- paste(tab_attack(Fp, o_c, ck), collapse = "")
+    ok("picking a hit type cuts the chart to that ball",
+       grepl(sprintf('class="chip on" data-o="aCall" data-v="%s"', k1), h_c, fixed = TRUE) &&
+         narrows(h_c) <= narrows(h_base))
+  }
+  ok("a hitter who is not in the file falls back to everybody",
+     { o_x <- o_p; o_x$aWho <- "999"; o_x$aCall <- "zzz"
+       h_x <- paste(tab_attack(Fp, o_x, ck), collapse = "")
+       narrows(h_x) == narrows(h_base) &&
+         grepl('class="chip on" data-o="aWho" data-v=""', h_x, fixed = TRUE) })
+})
 
 o_arrows <- o_auto; o_arrows$aView <- "arrows"
 ok("pressing Trajectories overrides the switch",
