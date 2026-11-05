@@ -15,6 +15,23 @@ EV <- c("#", "+", "!", "-", "/", "=")
 
 note <- function(...) div(class = "text-body-secondary small mb-2", ...)
 
+#' Set plot margins that fit the device.
+#'
+#' Base graphics throws "figure margins too large" rather than drawing when
+#' the margins do not fit, and a sidebar app in a narrow window hits that
+#' easily: a player-name axis wants thirteen lines of left margin, which is
+#' most of a phone. Shrink them to the room there is, and say so in words if
+#' there is no room at all.
+fit_mar <- function(mar) {
+  din <- par("din"); lin <- par("csi")
+  validate(need(all(din > 1), "Too narrow to draw. Widen the window."))
+  side <- (mar[2] + mar[4]) * lin
+  ends <- (mar[1] + mar[3]) * lin
+  if (side > din[1] * 0.8) mar[c(2, 4)] <- mar[c(2, 4)] * din[1] * 0.8 / side
+  if (ends > din[2] * 0.8) mar[c(1, 3)] <- mar[c(1, 3)] * din[2] * 0.8 / ends
+  par(mar = mar)
+}
+
 #' A card holding a table, with the explanation above it. `fill = FALSE` so a
 #' long table makes the page longer instead of growing a scrollbar of its own.
 table_card <- function(title, id, ...) {
@@ -440,7 +457,7 @@ server <- function(input, output, session) {
     e <- as_num(t$`Hit%`); p <- as_num(t$`Pass avg`)
     validate(need(any(!is.na(e)), "No attacks coded in this selection."))
     e[is.na(e)] <- 0
-    par(mar = c(5, 4, 1, 4))
+    fit_mar(c(5, 4, 1, 4))
     plot(seq_len(nrow(t)), e, type = "b", pch = 19, col = "#2C3E50", xaxt = "n",
          xlab = "", ylab = "attack efficiency", ylim = range(c(0, e), na.rm = TRUE))
     axis(1, seq_len(nrow(t)), t$Set, las = 2, cex.axis = 0.8)
@@ -458,7 +475,7 @@ server <- function(input, output, session) {
     P <- P[P$atk_att >= 5, ]
     validate(need(nrow(P) > 0, "Nobody has five attempts in this selection."))
     P <- P[order(eff_num(P$atk_kill, P$atk_err, P$atk_blocked, P$atk_att)), ]
-    par(mar = c(4, 13, 1, 2))
+    fit_mar(c(4, 13, 1, 2))
     barplot(eff_num(P$atk_kill, P$atk_err, P$atk_blocked, P$atk_att),
             names.arg = paste0(P$label, "  (", P$atk_att, ")"), horiz = TRUE, las = 1,
             xlab = "attack efficiency", col = "#2C3E50", border = NA, cex.names = 0.85)
@@ -469,7 +486,7 @@ server <- function(input, output, session) {
     T <- team_line()
     v <- c(T$f0, T$f1, T$f2, T$f3, T$f4)
     validate(need(sum(v) > 0, "No serve in this selection was answered by a graded pass."))
-    par(mar = c(4, 4, 1, 2))
+    fit_mar(c(4, 4, 1, 2))
     b <- barplot(v, names.arg = paste("pass", 0:4), col = "#18BC9C", border = NA,
                  ylab = "serves", xlab = "what the receiver managed")
     text(b, v, v, pos = 3, xpd = NA)
@@ -480,7 +497,7 @@ server <- function(input, output, session) {
     e <- as_num(t$`Hit%`)
     validate(need(any(!is.na(e)), "No attacks coded in this selection."))
     e[is.na(e)] <- 0
-    par(mar = c(6, 4, 1, 2))
+    fit_mar(c(6, 4, 1, 2))
     barplot(e, names.arg = t$Set, las = 2, col = ifelse(e >= 0, "#2C3E50", "#E74C3C"),
             border = NA, ylab = "attack efficiency", cex.names = 0.8)
     abline(h = 0)
