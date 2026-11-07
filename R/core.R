@@ -627,3 +627,16 @@ view_for <- function(chosen, n) {
   if (!identical(chosen, "auto")) return(chosen)
   if (n > ARROWS_READABLE) "heat" else "arrows"
 }
+
+# ---------------------------------------------------------------------------
+# Which device is this
+#
+# The machine running the app is the one coding the match, and its picks are
+# the ones the room should see. A tablet reaches the same app over the
+# router, so the address a session came in on is what tells them apart. No
+# setting, no pairing: the laptop is the laptop because it is the laptop.
+LOOPBACK <- c("127.0.0.1", "::1", "0:0:0:0:0:0:0:1", "::ffff:127.0.0.1",
+              "localhost")
+is_loopback <- function(addr)
+  !is.null(addr) && length(addr) == 1L && !is.na(addr) && nzchar(addr) &&
+    tolower(addr) %in% LOOPBACK

@@ -331,11 +331,21 @@ server <- function(input, output, session) {
   # happens; a new R and the page reloads itself.
   session$sendCustomMessage("scoutr-boot", BOOT_ID)
 
+  # The coding laptop sends its picks without being asked. A page that came
+  # in on the loopback address is open on the machine running the app, which
+  # is the machine the match is being coded on: the one device whose pick the
+  # iPads should follow. A tablet reaches the same app over the router and
+  # keeps its own pick, as before. Nothing else about it changes, the chip
+  # included, so pressing it here still turns the sending off.
+  own_device <- is_loopback(session$request$REMOTE_ADDR)
+  opts0 <- DEFAULT_OPTS
+  if (own_device) opts0$nsShare <- TRUE
+
   S <- reactiveValues(
     matches = list(), focus_name = "", focus = list(),
     sel = list(matches = character(), sets = integer(), players = integer(),
                rots = character(), passers = integer()),
-    o = DEFAULT_OPTS, tab = "attack", errors = character(), warnings = character(),
+    o = opts0, tab = "attack", errors = character(), warnings = character(),
     live_id = ""
   )
 
@@ -417,7 +427,8 @@ server <- function(input, output, session) {
     S$focus_name <- ""; S$focus <- list()
     S$sel <- list(matches = character(), sets = integer(), players = integer(),
                   rots = character(), passers = integer())
-    S$o <- DEFAULT_OPTS
+    # Starting over is about the files, not about which device this is.
+    S$o <- opts0
     S$tab <- "attack"
     S$errors <- character(); S$warnings <- character()
   })

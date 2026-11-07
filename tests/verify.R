@@ -1583,6 +1583,22 @@ if (nrow(S_ns)) {
            server_chips(Opp_ns2, "", "", FALSE), fixed = TRUE) &&
        grepl('data-o="nsShare" data-v="false"',
              server_chips(Opp_ns2, "", "", TRUE), fixed = TRUE))
+  ok("and says which of the two it is doing",
+     grepl("Send picks to every device",
+           server_chips(Opp_ns2, "", "", FALSE), fixed = TRUE) &&
+       grepl("Picking for every device",
+             server_chips(Opp_ns2, "", "", TRUE), fixed = TRUE))
+
+  # The laptop is the laptop because the page came in on the loopback
+  # address. Nobody presses anything, which is the point: between rallies
+  # the pick has to travel without a second thing to remember.
+  ok("the machine running the app is the one that sends",
+     all(vapply(c("127.0.0.1", "::1", "0:0:0:0:0:0:0:1", "::ffff:127.0.0.1",
+                  "localhost", "LOCALHOST"), is_loopback, TRUE)))
+  ok("and a tablet over the router is not",
+     !any(vapply(c("10.144.63.30", "192.168.1.14", "", NA_character_),
+                 is_loopback, TRUE)) && !is_loopback(NULL) &&
+       !is_loopback(character()))
 
   # Between rallies the card is the chart and where she serves. The season
   # totals, the serve types and her last serve are still in the page, folded

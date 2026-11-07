@@ -259,12 +259,14 @@ server_chips <- function(Opp, pinned, shared = "", share_on = FALSE) {
   }, ""), collapse = "")
   sprintf('<div class="viewbar srvpick"><button class="chip %s" data-o="pinServer" data-v="">Follow the match</button>%s%s</div>',
           if (!nzchar(pinned)) "on" else "", chips,
-          sprintf('<button class="chip share %s" data-o="nsShare" data-v="%s" title="%s">Send picks to every device</button>',
+          sprintf('<button class="chip share %s" data-o="nsShare" data-v="%s" title="%s">%s</button>',
                   if (isTRUE(share_on)) "on" else "",
                   if (isTRUE(share_on)) "false" else "true",
                   esc(if (isTRUE(share_on))
-                        "This device is picking for the room. Press to stop, which also lets every device follow the match again."
-                      else "Turn this on where the match is being coded: every pick made here shows on every iPad on this router.")))
+                        "This device is picking for the room, so every pick here is what the iPads show. Press to stop, which also lets every device follow the match again."
+                      else "Turn this on where the match is being coded: every pick made here shows on every iPad on this router."),
+                  if (isTRUE(share_on)) "Picking for every device"
+                  else "Send picks to every device"))
 }
 
 #' Their serve order, one table per film, most recent first

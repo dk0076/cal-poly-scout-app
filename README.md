@@ -265,6 +265,13 @@ server tab, Send picks to every device turns that laptop into the one that
 says: every server picked there is the player the iPads show, with the time it
 was sent. Nobody on the bench is reading a rotation off a sheet and guessing.
 
+It is already on where the app is running. A page opened on the machine
+itself arrives on the loopback address, and that is the machine the match is
+being coded on, so its picks go out without anybody finding the button first.
+A tablet reaches the same app over the router and keeps its own pick, as
+before. The chip still works both ways on the laptop, and reads Picking for
+every device while it is sending.
+
 Order of precedence is your own pick, then the bench's, then the match. A coach
 who picks somebody on her own iPad is reading ahead and keeps her pick until
 she presses Follow the match, which hands her back to whatever the bench is
