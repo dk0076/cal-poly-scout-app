@@ -277,3 +277,65 @@ setter_calls_card <- function(E) {
     c("Call", "Called", "Became an attack", "Resulting combo(s)", "Atk K%", "Atk hit"), rows),
     tiny("The call is recorded on the setter's own play; \"resulting combo(s)\" is whatever code the attack that followed was independently classified as, often different from the call, since a called route can break down into something else. Calls not defined in this file's own combination table are labelled from the program's known call vocabulary where recognised.")))
 }
+
+#' Out of serve receive, what she calls in each rotation
+#'
+#' The call is the plan, and the plan is made rotation by rotation: who is in
+#' the front row decides what is available, and a staff scouting a setter
+#' wants the row for the rotation about to come up, not her season. Serve
+#' receive only, because that is the ball there was time to call: in
+#' transition the call is whatever the scramble allowed, and mixing the two
+#' turned a readable row into an average of two different games.
+#'
+#' Share is out of that rotation's called serve-receive sets, so a row reads
+#' across to 100%. The rotations are the same R1-R6 labels the tab's other
+#' tables use, so a row here lines up with a row there.
+sr_calls_by_rot_card <- function(E) {
+  called <- E[!is.na(E$setter_call) & !is.na(E$phase) & E$phase == "SR" &
+                !is.na(E$rot), ]
+  if (!nrow(called)) return("")
+  key <- called$setter_call
+  mapped <- VM_SETTER_TO_SEASON[key]
+  key[!is.na(mapped)] <- mapped[!is.na(mapped)]
+  called <- data.table::copy(called)
+  data.table::set(called, j = "call_key", value = key)
+
+  # The columns are her calls, commonest first. A setter with a long tail of
+  # one-off calls would otherwise push the table off a tablet, so the tail
+  # is added up rather than dropped: the row still reads to 100%.
+  tab <- sort(table(key), decreasing = TRUE)
+  keep <- names(tab)[seq_len(min(6L, length(tab)))]
+  tail_n <- sum(tab) - sum(tab[keep])
+
+  rots <- sort(unique(called$rot))
+  rows <- lapply(rots, function(r) {
+    rs <- called[called$rot == r, ]
+    lk <- rs[!is.na(rs$atk_effect), ]
+    k <- sum(lk$atk_effect == "#"); e <- sum(lk$atk_effect %in% c("=", "/"))
+    cells <- vapply(keep, function(kk) {
+      n <- sum(rs$call_key == kk)
+      if (!n) return('<span class="thin">0</span>')
+      sprintf("%s %s", n, thin(pct(n / nrow(rs))))
+    }, "")
+    other <- sum(!(rs$call_key %in% keep))
+    c(sprintf("<b>%s</b>", esc(r)), nrow(rs), cells,
+      if (tail_n) (if (other) sprintf("%s %s", other, thin(pct(other / nrow(rs))))
+                   else '<span class="thin">0</span>') else NULL,
+      pct(if (nrow(lk)) k / nrow(lk) else NA),
+      eff_td(if (nrow(lk)) (k - e) / nrow(lk) else NA_real_))
+  })
+
+  head <- c("Rot", "Called", vapply(keep, function(kk) {
+    own <- called$call_name[called$call_key == kk & !is.na(called$call_name)]
+    lab <- if (length(own)) own[1] else setter_call_label(kk)
+    if (nzchar(lab)) sprintf("%s <span class=\"thin\">%s</span>", esc(kk), esc(lab))
+    else esc(kk)
+  }, ""), if (tail_n) "Other" else NULL, "Atk K%", "Atk hit")
+
+  card("Serve receive setter calls, by rotation", c(
+    tbl_generic(head, rows),
+    tiny(sprintf("Her called sets out of serve receive only, %d of them, so this is the ball there was time to call rather than a scramble in transition. Each cell is the times she called it in that rotation and its share of that rotation's called sets, so a row reads across to 100%%%s. Atk K%% and Atk hit are the attacks that followed those sets. Rotations are the setter's own zone, R1 through R6, as everywhere else on this tab.",
+                 nrow(called),
+                 if (tail_n) sprintf(", with Other holding %d call%s outside her six commonest",
+                                     tail_n, if (tail_n == 1L) "" else "s") else ""))))
+}

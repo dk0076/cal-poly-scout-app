@@ -71,7 +71,7 @@ Rscript tests/verify.R path/to/match.vsm path/to/another.dvw
 | --- | --- |
 | **Attacking** | Where each hitter puts the ball and what it returns. Trajectories, landing grid, lanes, line/cross, depth, middle routes, serve-receive vs transition. |
 | **Serving** | Contact to landing. By type, server, target zone, depth, and where to stand a passer against each server. Each server also carries what her serves did to the other team's pass: Pass #% and KO%. |
-| **Setter** | Distribution and efficiency. Every player who set is listed and any can be switched off. |
+| **Setter** | Distribution and efficiency. Every player who set is listed and any can be switched off. Her calls are cross-tabbed against rotation out of serve receive. |
 | **Serve receive** | Sorted worst first, because this page is for picking who to serve. Pass average, earned FBSO, 5-1 vs 6-2. No court: reception is read as grades, not geometry. |
 | **Defense** | What they manage against us, whether we touch it, and whether we win the rally after. The block is split by how many were up and by the tempo they hit. Court drawn from our baseline. |
 | **Rotations** | SO%, ESO%, FBSO%, PS%, +/-, aces and errors per rotation, both teams, then the same by set. |
@@ -300,6 +300,17 @@ attempts in the current filter, so they say what a pick is about to draw
 before it is pressed. Like Defense, the pick holds the chart and the
 per-hitter strip only; By hitter and By hit type under it stay on everybody,
 since those tables are already cut that way.
+
+**Serve receive setter calls are read by rotation.** The call is the plan,
+and the plan is made rotation by rotation, since who is in the front row
+decides what is available. So the Setter tab cross-tabs her calls against
+R1 through R6, out of serve receive only: in transition the call is whatever
+the scramble allowed, and mixing the two averaged two different games. Each
+cell is the count and its share of that rotation's called sets, so a row
+reads across to 100%, with a tail of one-off calls added up under Other
+rather than dropped. Checked against the raw file for both teams in a
+scouted match: every rotation total agrees, bar three sets that followed a
+dig, which are transition and are left out on purpose.
 
 **The block is read per hit type, not as one number.** The same three bodies
 that stuff a high ball outside are the ones a quick goes through, and a tip

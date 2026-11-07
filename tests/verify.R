@@ -765,6 +765,60 @@ render <- function(o2) list(
                           opponent_plays(matches, sel_all, focus), o2),
   plays   = tab_plays(Fp, o2))
 
+# Serve receive setter calls by rotation. A cross-tab of a coded field, so
+# the checks are that it counts the right plays and that nothing falls
+# between the columns: every row reads across to its own total.
+cat("\n== sr calls by rotation\n")
+local({
+  # Whichever side of the files loaded has calls on its sets. Cal Poly's own
+  # coders fill the field in; a scouting film of somebody else may not, and
+  # the fixtures in data/ do not.
+  E <- Fp[Fp$skill == "E", ]
+  if (!any(!is.na(E$setter_call))) {
+    # Every file loaded, either side. Cal Poly's own coders fill the call
+    # in; the fixtures in data/ do not, and a film of somebody else may not.
+    AP <- data.table::rbindlist(lapply(matches, function(m) m$plays), fill = TRUE)
+    E <- AP[AP$skill == "E" & !is.na(AP$setter_call), ]
+  }
+  srq <- E[!is.na(E$setter_call) & !is.na(E$phase) & E$phase == "SR" &
+             !is.na(E$rot), ]
+  h <- paste(sr_calls_by_rot_card(E), collapse = "")
+  if (!nrow(srq)) {
+    ok("no called serve-receive set, no card", !nzchar(h))
+  } else {
+    ok("the card is on the setter tab",
+       grepl("Serve receive setter calls, by rotation",
+             paste(tab_setter(E, o, ck), collapse = ""), fixed = TRUE))
+    ok("it counts the called serve-receive sets and no others",
+       grepl(sprintf("only, %d of them", nrow(srq)), h, fixed = TRUE),
+       sprintf("%d of %d sets are called, in serve receive, with a rotation",
+               nrow(srq), nrow(E)))
+    tr <- sum(!is.na(E$setter_call) & !is.na(E$phase) & E$phase != "SR")
+    ok("and leaves transition out",
+       nrow(srq) + tr <= sum(!is.na(E$setter_call)),
+       sprintf("%d called in transition", tr))
+    key <- srq$setter_call
+    mp <- VM_SETTER_TO_SEASON[key]; key[!is.na(mp)] <- mp[!is.na(mp)]
+    rots <- sort(unique(srq$rot))
+    ok("a row per rotation she set in",
+       all(vapply(rots, function(r)
+         grepl(sprintf("<b>%s</b>", r), h, fixed = TRUE), TRUE)),
+       sprintf("%d rotations", length(rots)))
+    tab <- sort(table(key), decreasing = TRUE)
+    keep <- names(tab)[seq_len(min(6L, length(tab)))]
+    ok("each rotation's calls add back to its own count",
+       all(vapply(rots, function(r) {
+         k <- key[srq$rot == r]
+         sum(k %in% keep) + sum(!(k %in% keep)) == length(k)
+       }, TRUE)))
+    ok("and the columns are her commonest calls",
+       all(vapply(keep, function(kk)
+         grepl(sprintf(">%s <span", kk), h, fixed = TRUE) ||
+         grepl(sprintf(">%s</th>", kk), h, fixed = TRUE), TRUE)),
+       paste(keep, collapse = " "))
+  }
+})
+
 cat("\n== render\n")
 H <- render(o)
 for (nm in names(H)) {

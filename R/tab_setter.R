@@ -160,6 +160,9 @@ tab_setter <- function(F, o, coords_ok) {
   # Brought over from the retired Set origin tab, which this one absorbs.
   # It is the part of that page that never needed a coordinate on the set.
   R <- c(R, setter_calls_card(E))
+  # Beneath it, the same calls cut the way a scouting report is read: by the
+  # rotation about to come up, out of serve receive.
+  R <- c(R, sr_calls_by_rot_card(E))
 
   paste0(c(H, cols2(L, R, 520),
            note("Atk K% and Atk hit use VolleyStation's own attack formulas, applied to the attacks that followed these sets. Assist% and Set eff are conventions defined by this tool, not VolleyStation report columns: Assist% is kills per set attempted, Set eff is (kills − errors − blocks − ball-handling errors) / sets attempted, so it charges the setter for her own errors and for sets that produced no attack. Read them within one file, not against published numbers from elsewhere.")),
